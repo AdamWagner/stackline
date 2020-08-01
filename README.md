@@ -46,7 +46,7 @@ Enter stackline, which adds non-obtrusive visual indicators to yabai'e 's stacki
 
 **Prerequisites**
 
-1. https://github.com/koekeishiya/yabai ([install guide](http://https://github.com/koekeishiya/yabai/wiki/Installing-yabai-(latest-release))
+1. https://github.com/koekeishiya/yabai ([install guide](http://https://github.com/koekeishiya/yabai/wiki/Installing-yabai-(latest-release)))
 2. https://github.com/Hammerspoon/hammerspoon ([getting started guide](https://www.hammerspoon.org/go/))
 3. https://github.com/stedolan/jq (`brew install jq`)
 
@@ -89,7 +89,7 @@ echo 'require "stackline.stackline.core"' >> init.lua
 
 ### RETRO? GO! FIDO? GO! GUIDANCE…
 
-We're almost there! 
+We're almost there!
 
 ```sh
 # Launch yabai (or make sure it's running)
