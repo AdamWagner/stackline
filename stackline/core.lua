@@ -1,3 +1,4 @@
+local _ = require 'stackline.utils.utils'
 local Stack = require 'stackline.stackline.stack'
 local tut = require 'stackline.utils.table-utils'
 
@@ -6,19 +7,6 @@ local tut = require 'stackline.utils.table-utils'
 
 wsi = Stack:newStackManager()
 wf = hs.window.filter.default
-
-yabai_get_stacks = 'stackline/bin/yabai-get-stacks'
-
-function update_stack_data()
-    hs.task.new("/usr/local/bin/dash", wsi.ingest, {yabai_get_stacks}):start()
-end
-
-function update_stack_data_redraw()
-    -- _.pheader('stack update redraw called')
-    hs.task.new("/usr/local/bin/dash", function(_code, stdout, _stderr)
-        wsi.ingest(code, stdout, stderr, true)
-    end, {yabai_get_stacks}):start()
-end
 
 local win_added = {
     hs.window.filter.windowCreated,
@@ -30,11 +18,11 @@ local win_removed = {
     hs.window.filter.windowDestroyed,
     hs.window.filter.windowHidden,
     hs.window.filter.windowMinimized,
+    hs.window.filter.windowMoved,
 }
 
 -- NOTE: windowMoved captures movement OR resize events
 local win_changed = {
-    hs.window.filter.windowMoved,
     hs.window.filter.windowFocused,
     hs.window.filter.windowUnfocused,
     hs.window.filter.windowFullscreened,
@@ -43,6 +31,17 @@ local win_changed = {
 
 -- TODO: convert to use wsi.update method
 -- ./stack.lua:15
-wf:subscribe(tut.mergeArrays(win_added, win_changed), update_stack_data)
-wf:subscribe(win_removed, update_stack_data_redraw)
+local added_changed = tut.mergeArrays(win_added, win_changed)
+
+wf:subscribe(added_changed, (function(_win, _app, event)
+    _.pheader(event)
+    wsi:update()
+end))
+
+wf:subscribe(win_removed, (function(_win, _app, event)
+    _.pheader(event)
+    -- look(win)
+    -- print(app)
+    wsi:update(true)
+end))
 
