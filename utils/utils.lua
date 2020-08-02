@@ -302,6 +302,4 @@ function utils.pheader(str)
     print("========================================")
 end
 
--- local charset = {}
-
 return utils

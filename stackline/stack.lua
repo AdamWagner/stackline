@@ -6,35 +6,10 @@ local under = require 'stackline.utils.underscore'
 local Stack = {}
 
 -- TODO: include hs.task functionality from core.lua in the Stack module directly
--- local yabai_get_stacks = 'stackline/bin/yabai-get-stacks'
--- function Stack:update()
---     hs.task.new("/usr/local/bin/dash", Stack.ingest, {yabai_get_stacks}):start()
--- end
 
 function Stack:toggleIcons() -- {{{
     self.showIcons = not self.showIcons
-    self.update()
-end -- }}}
-
-function Stack:getLen() -- {{{
-    result = _.length(Stack:get())
-    return result
-end -- }}}
-
-function Stack:getState() -- {{{
-    if pcall(self.getLen, self) then
-        print("Success")
-        numStacks = self:getLen()
-
-        if numStacks > 0 then
-            local wAttrs = _.map(self:get(), function(stack)
-                return self:windowAttrs(stack, 'fillColor')
-            end)
-            -- _.p(wAttrs)
-        end
-    else
-        print("Failure")
-    end
+    Stack.update()
 end -- }}}
 
 function Stack:each_win_id(fn) -- {{{
@@ -67,7 +42,7 @@ end -- }}}
 
 -- NOTE: A window must be *in* a stack to be found with this method!
 function Stack:findWindow(wid) -- {{{
-    for idx, stack in pairs(self:get()) do
+    for _idx, stack in pairs(self.tabStacks) do
         extantWin = stack[wid]
         if extantWin then
             return extantWin
@@ -134,56 +109,47 @@ function Stack:newStack(stack, stackId) -- {{{
     end
 end -- }}}
 
-function Stack:ingest(stdout, shouldClean) -- {{{
-    -- hs.alert.show(hs.inspect(self.tabStacks))
-
-    print(stdout)
-    ws = hs.json.decode(stdout)
-    print('shouldClean: ', shouldClean, '\n')
-
-    if shouldClean then
-        Stack:cleanup()
-    end
-
-    Stack.win_str = tut.t2s(ws) -- convert table to a string to avoid traversal for simple check
-
-    -- Only keep the *stacks*, which are tables with > 1 entry
-    local groupedWins = hs.fnutils.filter(ws, function(windowGroup)
-        return #windowGroup > 1
-    end)
-
-    -- Track result and create a new tabStack for each
-    _.each(groupedWins, function(winGroup)
-        stackId = table.concat(_.map(winGroup, function(w)
+function Stack:ingest(windowData) -- {{{
+    _.each(windowData, function(winGroup)
+        local stackId = table.concat(_.map(winGroup, function(w)
             return w.id
         end), '')
-        -- print(stackId)
+        print(stackId)
         Stack:newStack(winGroup, stackId)
     end)
 end -- }}}
 
-function Stack:get()
-    return self.tabStacks
-end
+function Stack:update(shouldClean) -- {{{
+
+    _.pheader('value of "shouldClean:"')
+    _.p(shouldClean)
+    print('\n\n')
+    if shouldClean then
+        _.pheader('running cleanup')
+        Stack:cleanup()
+    end
+
+    local yabai_get_stacks = 'stackline/bin/yabai-get-stacks'
+
+    hs.task.new("/usr/local/bin/dash", function(_code, stdout)
+        local windowData = hs.json.decode(stdout)
+        Stack:ingest(windowData)
+    end, {yabai_get_stacks}):start()
+end -- }}}
 
 function Stack:newStackManager()
     self.tabStacks = {}
     self.showIcons = false
     return {
-        ingest = function(_code, stdout, _stderr, shouldClean)
-            return self:ingest(stdout, shouldClean)
+        ingest = function(windowData)
+            return self:ingest(windowData)
         end,
+        update = self.update,
         cleanup = function()
             return self:cleanup()
         end,
         toggleIcons = function()
             return self:toggleIcons()
-        end,
-        get = function()
-            return self:get()
-        end,
-        getState = function()
-            return self:getState()
         end,
         findWindow = function(wid)
             return self:findWindow(wid)
