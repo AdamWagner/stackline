@@ -45,3 +45,5 @@ wf:subscribe(win_removed, (function(_win, _app, event)
     wsi:update(true)
 end))
 
+require 'stackline.stackline.query'
+

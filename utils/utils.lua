@@ -266,28 +266,9 @@ function utils.deep_print(value, indent, no_newline)
     end
 end
 
-function utils.p(...)
-    -- Auto-inspect non-string values when printing for debugging:
-    -- Example 1:
-    --    p('# to be cleaned: ', table.length(self.tabStacks))
-    --    -> "# to be cleaned:  2"
-    -- Example 2:
-    --    p('keys be cleaned: ', table.keys(self.tabStacks)) 
-    --    -> "keys be cleaned: 	{ "6207671375", "63771631066207041183" }"
-
-    result = {}
-
-    -- How to handle variable arguments
-    -- https://www.lua.org/pil/5.2.html
-    for i = 1, select("#", ...) do
-        local x = select(i, ...)
-        if type(x) == 'string' then
-            table.insert(result, x)
-        else
-            table.insert(result, hs.inspect(x))
-        end
-    end
-    print(table.unpack(result), '\n')
+function utils.p(data, howDeep)
+    howDeep = howDeep or 3
+    print(hs.inspect(data, {depth = howDeep}))
 end
 
 function utils.pdivider(str)
@@ -300,6 +281,27 @@ function utils.pheader(str)
     print("========================================")
     print(string.upper(str), '==========')
     print("========================================")
+end
+
+-- FROM: https://github.com/pyrodogg/AdventOfCode/blob/1ff5baa57c0a6a86c40f685ba6ab590bd50c2148/2019/lua/util.lua#L149
+function utils.groupBy(t, f)
+    local res = {}
+    for _k, v in pairs(t) do
+        local g
+        if type(f) == 'function' then
+            g = f(v)
+        elseif type(f) == 'string' and v[f] ~= nil then
+            g = v[f]
+        else
+            error('Invalid group parameter [' .. f .. ']')
+        end
+
+        if res[g] == nil then
+            res[g] = {}
+        end
+        table.insert(res[g], v)
+    end
+    return res
 end
 
 return utils

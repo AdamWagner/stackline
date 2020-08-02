@@ -53,34 +53,6 @@ function Window.__eq(a, b) -- {{{
     return isEqual
 end -- }}}
 
--- metatable testing {{{
-local Test = {}
-function Test:new(name, age)
-    local test = {name = name, age = age}
-
-    local mmt = {
-        __add = function(a, b)
-            return a.age + b.age
-        end,
-        __eq = function(a, b)
-            return a.age == b.age
-        end,
-    }
-    setmetatable(test, mmt)
-    return test
-end
-
-local amy = Test:new('amy', 18)
-local adam = Test:new('adam', 33)
-local carl = Test:new('carl', 18)
-
-print('amy equals adam?', amy == adam)
-print('amy equals carl?', amy == carl)
-print('amy plus adam?', (amy + adam))
-print('amy plus carl?', (amy + carl))
-print('amy plus amy?', (amy + amy))
--- }}}
-
 -- TODO: ↑ Convert to .__eq metatable
 function Window:setNeedsUpdated(extant) -- {{{
     local isEqual = _.isEqual(existComp, currComp)
