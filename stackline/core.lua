@@ -18,6 +18,10 @@ local showIcons = getOrSet("showIcons", false)
 wsi = Stack:newStackManager(showIcons)
 
 local shouldRestack = tut.Set{
+    "application_terminated",
+    "application_launched",
+    "window_created",
+    "window_destroyed",
     "window_resized",
     "window_moved",
     "toggle_icons",
@@ -25,11 +29,7 @@ local shouldRestack = tut.Set{
 
 local shouldClean = tut.Set{
     "application_hidden",
-    "application_launched",
-    "application_terminated",
     "application_visible",
-    "window_created",
-    "window_destroyed",
     "window_deminimized",
     "window_minimized",
 }
