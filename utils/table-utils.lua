@@ -3,6 +3,7 @@
 local tostring = tostring
 local type = type
 local pairs = pairs
+local ipairs = ipairs
 local string = string
 local table = table
 local load = load
@@ -31,7 +32,7 @@ function t2s(t)
 	local result = {}
 	do
 		rL[rL.cL]._f,rL[rL.cL]._s,rL[rL.cL]._var = pairs(t)
-		--result[#result + 1] =  "{\n"..string.rep("\t",levels+1)		
+		--result[#result + 1] =  "{\n"..string.rep("\t",levels+1)
 		result[#result + 1] = "{"		-- Non pretty version
 		rL[rL.cL].t = t
 		while true do
@@ -119,7 +120,7 @@ function t2spp(t)
 	local result = {}
 	do
 		rL[rL.cL]._f,rL[rL.cL]._s,rL[rL.cL]._var = pairs(t)
-		result[#result + 1] =  "{\n"..string.rep("\t",levels+1)		
+		result[#result + 1] =  "{\n"..string.rep("\t",levels+1)
 		--result[#result + 1] = "{"		-- Non pretty version
 		rL[rL.cL].t = t
 		while true do
@@ -212,7 +213,7 @@ end
 -- nil, boolean, number, string, table
 -- The other three types (function, userdata and thread) get their tostring values stored and end up as a string ID.
 function t2sr(t)
-	if type(t) ~= 'table' then return nil, 'Expected table parameter' end 
+	if type(t) ~= 'table' then return nil, 'Expected table parameter' end
 	local rL = {cL = 1}	-- Table to track recursion into nested tables (cL = current recursion level)
 	rL[rL.cL] = {}
 	local tabIndex = {}	-- Table to store a list of tables indexed into a string and their variable name
@@ -278,7 +279,7 @@ function t2sr(t)
 					-- k is of the type function, userdata or thread
 					key = 't'..rL[rL.cL].tabIndex..'.'..tostring(k)
 					--rL[rL.cL].str = rL[rL.cL].str..'\\n'..key..'='
-					result[#result + 1] = "\n"..key.."="					
+					result[#result + 1] = "\n"..key.."="
 				end		-- if type(k)ends
 			end		-- if not k and rL.cL == 1 then ends
 			if key then
@@ -377,12 +378,21 @@ function mergeArrays(t1,t2,duplicates,isduplicate)
 		if add then
 			table.insert(t2, t1[i])
 		end
-	end	
+	end
 	return t2
 end
 
 -- Function to check whether value v is in array t1
 -- if equal is a given function then equal is called with a value from the table and the value to compare. If it returns true then the values are considered equal
+function contains(t1,v)
+	for i = 1,#t1 do
+		if t1[i] == v then
+			return true
+		end
+	end
+	return false	-- Value v not in t1
+end
+
 function inArray(t1,v,equal)
 	equal = (type(equal)=="function" and equal) or function(v1,v2)
 		return v1==v2
@@ -392,7 +402,6 @@ function inArray(t1,v,equal)
 			return i		-- Value v found in t1 at ith location
 		end
 	end
-	return false	-- Value v not in t1
 end
 
 function emptyTable(t)
@@ -446,7 +455,7 @@ function copyTable(t1,t2,full,map,tabDone)
 			end
 		else
 			-- type(v) = ="table"
-			if full then 
+			if full then
 				if type(k) == "table" then
 					local kp
 					if not tabDone[k] then
@@ -494,7 +503,7 @@ function compareTables(t1,t2,traversing)
 	end
 	traversing = traversing or {}
 	traversing[t1] = t2	-- t1 is being traversed to match it to t2
-	local donet2 = {}	-- To mark which keys are taken	
+	local donet2 = {}	-- To mark which keys are taken
 	for k,v in pairs(t1) do
 		--print(k,v)
 		if type(v) == "number" or type(v) == "string" or type(v) == "boolean" or type(v) == "function" or type(v) == "thread" or type(v) == "userdata" then
@@ -649,7 +658,7 @@ function diffTable(t1,t2,map,tabDone,diff)
 				end
 				keyTabs[kt1] = k
 				if t1[kt1] == nil or t1[kt1] ~= v then
-					diff[t1][kt1] = v 
+					diff[t1][kt1] = v
 					diffDirty = true
 				end
 			else	-- if type(k) == "table" then else
@@ -657,9 +666,9 @@ function diffTable(t1,t2,map,tabDone,diff)
 				if t1[k] ~= v then
 					diff[t1][k] = v
 					diffDirty = true
-				end				
+				end
 			end		-- if type(k) == "table" then ends
-		else	--if type(v) ~= "table" then	
+		else	--if type(v) ~= "table" then
 			-- v == "table"
 			if type(k) == "table" then
 				-- Both v and k are tables
@@ -712,7 +721,7 @@ function diffTable(t1,t2,map,tabDone,diff)
 				diffDirty = true
 			end
 		else
-			-- k is a table 
+			-- k is a table
 			-- get the t2 counterpart if it was found
 			if not keyTabs[k] then
 				diff[t1][k] = setnil
@@ -724,3 +733,8 @@ function diffTable(t1,t2,map,tabDone,diff)
 	return diffDirty and diff
 end
 
+function Set (list)
+  local set = {}
+  for _, l in ipairs(list) do set[l] = true end
+  return set
+end

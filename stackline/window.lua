@@ -43,12 +43,8 @@ function Window.__eq(a, b) -- {{{
     -- FIXME: unused as of 2020-07-31
     local t1 = a.id
     local t2 = b.id
-    print(a.id, a.focused)
-    print(t2, b.focused)
     local existComp = {id = a.id, frame = a.frameFlat, focused = a.focused}
     local currComp = {id = b.id, frame = b.frameFlat, focused = b.focused}
-    -- _.p('A Compare:', existComp)
-    -- _.p('B Compare:', currComp)
     local isEqual = _.isEqual(existComp, currComp)
     return isEqual
 end -- }}}
@@ -70,15 +66,15 @@ function Test:new(name, age)
     return test
 end
 
-local amy = Test:new('amy', 18)
-local adam = Test:new('adam', 33)
-local carl = Test:new('carl', 18)
+-- local amy = Test:new('amy', 18)
+-- local adam = Test:new('adam', 33)
+-- local carl = Test:new('carl', 18)
 
-print('amy equals adam?', amy == adam)
-print('amy equals carl?', amy == carl)
-print('amy plus adam?', (amy + adam))
-print('amy plus carl?', (amy + carl))
-print('amy plus amy?', (amy + amy))
+-- print('amy equals adam?', amy == adam)
+-- print('amy equals carl?', amy == carl)
+-- print('amy plus adam?', (amy + adam))
+-- print('amy plus carl?', (amy + carl))
+-- print('amy plus amy?', (amy + amy))
 -- }}}
 
 -- TODO: ↑ Convert to .__eq metatable
@@ -93,8 +89,9 @@ function Window:process(showIcons, currTabIdx) -- {{{
     local unfocused_color = {white = 0.9, alpha = 0.30}
     local focused_color = {white = 0.9, alpha = 0.99}
     local padding = 4
+    local iconPadding = 4
     local aspectRatio = 5
-    local size = 25
+    local size = 32
 
     local width = self.showIcons and size or (size / aspectRatio)
 
@@ -111,6 +108,13 @@ function Window:process(showIcons, currTabIdx) -- {{{
         y = ((currTabIdx - 1) * size * 1.1),
         w = width,
         h = size,
+    }
+
+    self.icon_rect = {
+        x = iconPadding,
+        y = self.indicator_rect.y + iconPadding,
+        w = self.indicator_rect.w - (iconPadding * 2),
+        h = self.indicator_rect.h - (iconPadding * 2),
     }
 
     self.color_opts = {
@@ -132,19 +136,20 @@ function Window:draw_indicator() -- {{{
     self.indicator = hs.canvas.new(self.canvas_frame)
 
     local width = self.indicator_rect.w
+    local radius = self.showIcons and (self.indicator_rect.w / 4.0) or 4.0
     self.indicator:appendElements({
         type = "rectangle",
         action = "fill",
         fillColor = self.color_opts.bg,
         frame = self.indicator_rect,
-        roundedRectRadii = {xRadius = 2.0, yRadius = 2.0},
+        roundedRectRadii = {xRadius = radius, yRadius = radius},
     })
 
     if self.showIcons then
         self.indicator:appendElements({
             type = "image",
             image = self:iconFromAppName(),
-            frame = self.indicator_rect,
+            frame = self.icon_rect,
             imageAlpha = self.color_opts.imageAlpha,
         })
     end
