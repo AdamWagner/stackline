@@ -171,7 +171,7 @@ Give a ⭐️ if you think (a fully functional version of) stackline would be us
 
 ## Thanks to contributors!
 
-All are welcome (actually, _please_ help us, 🤣️)! Feel free to dive in by opening an issue](https://github.com/AdamWagner/stackline/issues/new) or submitting a PR.
+All are welcome (actually, _please_ help us, 🤣️)! Feel free to dive in by opening an [issue](https://github.com/AdamWagner/stackline/issues/new) or submitting a PR.
 
 [@AdamWagner](https://github.com/AdamWagner) wrote the initial proof-of-concept (POC) for stackline.
 
@@ -179,7 +179,7 @@ All are welcome (actually, _please_ help us, 🤣️)! Feel free to dive in by o
 
 - After [@alin23](https://github.com/alin23)'s https://github.com/AdamWagner/stackline/pull/13, stackline sucks a lot less.
 
-[@zweck](gh-zweck), who, [in the same thread](https://github.com/koekeishiya/yabai/issues/203#issuecomment-656780281), got the gears turning about how [@alin23](gh-alin23)'s idea could be implemented and _also_ urged Adam to share his POC.
+[@zweck](https://github.com/zweck), who, [in the same thread](https://github.com/koekeishiya/yabai/issues/203#issuecomment-656780281), got the gears turning about how [@alin23](gh-alin23)'s idea could be implemented and _also_ urged Adam to share his POC.
 
 ### …on the shoulders of giants
 Thanks to [@koekeishiya](gh-koekeishiya) without whom the _wonderful_ [yabai](https://github.com/koekeishiya/yabai) would not exist, and projects like this would have no reason to exist.
