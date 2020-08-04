@@ -5,8 +5,6 @@ local under = require 'stackline.utils.underscore'
 
 local Stack = {}
 
--- TODO: include hs.task functionality from core.lua in the Stack module directly
-
 function Stack:toggleIcons() -- {{{
     self.showIcons = not self.showIcons
     Stack.update()
@@ -14,28 +12,17 @@ end -- }}}
 
 function Stack:each_win_id(fn) -- {{{
     _.each(self.tabStacks, function(stack)
-        -- hs.alert.show('running each win id')
-        _.pheader('stack')
-        -- _.p(stack)
-        -- _.p(under.values(stack))
         local winIds = _.map(under.values(stack), function(w)
             return w.id
         end)
-        print(hs.inspect(winIds))
 
         for i = 1, #winIds do
             -- ┌────────────────────┐
-            --     the main event! 
+            --     the main event!
             -- └────────────────────┘
             -- hs.alert.show(winIds[i])
 
             fn(winIds[i]) -- Call the `fn` provided with win ID
-
-            -- hs.alert.show('inside final loop')
-
-            -- DEBUG
-            print(hs.inspect(winIds))
-            -- print(winIds[i])
         end
     end)
 end -- }}}
@@ -51,21 +38,9 @@ function Stack:findWindow(wid) -- {{{
 end -- }}}
 
 function Stack:cleanup() -- {{{
-    _.p('# to be cleaned: ', _.length(self.tabStacks))
-    _.p('keys be cleaned: ', _.keys(self.tabStacks))
-
     for key, stack in pairs(self.tabStacks) do
-        -- DEBUG:
-        -- _.p(stack)
-        _.pheader('stack keys')
-        _.p(_.map(stack, function(w)
-            return _.pick(w, {'id', 'app'})
-        end))
-
         -- For each window, clear canvas element
         _.each(stack, function(w)
-            _.pheader('window indicator in cleanup')
-            print(w.indicator)
             w.indicator:delete()
         end)
 
@@ -74,8 +49,6 @@ function Stack:cleanup() -- {{{
 end -- }}}
 
 function Stack:newStack(stack, stackId) -- {{{
-    print('stack data #:', #stack)
-    print('stack ID: ', stackId)
     local extantStack = self.tabStacks[stackId]
     if not extantStack then
         self.tabStacks[stackId] = {}
@@ -83,11 +56,9 @@ function Stack:newStack(stack, stackId) -- {{{
 
     for k, w in pairs(stack) do
         if not extantStack then
-            print('First run')
             local win = Window:new(w)
             win:process(self.showIcons, k)
             win.indicator:show()
-            -- _.p(win)
             win.stackId = stackId -- set stackId on win for easy lookup later
             self.tabStacks[stackId][win.id] = win
 
@@ -97,11 +68,9 @@ function Stack:newStack(stack, stackId) -- {{{
 
             if (type(extantWin) == 'nil') or
                 not (extantWin.focused == win.focused) then
-                print('Needs updated:', extantWin.app)
                 extantWin.indicator:delete()
                 win:process(self.showIcons, k)
                 win.indicator:show()
-                -- _.p(win)
                 win.stackId = stackId -- set stackId on win for easy lookup later
                 self.tabStacks[stackId][win.id] = win
             end
@@ -114,32 +83,26 @@ function Stack:ingest(windowData) -- {{{
         local stackId = table.concat(_.map(winGroup, function(w)
             return w.id
         end), '')
-        print(stackId)
         Stack:newStack(winGroup, stackId)
     end)
 end -- }}}
 
 function Stack:update(shouldClean) -- {{{
-
-    _.pheader('value of "shouldClean:"')
-    _.p(shouldClean)
-    print('\n\n')
     if shouldClean then
-        _.pheader('running cleanup')
         Stack:cleanup()
     end
 
     local yabai_get_stacks = 'stackline/bin/yabai-get-stacks'
 
-    hs.task.new("/usr/local/bin/dash", function(_code, stdout)
+    hs.task.new("/bin/dash", function(_code, stdout)
         local windowData = hs.json.decode(stdout)
         Stack:ingest(windowData)
     end, {yabai_get_stacks}):start()
 end -- }}}
 
-function Stack:newStackManager()
+function Stack:newStackManager(showIcons)
     self.tabStacks = {}
-    self.showIcons = false
+    self.showIcons = showIcons
     return {
         ingest = function(windowData)
             return self:ingest(windowData)

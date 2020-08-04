@@ -1,47 +1,77 @@
-local _ = require 'stackline.utils.utils'
+require("hs.ipc")
+
 local Stack = require 'stackline.stackline.stack'
 local tut = require 'stackline.utils.table-utils'
 
--- This file is trash: lowercase globals, copy/paste duplication in
--- update_stack_data_redraw() just to pass 'shouldClean':true :(
+print(hs.settings.bundleID)
 
-wsi = Stack:newStackManager()
-wf = hs.window.filter.default
+function getOrSet(key, val)
+    local existingVal = hs.settings.get(key)
+    if existingVal == nil then
+        hs.settings.set(key, val)
+        return val
+    end
+    return existingVal
+end
 
-local win_added = {
-    hs.window.filter.windowCreated,
-    hs.window.filter.windowUnhidden,
-    hs.window.filter.windowUnminimized,
+local showIcons = getOrSet("showIcons", false)
+wsi = Stack:newStackManager(showIcons)
+
+local shouldRestack = tut.Set{
+    "application_terminated",
+    "application_launched",
+    "window_created",
+    "window_destroyed",
+    "window_resized",
+    "window_moved",
+    "toggle_icons",
 }
 
-local win_removed = {
-    hs.window.filter.windowDestroyed,
-    hs.window.filter.windowHidden,
-    hs.window.filter.windowMinimized,
-    hs.window.filter.windowMoved,
+local shouldClean = tut.Set{
+    "application_hidden",
+    "application_visible",
+    "window_deminimized",
+    "window_minimized",
 }
 
--- NOTE: windowMoved captures movement OR resize events
-local win_changed = {
-    hs.window.filter.windowFocused,
-    hs.window.filter.windowUnfocused,
-    hs.window.filter.windowFullscreened,
-    hs.window.filter.windowUnfullscreened,
-}
+function configHandler(_, msgID, msg)
+    if msgID == 900 then
+        return "version:2.0a"
+    end
 
--- TODO: convert to use wsi.update method
--- ./stack.lua:15
-local added_changed = tut.mergeArrays(win_added, win_changed)
+    if msgID == 500 then
+        key, value = msg:match(".+:([%a_-]+):([%a%d_-]+)")
+        if key == "toggle_icons" then
+            showIcons = not showIcons
+            hs.settings.set("showIcons", showIcons)
+        end
 
-wf:subscribe(added_changed, (function(_win, _app, event)
-    _.pheader(event)
-    wsi:update()
-end))
+        if shouldRestack[key] then
+            wsi.cleanup()
+            wsi = Stack:newStackManager(showIcons)
+        end
+        wsi.update(shouldClean[key])
+    end
+    return "ok"
+end
 
-wf:subscribe(win_removed, (function(_win, _app, event)
-    _.pheader(event)
-    -- look(win)
-    -- print(app)
-    wsi:update(true)
-end))
+function yabaiSignalHandler(_, msgID, msg)
+    if msgID == 900 then
+        return "version:2.0a"
+    end
 
+    if msgID == 500 then
+        event = msg:match(".+:([%a_]+)")
+
+        if shouldRestack[event] then
+            wsi.cleanup()
+            wsi = Stack:newStackManager(showIcons)
+        end
+        wsi.update(shouldClean[event])
+    end
+    return "ok"
+end
+
+
+ipcEventsPort = hs.ipc.localPort("stackline-events", yabaiSignalHandler)
+ipcConfigPort = hs.ipc.localPort("stackline-config", configHandler)

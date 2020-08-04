@@ -74,13 +74,7 @@ cmd + ctrl - right : yabai -m window east --stack $(yabai -m query --windows --w
 
 ```sh
 # Get the repo
-git clone https://github.com/AdamWagner/stackline.git ~/Downloads/stackline
-cd ~/Downloads/stackline
-
-# Symlink stackline modules to your hammerspoon config dir
-ln -sr ./stackline ~/.hammerspoon/stackline
-ln -sr ./utils ~/.hammerspoon/utils
-ln -sr ./bin ~/.hammerspoon/bin
+git clone https://github.com/AdamWagner/stackline.git ~/hammerspoon/stackline
 
 # Make stackline run when hammerspoon launches
 cd ~/.hammerspoon
