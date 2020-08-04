@@ -1,0 +1,32 @@
+#!/bin/dash
+
+STACKLINE_EVENTS="\
+    application_activated \
+    application_front_switched \
+    application_hidden \
+    application_launched \
+    application_terminated \
+    application_visible \
+    window_created \
+    window_deminimized \
+    window_focused \
+    window_minimized \
+    window_resized"
+
+yabai -m signal --add \
+    event="window_destroyed" \
+    label="stackline_window_destroyed" \
+    action="echo ':window_destroyed' | /usr/local/bin/hs -m stackline-events"
+yabai -m signal --add \
+    event="space_changed" \
+    label="stackline_space_changed" \
+    action="echo ':space_changed' | /usr/local/bin/hs -m stackline-events"
+
+for event in $STACKLINE_EVENTS
+do
+    yabai -m signal --add \
+        event="$event" \
+        label="stackline_$event" \
+        app!="Hammerspoon" \
+        action="echo ':$event' | /usr/local/bin/hs -m stackline-events"
+done

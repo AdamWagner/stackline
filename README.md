@@ -15,9 +15,6 @@ Currently, [stackline](https://github.com/AdamWagner/stackline) is a proof-of-co
 There is much crucial fuctionality that is either missing or broken. For example, stack indicators do not refresh when:
 
 1. the tree is rotated or mirrored
-2. updating padding or gap values
-3. a stacked window is warped out of the stack
-4. app icons are toggled on/off
 
 ## What is stackline & why do I need it?
 
@@ -69,17 +66,21 @@ cmd + ctrl - right : yabai -m window east --stack $(yabai -m query --windows --w
 ### Installing stackline
 
 1. Clone the repo into ~/.hammerspoon/stackline
-2. Install the hammerspoon cli tool
+2. Add stackline to your Hammerspoon init.lua file
 3. Add signals to ~/.yabairc
 
 #### 1. Clone the repo into ~/.hammerspoon/stackline
 
 ```sh
-# Get the repo
 git clone https://github.com/AdamWagner/stackline.git ~/.hammerspoon/stackline
+```
 
-# Make stackline run when hammerspoon launches
+#### 2. Add stackline to your Hammerspoon init.lua file
+
+```sh
 cd ~/.hammerspoon
+echo 'require("hs.ipc")' >> init.lua
+echo 'hs.ipc.cliInstall()' >> init.lua
 echo 'require "stackline.stackline.core"' >> init.lua
 ```
 
@@ -90,6 +91,7 @@ Now your `~/.hammerspoon` directory should look like this:
 ├── stackline
 │  ├── bin
 │  │  └── yabai-get-stacks
+│  │  └── yabai-add-signals
 │  ├── stackline
 │  │  ├── core.lua
 │  │  ├── stack.lua
@@ -103,48 +105,10 @@ Now your `~/.hammerspoon` directory should look like this:
 ```
 
 
-#### 2. Install the hammerspoon cli tool
-
-Open the hammerspoon console via the menu bar, type `hs.ipc.cliInstall()`, and hit return.
-
-Confirm that `hs` is now available:
-
-```sh
-❯ which hs
-/usr/local/bin/hs
-```
-
 #### 3. Add signals to ~/.yabairc
 
-Add signals to `~/.yabairc`:
-
 ```sh
-STACKLINE_EVENTS="\
-    application_activated \
-    application_front_switched \
-    application_hidden \
-    application_launched \
-    application_terminated \
-    application_visible \
-    window_created \
-    window_deminimized \
-    window_focused \
-    window_minimized \
-    window_resized"
-
-yabai -m signal --add \
-    event="window_destroyed" \
-    label="stackline_window_destroyed" \
-    action="echo ':window_destroyed' | /usr/local/bin/hs -m stackline-events"
-
-for event in $STACKLINE_EVENTS
-do
-    yabai -m signal --add \
-        event="$event" \
-        label="stackline_$event" \
-        app!="Hammerspoon" \
-        action="echo ':$event' | /usr/local/bin/hs -m stackline-events"
-done
+echo '$HOME/.hammerspoon/stackline/yabai-add-signals' >> ~/.yabairc
 ```
 
 ### RETRO? GO! FIDO? GO! GUIDANCE…

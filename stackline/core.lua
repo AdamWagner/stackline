@@ -20,6 +20,7 @@ wsi = Stack:newStackManager(showIcons)
 local shouldRestack = tut.Set{
     "application_terminated",
     "application_launched",
+    "space_changed",
     "window_created",
     "window_destroyed",
     "window_resized",
@@ -64,6 +65,8 @@ function yabaiSignalHandler(_, msgID, msg)
         event = msg:match(".+:([%a_]+)")
 
         if shouldRestack[event] then
+            print(string.format("Recreating the stack because of yabai event: %s", event))
+
             wsi.cleanup()
             wsi = Stack:newStackManager(showIcons)
         end
