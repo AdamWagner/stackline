@@ -81,6 +81,56 @@ cd ~/.hammerspoon
 echo 'require "stackline.stackline.core"' >> init.lua
 ```
 
+Now your `~/.hammerspoon` directory should look like this:
+
+```
+├── init.lua
+├── stackline
+│  ├── bin
+│  │  └── yabai-get-stacks
+│  ├── stackline
+│  │  ├── core.lua
+│  │  ├── stack.lua
+│  │  └── window.lua
+│  └── utils
+│     ├── flatten.lua
+│     ├── table-utils.lua
+│     ├── underscore.lua
+│     └── utils.lua
+├── …
+```
+
+Add signals to `~/.yabairc`:
+
+```sh 
+STACKLINE_EVENTS="\
+    application_activated \
+    application_front_switched \
+    application_hidden \
+    application_launched \
+    application_terminated \
+    application_visible \
+    window_created \
+    window_deminimized \
+    window_focused \
+    window_minimized \
+    window_resized"
+
+yabai -m signal --add \
+    event="window_destroyed" \
+    label="stackline_window_destroyed" \
+    action="echo ':window_destroyed' | /usr/local/bin/hs -m stackline-events"
+
+for event in $STACKLINE_EVENTS
+do
+    yabai -m signal --add \
+        event="$event" \
+        label="stackline_$event" \
+        app!="Hammerspoon" \
+        action="echo ':$event' | /usr/local/bin/hs -m stackline-events"
+done
+```
+
 ### RETRO? GO! FIDO? GO! GUIDANCE…
 
 We're almost there!
@@ -115,7 +165,9 @@ All are welcome (actually, _please_ help us, 🤣️)! Feel free to dive in by o
 
 [@AdamWagner](https://github.com/AdamWagner) wrote the initial proof-of-concept (POC) for stackline.
 
-[@alin23](gh-alin23), initially proposed the [concept for stackline here](https://github.com/koekeishiya/yabai/issues/203#issuecomment-652948362) and encouraged [@AdamWagner](https://github.com/AdamWagner) to share this mostly-broken POC publicly.
+[@alin23](https://github.com/alin23), initially proposed the [concept for stackline here](https://github.com/koekeishiya/yabai/issues/203#issuecomment-652948362) and encouraged [@AdamWagner](https://github.com/AdamWagner) to share this mostly-broken POC publicly. 
+
+- After [@alin23](https://github.com/alin23)'s https://github.com/AdamWagner/stackline/pull/13, stackline sucks a lot less.
 
 [@zweck](gh-zweck), who, [in the same thread](https://github.com/koekeishiya/yabai/issues/203#issuecomment-656780281), got the gears turning about how [@alin23](gh-alin23)'s idea could be implemented and _also_ urged Adam to share his POC.
 
