@@ -1,3 +1,6 @@
+-- OTHERS ----------------------------------------------------------------------
+-- https://github.com/luapower/glue/blob/master/glue.lua
+-- -----------------------------------------------------------------------------
 utils = {}
 
 utils.map = hs.fnutils.map
@@ -227,8 +230,8 @@ function utils.print_r(root)
                 local new_key = name .. "." .. key
                 cache[v] = new_key
                 tinsert(temp, "+" .. key ..
-                            _dump(v, space .. (next(t, k) and "|" or " ") ..
-                                      srep(" ", #key), new_key))
+                    _dump(v, space .. (next(t, k) and "|" or " ") ..
+                        srep(" ", #key), new_key))
             else
                 tinsert(temp, "+" .. key .. " [" .. tostring(v) .. "]")
             end
@@ -302,6 +305,21 @@ function utils.groupBy(t, f)
         table.insert(res[g], v)
     end
     return res
+end
+
+function utils.tableCopyShallow(orig)
+    -- FROM: https://github.com/XavierCHN/go/blob/master/game/go/scripts/vscripts/utils/table.lua
+    local orig_type = type(orig)
+    local copy
+    if orig_type == 'table' then
+        copy = {}
+        for orig_key, orig_value in pairs(orig) do
+            copy[orig_key] = orig_value
+        end
+    else -- number, string, boolean, etc
+        copy = orig
+    end
+    return copy
 end
 
 return utils
