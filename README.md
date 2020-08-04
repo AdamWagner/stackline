@@ -153,6 +153,16 @@ Did the terminal window expand to cover the area previously occupied by Safari? 
 
 ![stackline setup 01](assets/stackline-setup-01@2x.png)
 
+The default stack indicator style is a "pill" as seen ↑
+To toggle icons:
+
+```sh 
+ echo ":toggle_icons:1" | hs -m stackline-config
+```
+
+![stackline setup 02](assets/stackline-icon-indicators.png)
+
+Image (and feature!) courtesy of [@alin23](https://github.com/alin23).
 
 ## Help us get to v1.0.0!
 
