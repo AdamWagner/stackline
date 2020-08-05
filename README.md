@@ -68,9 +68,15 @@ cmd + ctrl - right : yabai -m window east --stack $(yabai -m query --windows --w
 
 ### Installing stackline
 
+1. Clone the repo into ~/.hammerspoon/stackline
+2. Install the hammerspoon cli tool
+3. Add signals to ~/.yabairc
+
+#### 1. Clone the repo into ~/.hammerspoon/stackline
+
 ```sh
 # Get the repo
-git clone https://github.com/AdamWagner/stackline.git ~/hammerspoon/stackline
+git clone https://github.com/AdamWagner/stackline.git ~/.hammerspoon/stackline
 
 # Make stackline run when hammerspoon launches
 cd ~/.hammerspoon
@@ -95,6 +101,20 @@ Now your `~/.hammerspoon` directory should look like this:
 │     └── utils.lua
 ├── …
 ```
+
+
+#### 2. Install the hammerspoon cli tool
+
+Open the hammerspoon console via the menu bar, type `hs.ipc.cliInstall()`, and hit return.
+
+Confirm that `hs` is now available:
+
+```sh
+❯ which hs
+/usr/local/bin/hs
+```
+
+#### 3. Add signals to ~/.yabairc
 
 Add signals to `~/.yabairc`:
 
@@ -174,6 +194,8 @@ All are welcome (actually, _please_ help us, 🤣️)! Feel free to dive in by o
 [@alin23](https://github.com/alin23), initially proposed the [concept for stackline here](https://github.com/koekeishiya/yabai/issues/203#issuecomment-652948362) and encouraged [@AdamWagner](https://github.com/AdamWagner) to share this mostly-broken POC publicly.
 
 - After [@alin23](https://github.com/alin23)'s https://github.com/AdamWagner/stackline/pull/13, stackline sucks a lot less.
+
+Thanks to [@johnallen3d](https://github.com/johnallen3d) for being one the first folks to install stackline, and for identifying several mistakes & gaps in the setup instructions. 
 
 [@zweck](https://github.com/zweck), who, [in the same thread](https://github.com/koekeishiya/yabai/issues/203#issuecomment-656780281), got the gears turning about how [@alin23](gh-alin23)'s idea could be implemented and _also_ urged Adam to share his POC.
 
