@@ -10,9 +10,7 @@
 
 ## ⚠️  WARNING: THIS IS A PROOF-OF-CONCEPT
 
-Feel free to try it out and open issues / PRs, but using stackline full-time is not recommended (yet).
-
-As of 2020-08-01, https://github.com/AdamWagner/stackline is a proof-of-concept for visualizing the # of windows in a stack & the currently active window. 
+Currently, [stackline](https://github.com/AdamWagner/stackline) is a proof-of-concept for visualizing the total number and status of stacked windows. Feel free to try it out and open [issues](https://github.com/AdamWagner/stackline/issues) / PRs, but using stackline full-time is not recommended (yet).
 
 There is much crucial fuctionality that is either missing or broken. For example, stack indicators do not refresh when:
 
@@ -21,23 +19,21 @@ There is much crucial fuctionality that is either missing or broken. For example
 3. a stacked window is warped out of the stack
 4. app icons are toggled on/off
 
-
-
 ## What is stackline & why do I need it?
 
-Consider a browser window with many tabs. 
+Consider a browser window with many tabs.
 
 A tabbed user interface consists of a collection of windows that occupy the same screen space. Only _one_ tabbed window may be visible at any given time, and it's the user's job to specify the 'active' window.
 
 To enable this task, tabbed interfaces provide visual indicators for each tab, each occupying much less space than the tab it references, which enables all indicators to be visible at all times. Each indicator _identifies the contents of a window_ & _communicates its position relative to the active window_.
 
-A 'stack' provides a generalized subset of the functionality provided by tabbed user interfaces: it enables multiple to windows to occupy the same screen space, and provides mechanisms to navigate its member windows. It also provides mechanisms to add & remove windows from the stack. 
+A 'stack' provides a generalized subset of the functionality provided by tabbed user interfaces: it enables multiple to windows to occupy the same screen space, and provides mechanisms to navigate its member windows. It also provides mechanisms to add & remove windows from the stack.
 
 Critically for stackline, a 'stack' does not provide the visual indicators necessary to identify how many windows belong to a stack or understand the relative position of the active window within the stack.
 
-Stacks are a recent addition (June 2020) to the (_excellent!_) macOS tiling window manager https://github.com/koekeishiya/yabai. The author has stated that he does not have plans to build stack indicators into yabai itself. 
+Stacks are a recent addition (June 2020) to the (_excellent!_) macOS tiling window manager [koekeishiya/yabai,](https://github.com/koekeishiya/yabai,) and visualization UI is not yet in-the-box.
 
-Enter stackline, which adds non-obtrusive visual indicators to yabai'e 's stacking functionality.  
+Enter stackline, which adds non-obtrusive visual indicators to yabai's stacking functionality.
 
 ![stackline-demo](assets/stackline-demo.gif)
 
@@ -52,12 +48,12 @@ Enter stackline, which adds non-obtrusive visual indicators to yabai'e 's stacki
 
 
 You're free to bind yabai commands using your favorite key remapper tool
-(skhd, karabiner elements, and even hammerspoon are all viable options). 
+(skhd, karabiner elements, and even hammerspoon are all viable options).
 
 That said, you're _probably_ using https://github.com/koekeishiya/skhd. If so,
 now is a good time to map keys for navigating and manipulating yabai stacks.
 
-```sh 
+```sh
 # Focus window up/down in stack
 ctrl - n : yabai -m window --focus stack.next
 ctrl - p : yabai -m window --focus stack.prev
@@ -102,7 +98,7 @@ Now your `~/.hammerspoon` directory should look like this:
 
 Add signals to `~/.yabairc`:
 
-```sh 
+```sh
 STACKLINE_EVENTS="\
     application_activated \
     application_front_switched \
@@ -156,7 +152,7 @@ Did the terminal window expand to cover the area previously occupied by Safari? 
 The default stack indicator style is a "pill" as seen ↑
 To toggle icons:
 
-```sh 
+```sh
  echo ":toggle_icons:1" | hs -m stackline-config
 ```
 
@@ -175,7 +171,7 @@ All are welcome (actually, _please_ help us, 🤣️)! Feel free to dive in by o
 
 [@AdamWagner](https://github.com/AdamWagner) wrote the initial proof-of-concept (POC) for stackline.
 
-[@alin23](https://github.com/alin23), initially proposed the [concept for stackline here](https://github.com/koekeishiya/yabai/issues/203#issuecomment-652948362) and encouraged [@AdamWagner](https://github.com/AdamWagner) to share this mostly-broken POC publicly. 
+[@alin23](https://github.com/alin23), initially proposed the [concept for stackline here](https://github.com/koekeishiya/yabai/issues/203#issuecomment-652948362) and encouraged [@AdamWagner](https://github.com/AdamWagner) to share this mostly-broken POC publicly.
 
 - After [@alin23](https://github.com/alin23)'s https://github.com/AdamWagner/stackline/pull/13, stackline sucks a lot less.
 
@@ -184,7 +180,7 @@ All are welcome (actually, _please_ help us, 🤣️)! Feel free to dive in by o
 ### …on the shoulders of giants
 Thanks to [@koekeishiya](gh-koekeishiya) without whom the _wonderful_ [yabai](https://github.com/koekeishiya/yabai) would not exist, and projects like this would have no reason to exist.
 
-Similarly, thanks to [@dominiklohmann](https://github.com/dominiklohmann), who has helped _so many people_ make chunkwm/yabai "do the thing" they want, that I seriously doubt either project would enjoy the vibrant user bases they do today.
+Similarly, thanks to [@dominiklohmann](https://github.com/dominiklohmann), who has helped _so many people_ make chunkwm/yabai "do the thing" they want and provides great feedback on new and proposed yabai features.
 
 Finally, thanks to [@cmsj](https://github.com/cmsj), [@asmagill](https://github.com/asmagill), and all of the contributors to [hammerspoon](https://github.com/Hammerspoon/hammerspoon) for opening up macOS APIs to all of us!
 
