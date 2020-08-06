@@ -89,17 +89,19 @@ function Window:process(Icons) -- {{{
     local unfocused_color = {white = 0.9, alpha = 0.30}
     local focused_color = {white = 0.9, alpha = 0.99}
     local padding = 4
+    local iconPadding = 4
     local aspectRatio = 5
-    local size = 25
+    local size = 32
+
+    local offsetY = 2
+    local offsetX = 4
 
     local width = showIcons and size or (size / aspectRatio)
-
     local currTabIdx = self.stackIdx
-    local xval = self.frame.x - (width + padding)
 
     self.canvas_frame = {
-        x = xval,
-        y = self.frame.y + 2,
+        x = self.frame.x - (width + offsetX),
+        y = self.frame.y + offsetY,
         w = self.frame.w,
         h = self.frame.h,
     }
@@ -109,6 +111,13 @@ function Window:process(Icons) -- {{{
         y = ((currTabIdx - 1) * size * 1.1),
         w = width,
         h = size,
+    }
+
+    self.icon_rect = {
+        x = iconPadding,
+        y = self.indicator_rect.y + iconPadding,
+        w = self.indicator_rect.w - (iconPadding * 2),
+        h = self.indicator_rect.h - (iconPadding * 2),
     }
 
     local focused = self:isFocused()
@@ -135,23 +144,29 @@ function Window:draw_indicator() -- {{{
 
     self.indicator = hs.canvas.new(self.canvas_frame)
 
+    local showIcons = wsi.getShowIconsState()
     local width = self.indicator_rect.w
+
+    -- TODO: configurable roundness radius for icons & pills
+    local radius = showIcons and (self.indicator_rect.w / 4.0) or 3.0
+
     self.indicator:appendElements{
         type = "rectangle",
         action = "fill",
         fillColor = self.color_opts.bg,
         frame = self.indicator_rect,
-        roundedRectRadii = {xRadius = 2.0, yRadius = 2.0},
+        roundedRectRadii = {xRadius = radius, yRadius = radius},
     }
 
-    if wsi.getShowIconsState() then
+    if showIcons then
         self.indicator:appendElements{
             type = "image",
             image = self:iconFromAppName(),
-            frame = self.indicator_rect,
+            frame = self.icon_rect,
             imageAlpha = self.color_opts.imageAlpha,
         }
     end
+
     self.indicator:show()
 end -- }}}
 
