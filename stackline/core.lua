@@ -1,22 +1,30 @@
+require("hs.ipc")
+
 local _ = require 'stackline.utils.utils'
 local Stack = require 'stackline.stackline.stack'
 local tut = require 'stackline.utils.table-utils'
 
--- This file is trash: lowercase globals, copy/paste duplication in
--- update_stack_data_redraw() just to pass 'shouldClean':true :(
-
--- CHANGELOG:
--- DONE: convert to use wsi.update method
+function getOrSet(key, val)
+    local existingVal = hs.settings.get(key)
+    if existingVal == nil then
+        hs.settings.set(key, val)
+        return val
+    end
+    return existingVal
+end
 
 local wf = hs.window.filter
 
-wsi = Stack:newStackManager()
+local showIcons = getOrSet("showIcons", false)
+
+wsi = Stack:newStackManager(showIcons)
 
 local win_added = { -- {{{
     wf.windowCreated,
     wf.windowUnhidden,
     wf.windowUnminimized,
 } -- }}}
+
 local win_changed = { -- {{{
 
     -- TODO: rather than subscribing to windowFocused here, do it only for
