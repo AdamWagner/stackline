@@ -86,42 +86,49 @@ end -- }}}
 function Window:setupIndicator(Icons) -- {{{
     -- Config
     local showIcons = wsi.getShowIconsState()
+
+    -- Color
     self.unfocused_color = {white = 0.9, alpha = 0.30}
     self.focused_color = {white = 0.9, alpha = 0.99}
+
+    -- Padding
     self.padding = 4
     self.iconPadding = 4
-    self.aspectRatio = 5
+
+    -- Size
+    self.aspectRatio = 6 -- determines width of pills when showIcons = false
     self.size = 32
+    self.width = showIcons and self.size or (self.size / self.aspectRatio)
 
+    -- Position
     self.offsetY = 2
-    self.offsetX = 4
+    self.offsetX = 2
 
-    self.width = showIcons and size or (size / aspectRatio)
-    self.currTabIdx = self.stackIdx
+    -- Roundness
+    self.indicatorRadius = 3
+    self.iconRadius = self.width / 4.0
 
     self.canvas_frame = {
-        x = self.frame.x - (width + offsetX),
-        y = self.frame.y + offsetY,
+        x = self.frame.x - (self.width + self.offsetX),
+        y = self.frame.y + self.offsetY,
         w = self.frame.w,
         h = self.frame.h,
     }
 
+    -- NOTE: self.stackIdx comes from yabai
     self.indicator_rect = {
         x = 0,
-        y = ((currTabIdx - 1) * size * 1.1),
-        w = width,
-        h = size,
+        y = ((self.stackIdx - 1) * self.size * 1.1),
+        w = self.width,
+        h = self.size,
     }
 
     self.icon_rect = {
-        x = iconPadding,
-        y = self.indicator_rect.y + iconPadding,
-        w = self.indicator_rect.w - (iconPadding * 2),
-        h = self.indicator_rect.h - (iconPadding * 2),
+        x = self.iconPadding,
+        y = self.indicator_rect.y + self.iconPadding,
+        w = self.indicator_rect.w - (self.iconPadding * 2),
+        h = self.indicator_rect.h - (self.iconPadding * 2),
     }
-
-    self:drawIndicator()
-
 end -- }}}
 
 function Window:iconFromAppName() -- {{{
@@ -130,22 +137,18 @@ function Window:iconFromAppName() -- {{{
 end -- }}}
 
 function Window:drawIndicator() -- {{{
+    local showIcons = wsi.getShowIconsState()
+    local radius = showIcons and self.iconRadius or self.indicatorRadius
+    local focused = self:isFocused()
+
     -- print('calling drawIndicator for window', self.app, self.id)
     if self.indicator then
         self.indicator:delete()
     end
-
     self.indicator = hs.canvas.new(self.canvas_frame)
 
-    local showIcons = wsi.getShowIconsState()
-    local width = self.indicator_rect.w
-
-    -- TODO: configurable roundness radius for icons & pills
-    local radius = showIcons and (self.indicator_rect.w / 4.0) or 3.0
-    local focused = self:isFocused()
-
     self.colorOpts = {
-        bg = focused and focused_color or unfocused_color,
+        bg = focused and self.focused_color or self.unfocused_color,
         canvasAlpha = focused and 1 or 0.2,
         imageAlpha = focused and 1 or 0.4,
     }

@@ -3,19 +3,7 @@ require("hs.ipc")
 local _ = require 'stackline.utils.utils'
 local Stack = require 'stackline.stackline.stack'
 local tut = require 'stackline.utils.table-utils'
-
-function getOrSet(key, val)
-    local existingVal = hs.settings.get(key)
-    if existingVal == nil then
-        hs.settings.set(key, val)
-        return val
-    end
-    return existingVal
-end
-
 local wf = hs.window.filter
-
-local showIcons = getOrSet("showIcons", false)
 
 wsi = Stack:newStackManager(showIcons)
 
@@ -26,19 +14,9 @@ local win_added = { -- {{{
 } -- }}}
 
 local win_changed = { -- {{{
-
-    -- TODO: rather than subscribing to windowFocused here, do it only for
-    -- windows within a stack. This will shorten the update process for focus
-    -- changes, since we *only* need to update the indicators, not query for new
-    -- window state entirely.
-    -- wf.windowFocused,
-    -- wf.windowUnfocused,
-
     wf.windowFullscreened,
     wf.windowUnfullscreened,
-
-    -- NOTE: windowMoved captures movement OR resize events
-    wf.windowMoved,
+    wf.windowMoved, -- NOTE: windowMoved captures movement OR resize events
 } -- }}}
 
 -- combine added & changed events
@@ -90,50 +68,41 @@ wsi.update()
 -- │ Update indicators subscriptions │
 -- └─────────────────────────────────┘
 
-function indicatorActivate(hsWin) -- {{{
+-- DONE: rather than subscribing to windowFocused here, do it only for
+-- windows within a stack. This will shorten the update process for focus
+-- changes, since we *only* need to update the indicators, not query for new
+-- window state entirely.
+-- wf.windowFocused,
+-- wf.windowUnfocused,
+
+-- DONE: Parameterize Activate / Deactivate by reading event
+
+function redrawWinIndicator(hsWin, appName, event)
     local id = hsWin:id()
-    print('Focused', hsWin:application():name(), id)
+    print(event:gsub('window', ''), appName, id)
 
-    local win = wsi.findWindow(id)
+    -- Lookup *stacked* window by ID
+    -- If not found, then the focused/unfocused window is not stacked, 
+    -- and this is a no-op.
+    local stackedWin = wsi.findWindow(id)
+    if stackedWin then -- if not found, then focused win is not stacked
+        -- -- DEBUG {{{
+        -- print('found window:', win.id)
+        -- print('indicator:', win.indicator, '\n\n')
+        -- print('Focused curr focus', win:isFocused())
+        -- -- }}}
+        stackedWin:drawIndicator()
+    end
+end
 
-    -- DEBUG {{{
-    -- print('found window:', win.id)
-    -- print('indicator:', win.indicator, '\n\n')
-    -- print('Focused curr focus', win:isFocused())
-    -- }}}
-
-    -- NOTE: redraws indicator
-    -- TODO: rename win:process() to improve clarity!
-    win:process()
-
-    -- NOTE: experiment to keep indicators in sync despite HS bug in which
-    -- windowUnfocused is not called when switching between two windows of the
-    -- same app :<
-    -- https://github.com/Hammerspoon/hammerspoon/issues/2400
-    -- wsi.redrawAllIndicators()
-end -- }}}
-
-function indicatorDeactivate(hsWin) -- {{{
-    local id = hsWin:id()
-    print('Unfocused', hsWin:application():name(), id)
-
-    local win = wsi.findWindow(id)
-
-    -- DEBUG {{{
-    -- print('found window:', win.id)
-    -- print('Unfocused curr focus', win:isFocused())
-    -- print('indicator:', win.indicator, '\n\n')
-    -- }}}
-
-    -- NOTE: redraws indicator
-    -- TODO: rename win:process() to improve clarity!
-    win:process()
-end -- }}}
-
-wfd:subscribe(wf.windowFocused, indicatorActivate)
+wfd:subscribe(wf.windowFocused, redrawWinIndicator)
+wfd:subscribe({wf.windowNotVisible, wf.windowUnfocused}, redrawWinIndicator)
 
 -- HS BUG! windowUnfocused is not called when switching between windows of the
 -- same app - it's ONLY called when switching between windows of different apps
 -- https://github.com/Hammerspoon/hammerspoon/issues/2400
-wfd:subscribe({wf.windowNotVisible, wf.windowUnfocused}, indicatorDeactivate)
+
+-- I tried an experiment to redraw all indicators inside `redrawWinIndicator()`
+-- every time, but it slowed down changing win focus A LOT:
+-- wsi.redrawAllIndicators()
 

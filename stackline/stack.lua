@@ -1,16 +1,22 @@
+-- Utils
+-- TODO: consolidate these utils!
 local _ = require 'stackline.utils.utils'
-local Window = require 'stackline.stackline.window'
-local u = require 'stackline.utils.underscore'
-local tut = require 'stackline.utils.table-utils'
-local under = require 'stackline.utils.underscore'
+-- local u = require 'stackline.utils.underscore'
+-- local tut = require 'stackline.utils.table-utils'
+-- local under = require 'stackline.utils.underscore'
 
+-- stackline modules
 local query = require 'stackline.stackline.WIP-query'
 
+-- TODO: add proper logging
 -- local log = hs.logger.new('[stack]', 'debug')
 
--- shortcuts
+-- Convenience aliases
 local map = hs.fnutils.map
 
+-- ┌──────────────┐
+-- │ Stack module │
+-- └──────────────┘
 local Stack = {}
 
 function Stack:toggleIcons() -- {{{
@@ -19,9 +25,10 @@ function Stack:toggleIcons() -- {{{
 end -- }}}
 
 function Stack:redrawIndicator(win) -- {{{
-    -- NOTE: to be given Stack:eachWin() as argument
+    -- USAGE: pass this func to Stack:eachWin()
     print('calling redraw indicator')
-    win:process()
+    win:setupIndicator()
+    win:drawIndicator()
 end -- }}}
 
 function Stack:eachWin(fn) -- {{{
@@ -38,41 +45,15 @@ function Stack:redrawAllIndicators()
     end)
 end
 
--- function Stack:each_win_id(fn) -- {{{
---     _.each(self.tabStacks, function(stack)
---         -- hs.alert.show('running each win id')
---         -- _.pheader('stack')
---         -- _.p(stack)
---         -- _.p(under.values(stack))
---         local winIds = _.map(under.values(stack), function(w)
---             return w.id
---         end)
---         -- print(hs.inspect(winIds))
-
---         for i = 1, #winIds do
---             -- ┌────────────────────┐
---             --     the main event! 
---             -- └────────────────────┘
---             -- hs.alert.show(winIds[i])
-
---             fn(winIds[i]) -- Call the `fn` provided with win ID
-
---             -- hs.alert.show('inside final loop')
-
---             -- DEBUG
---             -- print(hs.inspect(winIds))
---             -- print(winIds[i])
---         end
---     end)
--- end -- }}}
-
 function Stack:findWindow(wid) -- {{{
     -- NOTE: A window must be *in* a stack to be found with this method!
     -- print('…searching for win id:', wid)
     for _stackId, stack in pairs(self.tabStacks) do
+        -- print('searching', #stack, 'windows in stackID', _stackId)
         for _idx, win in pairs(stack) do
             -- print('curr win id:', win.id)
             if win.id == wid then
+                -- print('found window', win.id)
                 return win
             end
         end
@@ -168,42 +149,12 @@ function Stack:ingest(windowData) -- {{{
 end -- }}}
 
 function Stack:update(shouldClean) -- {{{
-    if shouldClean then -- {{{
+    if shouldClean then
         _.pheader('running cleanup')
         Stack:cleanup()
-    end -- }}}
+    end
 
     query:windowsCurrentSpace() -- calls Stack:ingest when ready
-    -- Stack:ingest(newState)
-
-    -- DEBUG {{{
-    -- print('\n\n\n\n')
-    -- _.pheader('self.tabStack after update')
-    -- self:get()
-    -- _.pheader('focused windows')
-    -- _.p(map(self:get(), function(stack)
-    --     _.each(stack, function(w)
-    --         print(w.id, ' is ', w.focused)
-    --     end)
-    -- end))
-    -- print('\n\n\n\n')
-
-    -- OLD ---------------------------------------------------------------------
-    -- -- _.pheader('value of "shouldClean:"')
-    -- -- _.p(shouldClean)
-    -- -- print('\n\n')
-    -- if shouldClean then
-    --     _.pheader('running cleanup')
-    --     Stack:cleanup()
-    -- end
-
-    -- local yabai_get_stacks = 'stackline/bin/yabai-get-stacks'
-
-    -- hs.task.new("/usr/local/bin/dash", function(_code, stdout)
-    --     local windowData = hs.json.decode(stdout)
-    --     Stack:ingest(windowData)
-    -- end, {yabai_get_stacks}):start() }}}
-
 end -- }}}
 
 function Stack:get(shouldPrint) -- {{{
@@ -213,7 +164,7 @@ function Stack:get(shouldPrint) -- {{{
     return self.tabStacks
 end -- }}}
 
-function Stack:getShowIconsState(Print) -- {{{
+function Stack:getShowIconsState() -- {{{
     return self.showIcons
 end -- }}}
 
