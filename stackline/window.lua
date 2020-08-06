@@ -83,21 +83,21 @@ function Window:setNeedsUpdated(extant) -- {{{
     self.needsUpdated = not isEqual
 end -- }}}
 
-function Window:process(Icons) -- {{{
+function Window:setupIndicator(Icons) -- {{{
     -- Config
     local showIcons = wsi.getShowIconsState()
-    local unfocused_color = {white = 0.9, alpha = 0.30}
-    local focused_color = {white = 0.9, alpha = 0.99}
-    local padding = 4
-    local iconPadding = 4
-    local aspectRatio = 5
-    local size = 32
+    self.unfocused_color = {white = 0.9, alpha = 0.30}
+    self.focused_color = {white = 0.9, alpha = 0.99}
+    self.padding = 4
+    self.iconPadding = 4
+    self.aspectRatio = 5
+    self.size = 32
 
-    local offsetY = 2
-    local offsetX = 4
+    self.offsetY = 2
+    self.offsetX = 4
 
-    local width = showIcons and size or (size / aspectRatio)
-    local currTabIdx = self.stackIdx
+    self.width = showIcons and size or (size / aspectRatio)
+    self.currTabIdx = self.stackIdx
 
     self.canvas_frame = {
         x = self.frame.x - (width + offsetX),
@@ -120,15 +120,7 @@ function Window:process(Icons) -- {{{
         h = self.indicator_rect.h - (iconPadding * 2),
     }
 
-    local focused = self:isFocused()
-
-    self.color_opts = {
-        bg = focused and focused_color or unfocused_color,
-        canvasAlpha = focused and 1 or 0.2,
-        imageAlpha = focused and 1 or 0.4,
-    }
-
-    self:draw_indicator()
+    self:drawIndicator()
 
 end -- }}}
 
@@ -137,7 +129,8 @@ function Window:iconFromAppName() -- {{{
     return hs.image.imageFromAppBundle(appBundle)
 end -- }}}
 
-function Window:draw_indicator() -- {{{
+function Window:drawIndicator() -- {{{
+    -- print('calling drawIndicator for window', self.app, self.id)
     if self.indicator then
         self.indicator:delete()
     end
@@ -149,11 +142,18 @@ function Window:draw_indicator() -- {{{
 
     -- TODO: configurable roundness radius for icons & pills
     local radius = showIcons and (self.indicator_rect.w / 4.0) or 3.0
+    local focused = self:isFocused()
+
+    self.colorOpts = {
+        bg = focused and focused_color or unfocused_color,
+        canvasAlpha = focused and 1 or 0.2,
+        imageAlpha = focused and 1 or 0.4,
+    }
 
     self.indicator:appendElements{
         type = "rectangle",
         action = "fill",
-        fillColor = self.color_opts.bg,
+        fillColor = self.colorOpts.bg,
         frame = self.indicator_rect,
         roundedRectRadii = {xRadius = radius, yRadius = radius},
     }
@@ -163,7 +163,7 @@ function Window:draw_indicator() -- {{{
             type = "image",
             image = self:iconFromAppName(),
             frame = self.icon_rect,
-            imageAlpha = self.color_opts.imageAlpha,
+            imageAlpha = self.colorOpts.imageAlpha,
         }
     end
 
