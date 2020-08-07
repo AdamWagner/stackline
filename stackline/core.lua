@@ -1,11 +1,23 @@
 require("hs.ipc")
 
 local _ = require 'stackline.utils.utils'
-local Stack = require 'stackline.stackline.stack'
+local StackMgr = require 'stackline.stackline.stackMgr'
 local tut = require 'stackline.utils.table-utils'
 local wf = hs.window.filter
 
-wsi = Stack:newStackManager(showIcons)
+-- shortcuts
+map = hs.fnutils.map
+filter = hs.fnutils.filter
+each = hs.fnutils.each
+copy = hs.fnutils.copy
+
+stacksMgr = StackMgr:new(showIcons)
+-- _.pheader('stackmanager after construction')
+-- _.p(stacksManager)
+
+hs.hotkey.bind({'alt', 'ctrl'}, 't', function()
+    stacksMgr:toggleIcons()
+end)
 
 local win_added = { -- {{{
     wf.windowCreated,
@@ -29,7 +41,7 @@ local win_removed = { -- {{{
     wf.windowNotInCurrentSpace,
 } -- }}}
 
-local wfd = wf.new():setOverrideFilter{ -- {{{
+wfd = wf.new():setOverrideFilter{ -- {{{
     visible = true, -- (i.e. not hidden and not minimized)
     fullscreen = false,
     currentSpace = true,
@@ -42,8 +54,8 @@ local wfd = wf.new():setOverrideFilter{ -- {{{
 -- This extension makes it simple to defer multiple actions after a delay from the initial execution.
 --  Unlike `hs.timer.delayed`, the delay will not be extended
 -- with subsequent `run()` calls, but the delay will trigger again if `run()` is called again later.
-local queryWindowState = hs.timer.delayed.new(0.10, function()
-    wsi.update()
+local queryWindowState = hs.timer.delayed.new(0.30, function()
+    stacksMgr:update()
 end)
 
 -- ┌──────────────────────────────────┐
@@ -51,18 +63,15 @@ end)
 -- └──────────────────────────────────┘
 -- callback args: window, app, event
 wfd:subscribe(added_changed, function()
-    -- wsi.update()
     queryWindowState:start()
 end)
 
 wfd:subscribe(win_removed, function()
-    -- TODO: implement cleanup in a better way
-    -- wsi:update(true)
     queryWindowState:start()
 end)
 
 -- call once on load
-wsi.update()
+stacksMgr:update()
 
 -- ┌─────────────────────────────────┐
 -- │ Update indicators subscriptions │
@@ -80,18 +89,9 @@ wsi.update()
 function redrawWinIndicator(hsWin, appName, event)
     local id = hsWin:id()
     print(event:gsub('window', ''), appName, id)
-
-    -- Lookup *stacked* window by ID
-    -- If not found, then the focused/unfocused window is not stacked, 
-    -- and this is a no-op.
-    local stackedWin = wsi.findWindow(id)
+    local stackedWin = stacksMgr:findWindow(id)
     if stackedWin then -- if not found, then focused win is not stacked
-        -- -- DEBUG {{{
-        -- print('found window:', win.id)
-        -- print('indicator:', win.indicator, '\n\n')
-        -- print('Focused curr focus', win:isFocused())
-        -- -- }}}
-        stackedWin:drawIndicator()
+        stackedWin:drawIndicator({shouldFade = false}) -- draw instantly on focus change
     end
 end
 
