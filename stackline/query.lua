@@ -1,4 +1,4 @@
--- luacheck: ignore (augments hs.window module)
+-- luacheck: ignore (spaces isn't used, but augments hs.window module)
 local spaces = require("hs._asm.undocumented.spaces")
 local _ = require 'stackline.utils.utils'
 local u = require 'stackline.utils.underscore'
@@ -58,7 +58,7 @@ easier to maintain, *and* we get to drop the jq dependency!
 
 -- }}} --]]
 
--- Private functions
+-- Internal utils
 local wfd = hs.window.filter.new():setOverrideFilter{ -- {{{
     visible = true, -- (i.e. not hidden and not minimized)
     fullscreen = false,
@@ -84,71 +84,31 @@ function Query:getWinStackIdxs() -- {{{
     end, {scriptPath}):start()
 end -- }}}
 
--- function Query.getSpaces() -- {{{
---     return fnutils.mapCat(screen.allScreens(), function(s)
---         return spaces.layout()[s:spacesUUID()]
---     end)
--- end -- }}}
-
--- function Query.getActiveSpaceIndex() -- {{{
---     local s = Query.getSpaces()
---     local activeSpace = spaces.activeSpace()
---     return _.indexOf(s, activeSpace)
--- end -- }}}
-
 function Query:makeStacksFromWindows(ws) -- {{{
     local windows = map(ws, function(w)
         return Window:new(w)
     end)
+
+    -- Methods to group windows into stacks
+    -- -------------------------------------------------------------------------
+    -- Rationale: Identifying frames by topLeft (frame.x, frame.y) of each window
+    -- addresses macos MIN WIN SIZE EDGE CASE that can result in a stacked
+    -- window NOT sharing the same dimensions.
+    -- PRO:
+    --    ensures such windows will be members of the stack
+    -- CON:
+    --    zoom-parent & zoom-fullscreen windows will ALSO be counted as stack members
+    -- PROPER FIX
+    --    Filter out windows with a 0 stack-index using yabai data
+
+    -- NOTE: 'stackID' groups by full frame, so windows with min-size > stack
+    -- width will not be stacked properly. See above ↑
     local groupedWindows = _.groupBy(windows, 'stackId')
 
     -- stacks contain more than one window, 
     -- so ignore groups with only 1 window
     stacks = hs.fnutils.filter(groupedWindows, lenGreaterThanOne)
     self.stacks = stacks
-end -- }}}
-
-function isStackOccluded(stack) -- {{{
-    -- FIXES: When a stack that has "zoom-parent": 1 occludes another stack, the
-    -- occluded stack's indicators shouldn't be displaed
-    -- https://github.com/AdamWagner/stackline/issues/11
-
-    -- Returns true if any non-stack window occludes the stack's frame.
-    -- This can occur when an unstacked window is zoomed to cover a stack.
-    -- In this situation, we  want to *hide* the occluded stack's indicators
-    -- TODO: Convert to Stack instance method (wouldn't need to pass in the 'stack' arg)
-
-    function notInStack(hsWindow)
-        local stackWindowsHs = u.map(stack, winToHs)
-        local isInStack = u.include(stackWindowsHs, hsWindow)
-        return not isInStack
-    end
-
-    -- NOTE: under.filter works with tables
-    -- _.filter only works with "list-like" tables
-    local nonStackWindows = u.filter(wfd:getWindows(), notInStack)
-    _.pheader('nonstackwindows')
-    _.p(nonStackWindows)
-
-    function isStackInside(nonStackWindow)
-        -- _.pheader('stack in is stack inside')
-        -- _.p(stack.windows[1])
-        local stackFrame = stack.windows[1]._win:frame()
-        return stackFrame:inside(nonStackWindow:frame())
-    end
-
-    local stackIsOccluded = u.any(map(nonStackWindows, isStackInside))
-    print("\nstack is occluded", stackIsOccluded)
-    return stackIsOccluded
-end -- }}}
-
--- luacheck: ignore
-function Query:dimOccludedStacks(stacks) -- {{{
-    each(filter(stacks, isStackOccluded), function(stack)
-        _.pheader('dimming occluded indicators')
-        print('\n\noccluded stack id', #stack.windows)
-        stack:dimAllIndicators()
-    end)
 end -- }}}
 
 function Query:mergeWinStackIdxs() -- {{{
@@ -204,7 +164,7 @@ function Query:windowsCurrentSpace() -- {{{
 
     if extantStackExists then
         shouldRefresh = shouldRestack(self.stacks, extantStacks)
-        -- self:dimOccludedStacks(extantStacks) -- set self.occludedStacks
+        stacksMgr:dimOccluded()
     else
         shouldRefresh = true
     end
@@ -231,4 +191,16 @@ function Query:windowsCurrentSpace() -- {{{
     end
 end -- }}}
 return Query
+
+-- Deprecated
+-- function Query.getSpaces() -- {{{
+--     return fnutils.mapCat(screen.allScreens(), function(s)
+--         return spaces.layout()[s:spacesUUID()]
+--     end)
+-- end -- }}}
+-- function Query.getActiveSpaceIndex() -- {{{
+--     local s = Query.getSpaces()
+--     local activeSpace = spaces.activeSpace()
+--     return _.indexOf(s, activeSpace)
+-- end -- }}}
 

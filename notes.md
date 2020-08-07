@@ -35,6 +35,12 @@ See how they manage window indicators:
 - [statuslets.lua](https://github.com/cmsj/hammerspoon-config/blob/master/statuslets.lua): statuslets
 
 
+## Debugging
+
+Debugging utils for lua
+
+- https://github.com/renatomaia/loop-debugging
+
 ## Caching & queing
 
 [pyericz/LuaWorkQueue](https://github.com/pyericz/LuaWorkQueue/tree/master/src)

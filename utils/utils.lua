@@ -1,5 +1,7 @@
 -- OTHERS ----------------------------------------------------------------------
 -- https://github.com/luapower/glue/blob/master/glue.lua
+-- https://github.com/Desvelao/f/blob/master/f/table.lua (new in 2020)
+-- https://github.com/moriyalb/lamda (based on ramda, updated May 2020, 27 stars)
 -- -----------------------------------------------------------------------------
 utils = {}
 

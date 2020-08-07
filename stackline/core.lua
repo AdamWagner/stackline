@@ -10,6 +10,9 @@ map = hs.fnutils.map
 filter = hs.fnutils.filter
 each = hs.fnutils.each
 copy = hs.fnutils.copy
+contains = hs.fnutils.contains
+some = hs.fnutils.some
+any = hs.fnutils.some -- also rename 'some()' to 'any()'
 
 stacksMgr = StackMgr:new(showIcons)
 -- _.pheader('stackmanager after construction')
@@ -41,6 +44,7 @@ local win_removed = { -- {{{
     wf.windowNotInCurrentSpace,
 } -- }}}
 
+-- Global
 wfd = wf.new():setOverrideFilter{ -- {{{
     visible = true, -- (i.e. not hidden and not minimized)
     fullscreen = false,

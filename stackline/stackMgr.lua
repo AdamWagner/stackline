@@ -67,7 +67,7 @@ function StacksMgr:ingest(stacks, shouldClean) -- {{{
     for _stackId, stack in pairs(stacks) do
         _.pheader('new stack')
         _.p(stack)
-        table.insert(self.tabStacks, Stack:new(stack))
+        table.insert(self.tabStacks, Stack(stack))
         _.pheader('stacksMngr.tabStacks afterward')
         _.p(self.tabStacks)
         self:redrawAllIndicators()
@@ -82,6 +82,16 @@ function StacksMgr:eachStack(fn) -- {{{
     for _stackId, stack in pairs(self.tabStacks) do
         fn(stack)
     end
+end -- }}}
+
+function StacksMgr:dimOccluded() -- {{{
+    self:eachStack(function(stack)
+        if stack:isOccluded() then
+            stack:dimAllIndicators()
+        else
+            stack:restoreAlpha()
+        end
+    end)
 end -- }}}
 
 function StacksMgr:cleanup() -- {{{
