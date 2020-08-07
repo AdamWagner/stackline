@@ -67,9 +67,9 @@ function StacksMgr:ingest(stacks, shouldClean) -- {{{
     for _stackId, stack in pairs(stacks) do
         _.pheader('new stack')
         _.p(stack)
+
         table.insert(self.tabStacks, Stack(stack))
-        _.pheader('stacksMngr.tabStacks afterward')
-        _.p(self.tabStacks)
+
         self:redrawAllIndicators()
     end
 end -- }}}
@@ -144,6 +144,16 @@ function StacksMgr:findWindow(wid) -- {{{
                 -- print('found window', win.id)
                 return win
             end
+        end
+    end
+end -- }}}
+
+function StacksMgr:findStackByWindow(win) -- {{{
+    -- NOTE: may not need when HS issue #2400 is closed
+    -- NOTE 2: Unused, since I'm storing reference to "otherAppWindows" directly on each window
+    for _stackId, stack in pairs(self.tabStacks) do
+        if stack.id == win.stackId then
+            return stack
         end
     end
 end -- }}}

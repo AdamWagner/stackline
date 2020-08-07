@@ -65,6 +65,9 @@ end)
 -- ┌──────────────────────────────────┐
 -- │ Query window state subscriptions │
 -- └──────────────────────────────────┘
+
+local options = {fixSameAppHammerspoonBug = true}
+
 -- callback args: window, app, event
 wfd:subscribe(added_changed, function()
     queryWindowState:start()
@@ -81,14 +84,29 @@ stacksMgr:update()
 -- │ Update indicators subscriptions │
 -- └─────────────────────────────────┘
 
--- DONE: rather than subscribing to windowFocused here, do it only for
--- windows within a stack. This will shorten the update process for focus
--- changes, since we *only* need to update the indicators, not query for new
--- window state entirely.
--- wf.windowFocused,
--- wf.windowUnfocused,
+function unfocusOtherAppWindows(win) -- {{{
+    -- Fix HS bug: windowUnfocused event not fired for same-app windows
+    -- https://github.com/Hammerspoon/hammerspoon/issues/2400
+    -- NOTE: substantially slows down indicator redraw when focus changes :<
+    --       So much so that it probably makes sense to store a "has >1 win
+    --       from app" field on each stack
 
--- DONE: Parameterize Activate / Deactivate by reading event
+    -- Related:
+    --    ./stack.lua:22
+    --    ./stack.lua:30
+
+    -- v1: Search for stack by window:
+    --     E.g., local stack = stacksMgr:findStackByWindow(stackedWin) 
+    -- v2: Lookup stack from window instead of searching by window ID:
+    --     local stack = stackedWin.stack
+    -- v3: Store `otherAppWindows` directly on window:
+
+    -- See ./stack.lua:22
+    each(win.otherAppWindows, function(w)
+        w:drawIndicator({shouldFade = false})
+    end)
+
+end -- }}}
 
 function redrawWinIndicator(hsWin, appName, event)
     local id = hsWin:id()
@@ -96,6 +114,11 @@ function redrawWinIndicator(hsWin, appName, event)
     local stackedWin = stacksMgr:findWindow(id)
     if stackedWin then -- if not found, then focused win is not stacked
         stackedWin:drawIndicator({shouldFade = false}) -- draw instantly on focus change
+
+        if options.fixSameAppHammerspoonBug then
+            unfocusOtherAppWindows(stackedWin)
+        end
+
     end
 end
 

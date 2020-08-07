@@ -18,6 +18,19 @@ local Stack = Class("Stack", nil, {
 
     new = function(self, stackedWindows) -- {{{
         self.windows = stackedWindows
+
+        each(self.windows, function(w)
+            -- Cache reference to stack on window for easy lookup
+            -- TODO: research cost of increased table size vs better stack lookup speed
+            -- Added to fix annoying HS bug detailed here: ./core.lua
+            w.otherAppWindows = self:getOtherAppWindows(w)
+
+            -- NOTE: Can store other helpful references, like stack, too
+            --       I don't understand the perf. tradeoffs of size vs lookup speed, tho
+            -- w.stack = self
+        end)
+
+        self.id = stackedWindows[1].stackId
     end, -- }}}
 
     get = function(self) -- {{{
@@ -42,6 +55,15 @@ local Stack = Class("Stack", nil, {
         for _idx, win in pairs(self.windows) do
             fn(win)
         end
+    end, -- }}}
+
+    getOtherAppWindows = function(self, win) -- {{{
+        -- NOTE: may not need when HS issue #2400 is closed
+        return filter(self:get(), function(w)
+            _.pheader('window in getOtherAppWindows')
+            _.p(w)
+            return w.app == win.app
+        end)
     end, -- }}}
 
     redrawAllIndicators = function(self) -- {{{
