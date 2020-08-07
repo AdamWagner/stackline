@@ -1,7 +1,7 @@
 local _ = require 'stackline.utils.utils'
 
 local Window = {}
-local LIGHT_BG_BRIGHTNESS_THRESHOLD = 0.5
+local LIGHT_BG_BRIGHTNESS_THRESHOLD = 0.45
 
 -- FROM: How to chain metatables: https://stackoverflow.com/questions/8109790/chain-lua-metatables
 local metatbl = {}
