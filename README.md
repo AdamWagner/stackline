@@ -170,13 +170,28 @@ Did the terminal window expand to cover the area previously occupied by Safari? 
 ![stackline setup 01](assets/stackline-setup-01@2x.png)
 
 The default stack indicator style is a "pill" as seen ↑
-To toggle icons:
+
+* To toggle icons:
 
 ```sh
- echo ":toggle_icons:1" | hs -m stackline-config
+# Turn on icons
+ echo ":show_icons:1" | hs -m stackline-config
+# Turn off icons
+ echo ":show_icons:0" | hs -m stackline-config
 ```
 
 ![stackline setup 02](assets/stackline-icon-indicators.png)
+
+* To toggle colors:
+
+```sh
+# Turn on colors
+ echo ":indicator_colors:1" | hs -m stackline-config
+# Turn off colors
+ echo ":indicator_colors:0" | hs -m stackline-config
+```
+
+![stackline setup 03](assets/stackline-color-indicators.png)
 
 Image (and feature!) courtesy of [@alin23](https://github.com/alin23).
 

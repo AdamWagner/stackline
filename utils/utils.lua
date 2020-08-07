@@ -1,8 +1,34 @@
+local tut = require 'stackline.utils.table-utils'
+
+local trueValues = tut.Set{
+    "1",
+    "t",
+    "y",
+    "true",
+    "yes",
+    "on",
+}
+
 utils = {}
 
 utils.map = hs.fnutils.map
 utils.concat = hs.fnutils.concat
 utils.each = hs.fnutils.each
+
+
+utils.boolean = function(val)
+    return trueValues[val]
+end
+
+utils.settingsGetOrSet = function(key, val)
+    local existingVal = hs.settings.get(key)
+    if existingVal == nil then
+        hs.settings.set(key, val)
+        return val
+    end
+    return existingVal
+end
+
 
 utils.filter = function(t, f)
     local out = {}
@@ -272,7 +298,7 @@ function utils.p(...)
     --    p('# to be cleaned: ', table.length(self.tabStacks))
     --    -> "# to be cleaned:  2"
     -- Example 2:
-    --    p('keys be cleaned: ', table.keys(self.tabStacks)) 
+    --    p('keys be cleaned: ', table.keys(self.tabStacks))
     --    -> "keys be cleaned: 	{ "6207671375", "63771631066207041183" }"
 
     result = {}

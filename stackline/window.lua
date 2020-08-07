@@ -1,6 +1,7 @@
 local _ = require 'stackline.utils.utils'
 
 local Window = {}
+local LIGHT_BG_BRIGHTNESS_THRESHOLD = 0.5
 
 -- FROM: How to chain metatables: https://stackoverflow.com/questions/8109790/chain-lua-metatables
 local metatbl = {}
@@ -83,11 +84,35 @@ function Window:setNeedsUpdated(extant) -- {{{
     self.needsUpdated = not isEqual
 end -- }}}
 
+function pixelBrightness(image, pixel)
+    color = image:colorAt(pixel)
+    return color and hs.drawing.color.asHSB(color).brightness or 0.5
+end
+
+function hasLightBG(frame)
+    frame = hs.geometry(frame)
+    image = hs.screen.mainScreen():snapshot(frame)
+    brightness = (
+        pixelBrightness(image, frame.topleft) +
+        pixelBrightness(image, frame.center) +
+        pixelBrightness(image, frame.bottomright)
+    ) / 3
+    return brightness > LIGHT_BG_BRIGHTNESS_THRESHOLD
+end
+
 function Window:process(showIcons, currTabIdx) -- {{{
     -- Config
+    local indicatorColors = _.settingsGetOrSet("indicator_colors", false)
+
     self.showIcons = showIcons
-    local unfocused_color = {white = 0.9, alpha = 0.30}
-    local focused_color = {white = 0.9, alpha = 0.99}
+    local unfocused_color_light = {white = 0.9, alpha = 0.40}
+    local focused_color_light = indicatorColors and
+        {hue = 0.1, saturation = 1.0, brightness = 0.9, alpha = 0.95} or
+        {white = 0.9, alpha = 0.99}
+    local unfocused_color_dark = {white = 0.1, alpha = 0.40}
+    local focused_color_dark = indicatorColors and
+        {hue = 0.99, saturation = 0.8, brightness = 0.8, alpha = 0.95} or
+        {white = 0.1, alpha = 0.99}
     local padding = 4
     local iconPadding = 4
     local aspectRatio = 5
@@ -96,6 +121,7 @@ function Window:process(showIcons, currTabIdx) -- {{{
     local width = self.showIcons and size or (size / aspectRatio)
 
     local shit = self.frame.x - (width + padding)
+
     self.canvas_frame = {
         x = shit,
         y = self.frame.y + 2,
@@ -117,8 +143,11 @@ function Window:process(showIcons, currTabIdx) -- {{{
         h = self.indicator_rect.h - (iconPadding * 2),
     }
 
+    light_bg = hasLightBG(self.indicator_rect)
     self.color_opts = {
-        bg = self.focused and focused_color or unfocused_color,
+        bg = self.focused and
+            (light_bg and focused_color_dark or focused_color_light) or
+            (light_bg and unfocused_color_dark or unfocused_color_light),
         canvasAlpha = self.focused and 1 or 0.2,
         imageAlpha = self.focused and 1 or 0.4,
     }

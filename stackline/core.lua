@@ -2,19 +2,11 @@ require("hs.ipc")
 
 local Stack = require 'stackline.stackline.stack'
 local tut = require 'stackline.utils.table-utils'
+local utils = require 'stackline.utils.utils'
 
 print(hs.settings.bundleID)
 
-function getOrSet(key, val)
-    local existingVal = hs.settings.get(key)
-    if existingVal == nil then
-        hs.settings.set(key, val)
-        return val
-    end
-    return existingVal
-end
-
-local showIcons = getOrSet("showIcons", false)
+local showIcons = utils.settingsGetOrSet("show_icons", false)
 wsi = Stack:newStackManager(showIcons)
 
 local shouldRestack = tut.Set{
@@ -24,7 +16,8 @@ local shouldRestack = tut.Set{
     "window_destroyed",
     "window_resized",
     "window_moved",
-    "toggle_icons",
+    "show_icons",
+    "indicator_colors",
 }
 
 local shouldClean = tut.Set{
@@ -41,14 +34,11 @@ function configHandler(_, msgID, msg)
 
     if msgID == 500 then
         key, value = msg:match(".+:([%a_-]+):([%a%d_-]+)")
-        if key == "toggle_icons" then
-            showIcons = not showIcons
-            hs.settings.set("showIcons", showIcons)
-        end
+        hs.settings.set(key, utils.boolean(string.lower(value)))
 
         if shouldRestack[key] then
             wsi.cleanup()
-            wsi = Stack:newStackManager(showIcons)
+            wsi = Stack:newStackManager(hs.settings.get("show_icons"))
         end
         wsi.update(shouldClean[key])
     end
