@@ -79,7 +79,7 @@ end -- }}}
 --     return isEqual
 -- end -- }}}
 
-function Window:getScreenSide()
+function Window:getScreenSide() -- {{{
     -- (sFrame.w - (wFrame.x + wFrame.w)) / sFrame.w
     local screenWidth = self._win:screen():fullFrame().w
     local frame = self.frame
@@ -95,7 +95,7 @@ function Window:getScreenSide()
     --      wfd:windowsToWest(self._win)
     --    https://www.hammerspoon.org/docs/hs.window.html#windowsToWest
     --      self._win:windowsToSouth()
-end
+end -- }}}
 
 -- TODO: ↑ Convert to .__eq metatable
 function Window:setNeedsUpdated(extant) -- {{{
