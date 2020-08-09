@@ -108,28 +108,24 @@ function unfocusOtherAppWindows(win) -- {{{
 
 end -- }}}
 
-function redrawWinIndicator(hsWin, appName, event)
+function redrawWinIndicator(hsWin, _app, event) -- {{{
+    -- Dedicated redraw method to *adjust* the existing canvas element is WAY
+    -- faster than deleting the entire indicator & rebuilding it from scratch,
+    -- particularly since this skips querying the app icon & building the icon image.
     local id = hsWin:id()
-    print(event:gsub('window', ''), appName, id)
     local stackedWin = stacksMgr:findWindow(id)
+
     if stackedWin then -- if not found, then focused win is not stacked
-        stackedWin:drawIndicator({shouldFade = false}) -- draw instantly on focus change
+        local focused = (event == wf.windowFocused) and true or false
+        stackedWin:redrawIndicator({shouldFade = false}, focused) -- draw instantly on focus change
 
         if options.fixSameAppHammerspoonBug then
             unfocusOtherAppWindows(stackedWin)
         end
 
     end
-end
+end -- }}}
 
 wfd:subscribe(wf.windowFocused, redrawWinIndicator)
 wfd:subscribe({wf.windowNotVisible, wf.windowUnfocused}, redrawWinIndicator)
-
--- HS BUG! windowUnfocused is not called when switching between windows of the
--- same app - it's ONLY called when switching between windows of different apps
--- https://github.com/Hammerspoon/hammerspoon/issues/2400
-
--- I tried an experiment to redraw all indicators inside `redrawWinIndicator()`
--- every time, but it slowed down changing win focus A LOT:
--- wsi.redrawAllIndicators()
 

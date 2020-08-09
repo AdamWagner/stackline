@@ -131,6 +131,9 @@ function Window:setupIndicator(Icons) -- {{{
     -- Fade-in/out duration
     self.fadeDuration = 0.2
 
+    -- Display indicators on 
+    --   left edge of windows on the left side of the screen, &
+    --   right edge of windows on the right side of the screen
     local side = self:getScreenSide()
     local xval = nil
     if side == 'right' then
@@ -139,80 +142,120 @@ function Window:setupIndicator(Icons) -- {{{
         xval = self.frame.x - (self.width + self.offsetX)
     end
 
-    self.canvas_frame = {
-        x = xval,
-        y = self.frame.y + self.offsetY,
-        w = self.frame.w,
-        h = self.frame.h,
-    }
+    -- Set canvas to fill entire screen
+    self.canvas_frame = self._win:screen():frame()
+
+    -- Store  canvas elements indexes to reference via :elementAttribute()
+    -- https://www.hammerspoon.org/docs/hs.canvas.html#elementAttribute
+    self.rectIdx = 1
+    self.iconIdx = 2
 
     -- NOTE: self.stackIdx comes from yabai
     self.indicator_rect = {
-        x = 0,
-        y = ((self.stackIdx - 1) * self.size * 1.1),
+        x = xval,
+        y = self.frame.y + ((self.stackIdx - 1) * self.size * 1.1),
         w = self.width,
         h = self.size,
     }
 
     self.icon_rect = {
-        x = self.iconPadding,
+        x = xval + self.iconPadding,
         y = self.indicator_rect.y + self.iconPadding,
         w = self.indicator_rect.w - (self.iconPadding * 2),
         h = self.indicator_rect.h - (self.iconPadding * 2),
     }
 end -- }}}
 
-function Window:drawIndicator(overrideOpts) -- {{{
+function Window:drawIndicator(overrideOpts, focusedHint) -- {{{
     local defaultOpts = {
         shouldFade = true,
-        focusedAlpha = 1,
-        unfocusedAlpha = 0.33,
+        alphaFocused = 1,
+        alphaUnfocused = 0.33,
     }
 
     local opts = u.extend(defaultOpts, overrideOpts or {})
 
-    -- Unfocused icons should less transparent 
-    -- than the bg color, but no more than 1
-    local unfocusedIconAlpha = math.min(opts.unfocusedAlpha * 2, 1)
+    -- Color
+    self.colorFocused = {white = 0.9, alpha = opts.alphaFocused}
+    self.colorUnfocused = {white = 0.9, alpha = opts.alphaUnfocused}
+
+    -- Unfocused icons less transparent than bg color, but no more than 1
+    self.iconAlphaFocused = opts.alphaFocused
+    self.iconAlphaUnfocused = math.min(opts.alphaUnfocused * 2, 1)
+
+    self.shadowOpts = {blur = self.focus}
 
     local showIcons = stacksMgr:getShowIconsState()
     local radius = showIcons and self.iconRadius or self.indicatorRadius
     local fadeDuration = opts.shouldFade and self.fadeDuration or 0
-    local focused = self:isFocused()
 
-    -- Color
-    self.unfocused_color = {white = 0.9, alpha = opts.unfocusedAlpha}
-    self.focused_color = {white = 0.9, alpha = opts.focusedAlpha}
+    self.focus = self:isFocused()
+    -- PROFILE: 0.0123s / 75 (0.0002s) :: isFocused 
 
-    -- print('calling drawIndicator for window', self.app, self.id)
     if self.indicator then
         self.indicator:delete()
     end
+
     self.indicator = hs.canvas.new(self.canvas_frame)
 
-    self.colorOpts = {
-        bg = focused and self.focused_color or self.unfocused_color,
-        imageAlpha = focused and opts.focusedAlpha or unfocusedIconAlpha,
+    self.currStyle = {
+        fillColor = self.focus and self.colorFocused or self.colorUnfocused,
+        imageAlpha = self.focus and self.iconAlphaFocused or
+            self.iconAlphaUnfocused,
+        shadow = {
+            blurRadius = 20.0,
+            color = {alpha = 1 / 5},
+            offset = {h = -2.0, w = 0.0},
+        },
     }
 
-    self.indicator:appendElements{
+    self.indicator:insertElement({
         type = "rectangle",
         action = "fill",
-        fillColor = self.colorOpts.bg,
+        fillColor = self.currStyle.fillColor,
         frame = self.indicator_rect,
         roundedRectRadii = {xRadius = radius, yRadius = radius},
-    }
+        padding = 60,
+        withShadow = true,
+    }, self.rectIdx)
 
     if showIcons then
-        self.indicator:appendElements{
+        -- TODO: Figure out how to prevent clipping when adding a subtle shadow
+        -- to the icon to help distinguish icons with a near-white edge.
+        self.indicator:insertElement({
             type = "image",
             image = self:iconFromAppName(),
             frame = self.icon_rect,
-            imageAlpha = self.colorOpts.imageAlpha,
-        }
+            imageAlpha = self.currStyle.imageAlpha,
+        }, self.iconIdx)
     end
 
     self.indicator:show(fadeDuration)
+end -- }}}
+
+function Window:redrawIndicator(overrideOpts, isFocused) -- {{{
+    _.pheader('redraw')
+    print(self.id, self.app, isFocused)
+    -- bail early if there's nothing to do
+    if isFocused == self.focus then
+        return false
+    else
+        self.focus = isFocused
+    end
+
+    local set = _.partial(self.indicator.elementAttribute, self.indicator)
+    local setRect = _.partial(set, self.rectIdx)
+    local setIcon = _.partial(set, self.iconIdx)
+
+    local fillColor = self.focus and self.colorFocused or self.colorUnfocused
+    local imageAlpha = self.focus and self.iconAlphaFocused or
+                           self.iconAlphaUnfocused
+
+    setRect('fillColor', fillColor)
+    if stacksMgr:getShowIconsState() then
+        print(self.focus, 'imageAlpha:', imageAlpha)
+        setIcon('imageAlpha', imageAlpha)
+    end
 end -- }}}
 
 function Window:iconFromAppName() -- {{{
