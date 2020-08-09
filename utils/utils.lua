@@ -6,34 +6,31 @@
 utils = {}
 
 utils.map = hs.fnutils.map
-utils.concat = hs.fnutils.concat
+utils.filter = hs.fnutils.filter
+utils.reduce = hs.fnutils.reduce
+utils.partial = hs.fnutils.partial
 utils.each = hs.fnutils.each
+utils.contains = hs.fnutils.contains
+utils.some = hs.fnutils.some
+utils.any = hs.fnutils.some -- also rename 'some()' to 'any()'
+utils.concat = hs.fnutils.concat
+utils.copy = hs.fnutils.copy
 
-utils.filter = function(t, f)
-    local out = {}
-    for k, v in pairs(t) do
-        if (f(k, v)) then
-            out[k] = v
-        end
-    end
-    return out
-end
-
-function utils.keyBind(hyper, keyFuncTable)
+function utils.keyBind(hyper, keyFuncTable) -- {{{
     for key, fn in pairs(keyFuncTable) do
         hs.hotkey.bind(hyper, key, fn)
     end
-end
+end -- }}}
 
-utils.length = function(t)
+utils.length = function(t) -- {{{
     local count = 0
     for _ in pairs(t) do
         count = count + 1
     end
     return count
-end
+end -- }}}
 
-utils.indexOf = function(t, object)
+utils.indexOf = function(t, object) -- {{{
     if type(t) ~= "table" then
         error("table expected, got " .. type(t), 2)
     end
@@ -43,13 +40,13 @@ utils.indexOf = function(t, object)
             return i
         end
     end
-end
+end -- }}}
 
---[[
-This function takes 2 values as input and returns true if they are equal
-and false if not. a and b can numbers, strings, booleans, tables and nil.
---]]
-function utils.isEqual(a, b)
+function utils.isEqual(a, b) -- {{{
+    --[[
+    This function takes 2 values as input and returns true if they are equal
+    and false if not. a and b can numbers, strings, booleans, tables and nil.
+    --]]
 
     local function isEqualTable(t1, t2)
 
@@ -105,40 +102,36 @@ function utils.isEqual(a, b)
         return (a == b)
     end
 
-end
+end -- }}}
 
--- Functions stolen from lume.lua
--- (I should probably just use the library itself)
--- https://github.com/rxi/lume/blob/master/lume.lua
-function utils.isarray(x)
+-- FROM: lume.lua — https://github.com/rxi/lume/blob/master/lume.lua
+function utils.isarray(x) -- {{{
     return type(x) == "table" and x[1] ~= nil
-end
-
-local getiter = function(x)
+end -- }}}
+local getiter = function(x) -- {{{
     if utils.isarray(x) then
         return ipairs
     elseif type(x) == "table" then
         return pairs
     end
     error("expected table", 3)
-end
-function utils.invert(t)
+end -- }}}
+function utils.invert(t) -- {{{
     local rtn = {}
     for k, v in pairs(t) do
         rtn[v] = k
     end
     return rtn
-end
-function utils.keys(t)
+end -- }}}
+function utils.keys(t) -- {{{
     local rtn = {}
     local iter = getiter(t)
     for k in iter(t) do
         rtn[#rtn + 1] = k
     end
     return rtn
-end
-
-function utils.find(t, value)
+end -- }}}
+function utils.find(t, value) -- {{{
     local iter = getiter(t)
     result = nil
     for k, v in iter(t) do
@@ -152,17 +145,18 @@ function utils.find(t, value)
             result = v
         end
     end
-    utils.pheader('result')
+    -- utils.pheader('result')
     print(result)
     return result
-end
--- END lume.lua pillaging
+end -- }}}
+-- END lume.lua
 
---- Check if a row matches the specified key constraints.
--- @param row The row to check
--- @param key_constraints The key constraints to apply
--- @return A boolean result
-local function filter_row(row, key_constraints)
+local function filter_row(row, key_constraints) -- {{{
+    -- Check if a row matches the specified key constraints.
+    -- @param row The row to check
+    -- @param key_constraints The key constraints to apply
+    -- @return A boolean result
+
     -- Loop through all constraints
     for k, v in pairs(key_constraints) do
         if v and not row[k] then
@@ -196,100 +190,39 @@ local function filter_row(row, key_constraints)
     end
 
     return true
-end
+end -- }}}
 
---- Filter an array, returning entries matching `key_values`.
--- @param input The array to process
--- @param key_values A table of keys mapped to their viable values
--- @return An array of matches
-function utils.pick(input, key_values)
+function utils.pick(input, key_values) -- {{{
+    -- Filter an array, returning entries matching `key_values`.
+    -- @param input The array to process
+    -- @param key_values A table of keys mapped to their viable values
+    -- @return An array of matches
     local result = {}
     utils.each(key_values, function(k)
         result[k] = input[k]
     end)
     return result
-end
+end -- }}}
 
-local print = print
-local tconcat = table.concat
-local tinsert = table.insert
-local srep = string.rep
-local type = type
-local pairs = pairs
-local tostring = tostring
-local next = next
-
-function utils.print_r(root)
-    local cache = {[root] = "."}
-    local function _dump(t, space, name)
-        local temp = {}
-        tinsert(temp, "\n")
-        for k, v in pairs(t) do
-            local key = tostring(k)
-            if cache[v] then
-                tinsert(temp, "+" .. key .. " {" .. cache[v] .. "}")
-            elseif type(v) == "table" then
-                local new_key = name .. "." .. key
-                cache[v] = new_key
-                tinsert(temp, "+" .. key ..
-                    _dump(v, space .. (next(t, k) and "|" or " ") ..
-                        srep(" ", #key), new_key))
-            else
-                tinsert(temp, "+" .. key .. " [" .. tostring(v) .. "]")
-            end
-        end
-        return tconcat(temp, "\n" .. space)
-    end
-    print(_dump(root, "", ""))
-end
-
---- Recursively print out a Lua value.
--- @param value The value to print
--- @param indent Indentation level (defaults to 0)
--- @param no_newline If true, won't print a newline at the end
-function utils.deep_print(value, indent, no_newline)
-    indent = indent or 0
-
-    if type(value) == "table" then
-        print("{")
-        for k, v in pairs(value) do
-            io.write(string.rep(" ", indent + 2) .. "[")
-            deep_print(k, indent + 2, true)
-            io.write("] = ")
-            deep_print(v, indent + 2, true)
-            print(";")
-        end
-        io.write(string.rep(" ", indent) .. "}")
-    elseif type(value) == "string" then
-        io.write(("%q"):format(value))
-    else
-        io.write(tostring(value))
-    end
-
-    if not no_newline then
-        print()
-    end
-end
-
-function utils.p(data, howDeep)
+function utils.p(data, howDeep) -- {{{
     howDeep = howDeep or 3
     print(hs.inspect(data, {depth = howDeep}))
-end
+end -- }}}
 
-function utils.pdivider(str)
+function utils.pdivider(str) -- {{{
     str = string.upper(str) or ""
     print("=========", str, "==========")
-end
+end -- }}}
 
-function utils.pheader(str)
+function utils.pheader(str) -- {{{
     print('\n\n\n')
     print("========================================")
     print(string.upper(str), '==========')
     print("========================================")
-end
+end -- }}}
 
--- FROM: https://github.com/pyrodogg/AdventOfCode/blob/1ff5baa57c0a6a86c40f685ba6ab590bd50c2148/2019/lua/util.lua#L149
-function utils.groupBy(t, f)
+function utils.groupBy(t, f) -- {{{
+    -- FROM: https://github.com/pyrodogg/AdventOfCode/blob/1ff5baa57c0a6a86c40f685ba6ab590bd50c2148/2019/lua/util.lua#L149
     local res = {}
     for _k, v in pairs(t) do
         local g
@@ -307,9 +240,9 @@ function utils.groupBy(t, f)
         table.insert(res[g], v)
     end
     return res
-end
+end -- }}}
 
-function utils.tableCopyShallow(orig)
+function utils.tableCopyShallow(orig) -- {{{
     -- FROM: https://github.com/XavierCHN/go/blob/master/game/go/scripts/vscripts/utils/table.lua
     local orig_type = type(orig)
     local copy
@@ -322,9 +255,9 @@ function utils.tableCopyShallow(orig)
         copy = orig
     end
     return copy
-end
+end -- }}}
 
-utils.equal = function(a, b)
+function utils.equal(a, b) -- {{{
     if #a ~= #b then
         return false
     end
@@ -336,6 +269,91 @@ utils.equal = function(a, b)
     end
 
     return true
-end
+end -- }}}
+
+-- TODO: Confirm that hs.fnutils.partial works just as well
+function utils.partial(f, ...) -- {{{
+    -- FROM: https://www.reddit.com/r/lua/comments/fh2go5/a_partialcurry_implementation_of_mine_hope_you/
+    -- WHEN: 2020-08-08
+    local unpack = unpack or table.unpack -- Lua 5.3 moved unpack
+    local a = {...}
+    local a_len = select("#", ...)
+    return function(...)
+        local tmp = {...}
+        local tmp_len = select("#", ...)
+        -- Merge arg lists
+        for i = 1, tmp_len do
+            a[a_len + i] = tmp[i]
+        end
+        return f(unpack(a, 1, a_len + tmp_len))
+    end
+end -- }}}
+
+utils.flattenForce = require 'stackline.utils.flatten'
+-- table will be squashed down to 1 level deep. Previously nested structures
+-- will be converted to long, path-like string keys.
+
+function utils.greaterThan(n) -- {{{
+    return function(t)
+        return #t > n
+    end
+end -- }}}
+
+function utils.getFields(t, fields) -- {{{
+    -- FROM: https://stackoverflow.com/questions/41417971/a-better-way-to-assign-multiple-return-values-to-table-keys-in-lua
+    -- WHEN: 2020-08-09
+    -- USAGE:
+    --      local bnot, band, bor = get_fields(require("bit"), {"bnot", "band", "bor"})
+    local values = {}
+    for k, field in ipairs(fields) do
+        values[k] = t[field]
+    end
+    return (table.unpack or unpack)(values, 1, #fields)
+end -- }}}
+
+function utils.setFields(tab, fields, ...) -- {{{
+    -- USAGE:
+    --      image.size = set_fields({}, {"width", "height"}, image.data:getDimensions())
+    --     --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  ---
+    -- USAGE EXAMPLE #2:      {{{
+    --      Swap the values on-the-fly!
+
+    --      local function get_weekdays()
+    --         return "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"
+    --      end
+
+    --          -- we want to save returned values in different order
+    --      local weekdays = set_fields({}, {7,1,2,3,4,5,6}, get_weekdays())
+    --          -- now weekdays contains {"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"}
+    --   --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  ---
+    -- USAGE EXAMPLE #3:     
+    --      local function get_coords_x_y_z()
+    --         return 111, 222, 333      -- x, y, z of the point
+    --      end
+    --          -- we want to get the projection of the point on the ground plane local projection = {y = 0}
+    --          -- projection.y will be preserved, projection.x and projection.z will be modified
+
+    --      set_fields(projection, {"x", "", "z"}, get_coords_x_y_z())
+
+    --          -- now projection contains {x = 111, y = 0, z = 333}
+    --   --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  ---
+    -- Usage example #4:
+    --          -- If require("some_module") returns a module with plenty of functions
+    --          -- inside, but you need only a few of them:
+    --      local bnot, band, bor = get_fields(require("bit"), {"bnot", "band", "bor"})
+    --   --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  ---
+    -- }}}
+
+    -- fields is an array of field names
+    -- (use empty string to skip value at corresponging position)
+    local values = {...}
+    for k, field in ipairs(fields) do
+        if field ~= "" then
+            tab[field] = values[k]
+        end
+    end
+    return tab
+end -- }}}
 
 return utils
+
