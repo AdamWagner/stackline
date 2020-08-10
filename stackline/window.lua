@@ -1,7 +1,6 @@
 local _ = require 'stackline.utils.utils'
 
 local Window = {}
-local LIGHT_BG_BRIGHTNESS_THRESHOLD = 0.45
 
 -- FROM: How to chain metatables: https://stackoverflow.com/questions/8109790/chain-lua-metatables
 local metatbl = {}
@@ -84,22 +83,6 @@ function Window:setNeedsUpdated(extant) -- {{{
     self.needsUpdated = not isEqual
 end -- }}}
 
-function pixelBrightness(image, pixel)
-    color = image:colorAt(pixel)
-    return color and hs.drawing.color.asHSB(color).brightness or 0.5
-end
-
-function hasLightBG(frame)
-    frame = hs.geometry(frame)
-    image = hs.screen.mainScreen():snapshot(frame)
-    brightness = (
-        pixelBrightness(image, frame.topleft) +
-        pixelBrightness(image, frame.center) +
-        pixelBrightness(image, frame.bottomright)
-    ) / 3
-    return brightness > LIGHT_BG_BRIGHTNESS_THRESHOLD
-end
-
 function Window:process(showIcons, currTabIdx) -- {{{
     -- Config
     local indicatorColors = _.settingsGetOrSet("indicator_colors", false)
@@ -131,7 +114,7 @@ function Window:process(showIcons, currTabIdx) -- {{{
 
     self.indicator_rect = {
         x = 0,
-        y = ((currTabIdx - 1) * size * 1.1),
+        y = _.round((currTabIdx - 1) * size * 1.1),
         w = width,
         h = size,
     }
@@ -143,7 +126,7 @@ function Window:process(showIcons, currTabIdx) -- {{{
         h = self.indicator_rect.h - (iconPadding * 2),
     }
 
-    light_bg = hasLightBG(self.indicator_rect)
+    light_bg = _.hasLightBG(self.canvas_frame, self.indicator_rect)
     self.color_opts = {
         bg = self.focused and
             (light_bg and focused_color_dark or focused_color_light) or

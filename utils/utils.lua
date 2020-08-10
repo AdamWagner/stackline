@@ -1,4 +1,5 @@
 local tut = require 'stackline.utils.table-utils'
+local LIGHT_BG_BRIGHTNESS_THRESHOLD = 0.55
 
 local trueValues = tut.Set{
     "1",
@@ -15,6 +16,48 @@ utils.map = hs.fnutils.map
 utils.concat = hs.fnutils.concat
 utils.each = hs.fnutils.each
 
+
+local luminanceCache = {}
+
+utils.luminance = function(color)
+    color = hs.drawing.color.asHSB(color)
+    return (2 - color.saturation) * color.brightness / 2
+end
+
+utils.pixelBrightness = function(image, pixel)
+    color = image:colorAt(pixel)
+    return color and utils.luminance(color) or 0.5
+end
+
+utils.hasLightBG = function(canvasFrame, indicatorFrame)
+    screen = hs.screen.mainScreen()
+
+    frame = screen:absoluteToLocal(hs.geometry(canvasFrame))
+    frame = hs.geometry(indicatorFrame.x + frame.x, indicatorFrame.y + frame.y, indicatorFrame.w, indicatorFrame.h)
+
+    if luminanceCache[frame.string] ~= nil then
+        return luminanceCache[frame.string]
+    end
+
+    image = screen:snapshot(frame)
+
+    topleft = frame.topleft
+    brightness = 0.0
+    for dx=0,frame.w do
+        for dy=0,frame.h do
+            brightness = brightness + utils.pixelBrightness(image, hs.geometry.point(topleft.x + dx, topleft.y + dy))
+        end
+    end
+
+    brightness = brightness / (frame.w * frame.h)
+
+    luminanceCache[frame.string] = brightness > LIGHT_BG_BRIGHTNESS_THRESHOLD
+    return luminanceCache[frame.string]
+end
+
+utils.round = function(x)
+  return x>=0 and math.floor(x+0.5) or math.ceil(x-0.5)
+end
 
 utils.boolean = function(val)
     return trueValues[val]
