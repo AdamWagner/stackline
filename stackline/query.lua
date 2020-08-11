@@ -1,3 +1,10 @@
+-- NOTES: Functionality from this file can be completely factored out into
+-- stack.lua and stackline.lua. In fact, I've already done this once, but was
+-- riding a bit too fast and found myself in a place where nothing worked, and I
+-- didn't know why. So, this mess lives another day. Conceptually, it'll be
+-- pretty easy to put this stuff where it belongs.
+
+
 -- luacheck: ignore (spaces isn't used, but augments hs.window module)
 local spaces = require("hs._asm.undocumented.spaces")
 local _ = require 'stackline.utils.utils'
@@ -6,77 +13,9 @@ local u = require 'stackline.utils.underscore'
 -- stackline modules
 local Window = require 'stackline.stackline.window'
 
---[[ {{{ NOTES
-The goal of this file is to eliminate the need to 'shell out' to yabai to query
-window data needed to render stackline, which would address
-https://github.com/AdamWagner/stackline/issues/8. The main problem with relying
-on yabai is that a 0.03s sleep is required in the yabai script to ensure that
-the changes that triggered hammerspoon's window event subscriber are, in fact,
-represented in the query response from yabai. There are probably secondary
-downsides, such as overall performance, and specifically *yabai* performance
-(I've noticed that changing focus is slower when lots of yabai queries are
-happening simultaneously).
-
-┌────────┐
-│ Status │
-└────────┘
-We're not yet using any of the code in this file to actually render the
-indiators or query ata — all of that is still achieved via the "old" methods.
-
-However, this file IS being required by ./core.lua and runs one every window focus
-event, and the resulting "stack" data is printed to the hammerspoon console.
-
-The stack data structure differs from that used in ./stack.lua enough that it
-won't work as a drop-in replacement. I think that's fine (and it wouldn't be
-worth attempting to make this a non-breaking change, esp. since zero people rely
-on it as of 2020-08-02.
-
-┌──────┐
-│ Next │
-└──────┘
-- [ ] Integrate appropriate functionality in this file into the Core module
-- [ ] Integrate appropriate functionality in this file into the Stack module
-- [x] Update key Stack module functions to have basic compatiblity with the new data structure
-- [x] Simplify / refine Stack functions to leverage the benefits of having access to the hs.window module for each tracked window
-- [ ] … see if there's anything left and decide where it should live
-
-┌───────────┐
-│ WIP NOTES │
-└───────────┘
-Much of the functionality in this file should either be integrated into
-stack.lua or core.lua — I don't think a new file is needed.
-
-Rather than calling out to the script ../bin/yabai-get-stacks, we're using
-hammerspoon's mature (if complicated) hs.window.filter and hs.window modules to
-achieve the same goal natively within hammerspon.
-
-There might be other benefits in addition to fixing the problems that inspired
-#8: We get "free" access to the *hammerspoon* window module in the window data
-tracked by stackline, which will probably make it easier to implement
-enhancements that we haven't even considered yet. This approach should also be
-easier to maintain, *and* we get to drop the jq dependency!
-
--- }}} --]]
-
--- Internal utils
-local wfd = hs.window.filter.new():setOverrideFilter{ -- {{{
-    visible = true, -- (i.e. not hidden and not minimized)
-    fullscreen = false,
-    currentSpace = true,
-    allowRoles = 'AXStandardWindow',
-}:setSortOrder(hs.window.filter.sortByCreated) -- }}}
-
-function lenGreaterThanOne(t) -- {{{
-    return #t > 1
-end -- }}}
-
-function winToHs(win) -- {{{
-    return win._win
-end -- }}}
-
 local scriptPath = hs.configdir .. '/stackline/bin/yabai-get-stack-idx'
+
 local Query = {}
-Query.focusedWindow = nil
 
 function Query:getWinStackIdxs() -- {{{
     hs.task.new("/usr/local/bin/dash", function(_code, stdout, _stderr)
@@ -85,67 +24,51 @@ function Query:getWinStackIdxs() -- {{{
 end -- }}}
 
 function Query:makeStacksFromWindows(ws) -- {{{
-    local windows = map(ws, function(w)
+    local windows = _.map(ws, function(w)
         return Window:new(w)
     end)
 
-    -- Methods to group windows into stacks
-    -- -------------------------------------------------------------------------
-    -- Rationale: Identifying frames by topLeft (frame.x, frame.y) of each window
-    -- addresses macos MIN WIN SIZE EDGE CASE that can result in a stacked
-    -- window NOT sharing the same dimensions.
-    -- PRO:
-    --    ensures such windows will be members of the stack
-    -- CON:
-    --    zoom-parent & zoom-fullscreen windows will ALSO be counted as stack members
-    -- PROPER FIX
-    --    Filter out windows with a 0 stack-index using yabai data
-
     -- NOTE: 'stackID' groups by full frame, so windows with min-size > stack
     -- width will not be stacked properly. See above ↑
-    local groupedWindows = _.groupBy(windows, 'stackId')
+    local groupedWins = _.groupBy(windows, 'stackId')
+
+    local byStack = _.filter(groupedWins, _.greaterThan(1)) -- stacks have >1 window, so ignore 'groups' of 1
+    local byApp = _.groupBy(_.reduce(u.values(byStack), _.concat), 'app') -- group stacked windows by app (app name is key)
 
     -- stacks contain more than one window, 
     -- so ignore groups with only 1 window
-    stacks = hs.fnutils.filter(groupedWindows, lenGreaterThanOne)
-    self.stacks = stacks
+    self.appWindows = byApp
+    self.stacks = byStack
 end -- }}}
 
 function Query:mergeWinStackIdxs() -- {{{
     hs.fnutils.each(self.stacks, function(stack)
         hs.fnutils.each(stack, function(win)
-            -- print(win.id)
             win.stackIdx = self.winStackIdxs[tostring(win.id)]
         end)
     end)
 end -- }}}
 
 function shouldRestack(new) -- {{{
-    local curr = stacksMgr:getSummary()
-    local new = stacksMgr:getSummary(u.values(new))
-
-    -- _.p(curr)
-    -- _.p(new)
+    local curr = sm:getSummary()
+    local new = sm:getSummary(u.values(new))
 
     if curr.numStacks ~= new.numStacks then
-        _.pheader('number of stacks changed')
+        print('num stacks changed')
         return true
     end
 
     if not _.equal(curr.topLeft, new.topLeft) then
-        _.pheader('position changed')
-        _.p(curr.topLeft)
-        _.p(new.topLeft)
+        print('position changed')
         return true
     end
 
     if not _.equal(curr.numWindows, new.numWindows) then
-        _.pheader('num windows changed')
+        print('num windows changed')
         return true
     end
 end -- }}}
 
-local count = 0
 function Query:windowsCurrentSpace() -- {{{
     self:makeStacksFromWindows(wfd:getWindows()) -- set self.stacks
 
@@ -158,13 +81,13 @@ function Query:windowsCurrentSpace() -- {{{
 
     local shouldRefresh = false -- tmp var mocking ↑
 
-    local extantStacks = stacksMgr:get()
-    local extantStackSummary = stacksMgr:getSummary()
+    local extantStacks = sm:get()
+    local extantStackSummary = sm:getSummary()
     local extantStackExists = extantStackSummary.numStacks > 0
 
     if extantStackExists then
         shouldRefresh = shouldRestack(self.stacks, extantStacks)
-        stacksMgr:dimOccluded()
+        -- stacksMgr:dimOccluded() TODO: revisit in a future update. This is kind of an edge case — there are bigger fish to fry.
     else
         shouldRefresh = true
     end
@@ -172,16 +95,9 @@ function Query:windowsCurrentSpace() -- {{{
     if shouldRefresh then
         self:getWinStackIdxs() -- set self.winStackIdxs (async shell call to yabai)
 
-        -- DEBUG {{{
-        -- _.pheader('wfd:getWindows() in query')
-        -- for _idx, win in pairs(wfd:getWindows()) do
-        --     print(win:application():title(), ":", win:title())
-        -- end
-        -- }}}
-
         function whenStackIdxDone()
             self:mergeWinStackIdxs() -- Add the stack indexes from yabai to the hs window data
-            stacksMgr:ingest(self.stacks, extantStackExists) -- hand over to the Stack module
+            sm:ingest(self.stacks, self.appWindows, extantStackExists) -- hand over to the Stack module
         end
 
         local pollingInterval = 0.1
@@ -190,17 +106,5 @@ function Query:windowsCurrentSpace() -- {{{
         end, whenStackIdxDone, pollingInterval)
     end
 end -- }}}
+
 return Query
-
--- Deprecated
--- function Query.getSpaces() -- {{{
---     return fnutils.mapCat(screen.allScreens(), function(s)
---         return spaces.layout()[s:spacesUUID()]
---     end)
--- end -- }}}
--- function Query.getActiveSpaceIndex() -- {{{
---     local s = Query.getSpaces()
---     local activeSpace = spaces.activeSpace()
---     return _.indexOf(s, activeSpace)
--- end -- }}}
-

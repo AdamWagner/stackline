@@ -1,5 +1,6 @@
 -- TODO: consolidate these utils!
 local _ = require 'stackline.utils.utils'
+local u = require 'stackline.utils.underscore'
 
 -- stackline modules
 local Query = require 'stackline.stackline.query'
@@ -9,82 +10,44 @@ local Stack = require 'stackline.stackline.stack'
 -- │ Stack module │
 -- └──────────────┘
 
--- HEAP (unused for now) {{{
-i = 1
-local heap = require 'stackline.utils.heap' -- {{{
-h = heap.valueheap {
-    cmp = function(a, b)
-        _.pheader('compare in heap')
-        print('A:')
-        _.p(a)
-        print('B:')
-        _.p(b)
-        return a.timestamp < b.timestamp
-    end,
-} -- }}}
-function Stack:heapPush(stacks) -- {{{
-    -- TODO: track stacks in heap here instead of in Stack:newStack()
-    local cloneStack = hs.fnutils.copy(stacks)
-    cloneStack.timestamp = hs.timer.absoluteTime() -- add timestamp for heap / diff
-    h:push(cloneStack)
-    if h:length() > 2 then
-        stackDiff()
-    end
-end -- }}}
-function stackDiff() -- {{{
-    local curr = h:pop()
-    local last = h:pop()
-
-    _.pheader('stack diff:')
-    print("current: ", curr.timestamp)
-    print("last: ", last.timestamp)
-    print("diff: ", curr.timestamp - last.timestamp)
-
-    -- for _winIdx, w in pairs(curr) do
-    --     print(hs.inspect(w, {depth = 1}))
-    -- end
-end -- }}}
--- }}}
-
-local StacksMgr = {}
-function StacksMgr:update() -- {{{
+local Stackmanager = {}
+function Stackmanager:update() -- {{{
     Query:windowsCurrentSpace() -- calls Stack:ingest when ready
 end -- }}}
 
--- FIXME: Doesn't wor with multiple tab stacks on same screen (?!)
-function StacksMgr:new() -- {{{
+function Stackmanager:new() -- {{{
     self.tabStacks = {}
-    self.showIcons = true
+    self.showIcons = stackConfig:get('showIcons')
     return self
 end -- }}}
 
-function StacksMgr:ingest(stacks, shouldClean) -- {{{
-    -- self:heapPush(stacks)
+function Stackmanager:ingest(stacks, appWindows, shouldClean) -- {{{
     if shouldClean then
-        _.pheader('running cleanup')
         self:cleanup()
     end
+
     for _stackId, stack in pairs(stacks) do
-        _.pheader('new stack')
-        _.p(stack)
-
+        _.each(stack, function(win)
+            win.otherAppWindows = u.filter(appWindows[win.app], function(w)
+                return w.id ~= win.id
+            end)
+        end)
         table.insert(self.tabStacks, Stack(stack))
-
         self:redrawAllIndicators()
     end
 end -- }}}
 
-function StacksMgr:get() -- {{{
+function Stackmanager:get() -- {{{
     return self.tabStacks
 end -- }}}
 
-function StacksMgr:eachStack(fn) -- {{{
+function Stackmanager:eachStack(fn) -- {{{
     for _stackId, stack in pairs(self.tabStacks) do
         fn(stack)
     end
 end -- }}}
 
-function StacksMgr:dimOccluded() -- {{{
+function Stackmanager:dimOccluded() -- {{{
     self:eachStack(function(stack)
         if stack:isOccluded() then
             stack:dimAllIndicators()
@@ -94,61 +57,57 @@ function StacksMgr:dimOccluded() -- {{{
     end)
 end -- }}}
 
-function StacksMgr:cleanup() -- {{{
-    _.pheader('calling cleanup')
+function Stackmanager:cleanup() -- {{{
     self:eachStack(function(stack)
-        print('calling stackMgr:deleteAllIndicators()')
         stack:deleteAllIndicators()
     end)
     self.tabStacks = {}
 end -- }}}
 
-function StacksMgr:getSummary(external) -- {{{
+function Stackmanager:getSummary(external) -- {{{
+    -- Summariaes all stacks on the current space, making it easy to determine
+    -- what needs to be updated (if anything)
     local stacks = external or self.tabStacks
     return {
         numStacks = #stacks,
-        topLeft = map(stacks, function(s)
+        topLeft = _.map(stacks, function(s)
             local windows = external and s or s.windows
             return windows[1].topLeft
         end),
-        dimensions = map(stacks, function(s)
+        dimensions = _.map(stacks, function(s)
             local windows = external and s or s.windows
             return windows[1].stackId
         end),
-        numWindows = map(stacks, function(s)
+        numWindows = _.map(stacks, function(s)
             local windows = external and s or s.windows
             return #windows
         end),
     }
 end -- }}}
 
-function StacksMgr:redrawAllIndicators() -- {{{
+function Stackmanager:redrawAllIndicators() -- {{{
     self:eachStack(function(stack)
         stack:redrawAllIndicators()
     end)
 end -- }}}
 
-function StacksMgr:toggleIcons() -- {{{
+function Stackmanager:toggleIcons() -- {{{
     self.showIcons = not self.showIcons
     self:redrawAllIndicators()
 end -- }}}
 
-function StacksMgr:findWindow(wid) -- {{{
+function Stackmanager:findWindow(wid) -- {{{
     -- NOTE: A window must be *in* a stack to be found with this method!
-    -- print('…searchi win id:', wid)
     for _stackId, stack in pairs(self.tabStacks) do
-        -- print('searching', #stack, 'windows in stackID', _stackId)
         for _idx, win in pairs(stack.windows) do
-            print('searching', win.id, 'for', wid)
             if win.id == wid then
-                -- print('found window', win.id)
                 return win
             end
         end
     end
 end -- }}}
 
-function StacksMgr:findStackByWindow(win) -- {{{
+function Stackmanager:findStackByWindow(win) -- {{{
     -- NOTE: may not need when HS issue #2400 is closed
     -- NOTE 2: Unused, since I'm storing reference to "otherAppWindows" directly on each window
     for _stackId, stack in pairs(self.tabStacks) do
@@ -158,9 +117,8 @@ function StacksMgr:findStackByWindow(win) -- {{{
     end
 end -- }}}
 
-function StacksMgr:getShowIconsState() -- {{{
+function Stackmanager:getShowIconsState() -- {{{
     return self.showIcons
 end -- }}}
 
-return StacksMgr
-
+return Stackmanager

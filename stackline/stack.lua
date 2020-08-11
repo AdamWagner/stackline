@@ -18,18 +18,6 @@ local Stack = Class("Stack", nil, {
 
     new = function(self, stackedWindows) -- {{{
         self.windows = stackedWindows
-
-        each(self.windows, function(w)
-            -- Cache reference to stack on window for easy lookup
-            -- TODO: research cost of increased table size vs better stack lookup speed
-            -- Added to fix annoying HS bug detailed here: ./core.lua
-            w.otherAppWindows = self:getOtherAppWindows(w)
-
-            -- NOTE: Can store other helpful references, like stack, too
-            --       I don't understand the perf. tradeoffs of size vs lookup speed, tho
-            -- w.stack = self
-        end)
-
         self.id = stackedWindows[1].stackId
     end, -- }}}
 
@@ -38,7 +26,7 @@ local Stack = Class("Stack", nil, {
     end, -- }}}
 
     getHs = function(self) -- {{{
-        return map(self.windows, function(w)
+        return _.map(self.windows, function(w)
             return w._win
         end)
     end, -- }}}
@@ -59,7 +47,7 @@ local Stack = Class("Stack", nil, {
 
     getOtherAppWindows = function(self, win) -- {{{
         -- NOTE: may not need when HS issue #2400 is closed
-        return filter(self:get(), function(w)
+        return _.filter(self:get(), function(w)
             _.pheader('window in getOtherAppWindows')
             _.p(w)
             return w.app == win.app
@@ -68,8 +56,6 @@ local Stack = Class("Stack", nil, {
 
     redrawAllIndicators = function(self) -- {{{
         self:eachWin(function(win)
-            print('calling redraw indicator')
-            -- TODO see if it works *without* win:setupIndicator
             win:setupIndicator()
             win:drawIndicator()
         end)
@@ -77,7 +63,6 @@ local Stack = Class("Stack", nil, {
 
     deleteAllIndicators = function(self) -- {{{
         self:eachWin(function(win)
-            print('calling delete indicator')
             win:deleteIndicator()
         end)
     end, -- }}}
@@ -118,16 +103,15 @@ local Stack = Class("Stack", nil, {
         end
 
         local windowsCurrSpace = wfd:getWindows()
-        local nonStackWindows = filter(windowsCurrSpace, notInStack)
+        local nonStackWindows = _.filter(windowsCurrSpace, notInStack)
 
         -- true if *any* non-stacked windows occlude the stack's frame
         -- NOTE: u.any() works, hs.fnutils.some does NOT work :~
-        local stackIsOccluded = u.any(map(nonStackWindows, function(w)
+        local stackIsOccluded = u.any(_.map(nonStackWindows, function(w)
             return self:isWindowOccludedBy(w)
         end))
         return stackIsOccluded
-    end, -- }}}
-
+    end -- }}}
 })
 
 return Stack

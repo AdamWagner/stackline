@@ -205,8 +205,12 @@ function utils.pick(input, key_values) -- {{{
 end -- }}}
 
 function utils.p(data, howDeep) -- {{{
-    howDeep = howDeep or 3
-    print(hs.inspect(data, {depth = howDeep}))
+    local depth = howDeep or 3
+    if type(data) == 'table' then
+        print(hs.inspect(data, {depth = depth}))
+    else
+        print(hs.inspect(data, {depth = depth}))
+    end
 end -- }}}
 
 function utils.pdivider(str) -- {{{
@@ -269,6 +273,14 @@ function utils.equal(a, b) -- {{{
     end
 
     return true
+end -- }}}
+
+function utils.Set(list) -- {{{
+    local set = {}
+    for _, l in ipairs(list) do
+        set[l] = true
+    end
+    return set
 end -- }}}
 
 -- TODO: Confirm that hs.fnutils.partial works just as well

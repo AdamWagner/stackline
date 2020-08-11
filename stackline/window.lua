@@ -1,59 +1,26 @@
 local _ = require 'stackline.utils.utils'
 local u = require 'stackline.utils.underscore'
 
-function makeStackId(win) -- {{{
-    -- stackId is top-left window frame coordinates
-    -- example: "302|35|63|1185|741"
-    -- OLD definition:
-    --    generate stackId from spaceId & frame values
-    --    example (old): "302|35|63|1185|741"
-    local frame = win:frame():floor()
-    local x = frame.x
-    local y = frame.y
-    local w = frame.w
-    local h = frame.h
-    return {
-        topLeft = table.concat({x, y}, '|'),
-        stackId = table.concat({x, y, w, h}, '|'),
-    }
-end -- }}}
-
 -- ┌───────────────┐
 -- │ Window module │
 -- └───────────────┘
-
 local Window = {}
 
--- luacheck: ignore
 function Window:new(hsWin) -- {{{
     local ws = {
-        -- title = w:title(), -- window title for debug only (string)
+        title = hsWin:title(), -- window title
         app = hsWin:application():name(), -- app name (string)
         id = hsWin:id(), -- window id (string) NOTE: the ID is the same as yabai! So we could interopt if we need to
         frame = hsWin:frame(), -- x,y,w,h of window (table)
         stackIdx = hsWin.stackIdx, -- only from yabai, unfort.
-        stackId = makeStackId(hsWin).stackId, -- "{{x}|{y}|{w}|{h}" e.g., "35|63|1185|741" (string)
-        topLeft = makeStackId(hsWin).topLeft, -- "{{x}|{y}" e.g., "35|63" (string)
+        stackId = self:makeStackId(hsWin).stackId, -- "{{x}|{y}|{w}|{h}" e.g., "35|63|1185|741" (string)
+        topLeft = self:makeStackId(hsWin).topLeft, -- "{{x}|{y}" e.g., "35|63" (string)
         _win = hsWin, -- hs.window object (table)
         indicator = nil, -- the canvas element (table)
     }
-
     setmetatable(ws, self)
     self.__index = self
     return ws
-end -- }}}
-
-function Window:setStackIdx() -- {{{
-    -- FIXME: Too slow. Probably want to query all windows on space, pluck out
-    -- their stack indexes with jq, & send to hammerspoon to merge with windows.
-
-    -- _.pheader('running setStackIdx for: ' .. self.id)
-    local scriptPath = hs.configdir .. '/stackline/bin/yabai-get-stack-idx'
-    hs.task.new("/usr/local/bin/dash", function(_code, stdout, stderr)
-        local stackIdx = tonumber(stdout)
-        self.stackIdx = stackIdx
-        -- print('stack idx for ', self.id, ' is ', stackIdx)
-    end, {scriptPath, tostring(self.id)}):start():waitUntilExit()
 end -- }}}
 
 function Window:isFocused() -- {{{
@@ -65,22 +32,7 @@ function Window:isFocused() -- {{{
     return isFocused
 end -- }}}
 
--- function Window.__eq(a, b) -- {{{
---     -- FIXME: unused as of 2020-07-31
---     local t1 = a.id
---     local t2 = b.id
---     print('Window.__eq metamethod called:', a.id, a.focused, ' < VS: > ', t2,
---           b.focused)
---     local existComp = {id = a.id, frame = a.frameFlat, focused = a.focused}
---     local currComp = {id = b.id, frame = b.frameFlat, focused = b.focused}
---     -- _.p('A Compare:', existComp)
---     -- _.p('B Compare:', currComp)
---     local isEqual = _.isEqual(existComp, currComp)
---     return isEqual
--- end -- }}}
-
 function Window:getScreenSide() -- {{{
-    -- (sFrame.w - (wFrame.x + wFrame.w)) / sFrame.w
     local screenWidth = self._win:screen():fullFrame().w
     local frame = self.frame
     local percRight = 1 - ((screenWidth - (frame.x + frame.w)) / screenWidth)
@@ -97,15 +49,9 @@ function Window:getScreenSide() -- {{{
     --      self._win:windowsToSouth()
 end -- }}}
 
--- TODO: ↑ Convert to .__eq metatable
-function Window:setNeedsUpdated(extant) -- {{{
-    local isEqual = _.isEqual(existComp, currComp)
-    self.needsUpdated = not isEqual
-end -- }}}
-
-function Window:setupIndicator(Icons) -- {{{
+function Window:setupIndicator() -- {{{
     -- Config
-    local showIcons = stacksMgr:getShowIconsState()
+    local showIcons = sm:getShowIconsState()
 
     -- Padding
     self.padding = 4
@@ -119,10 +65,9 @@ function Window:setupIndicator(Icons) -- {{{
     -- Position
     self.offsetY = 2
     self.offsetX = 4
-
-    -- Overlapped with window + percent top offset
-    -- self.offsetY = self.frame.h * 0.1
-    -- self.offsetX = -(self.width / 2)
+    --    example: overlapped with window + percent top offset
+    --    self.offsetY = self.frame.h * 0.1
+    --    self.offsetX = -(self.width / 2)
 
     -- Roundness
     self.indicatorRadius = 3
@@ -135,7 +80,7 @@ function Window:setupIndicator(Icons) -- {{{
     --   left edge of windows on the left side of the screen, &
     --   right edge of windows on the right side of the screen
     local side = self:getScreenSide()
-    local xval = nil
+    local xval
     if side == 'right' then
         xval = (self.frame.x + self.frame.w) + self.offsetX
     else
@@ -166,14 +111,14 @@ function Window:setupIndicator(Icons) -- {{{
     }
 end -- }}}
 
-function Window:drawIndicator(overrideOpts, focusedHint) -- {{{
-    local defaultOpts = {
+function Window:drawIndicator(overrideOpts) -- {{{
+    self.defaultOpts = {
         shouldFade = true,
         alphaFocused = 1,
         alphaUnfocused = 0.33,
     }
 
-    local opts = u.extend(defaultOpts, overrideOpts or {})
+    local opts = u.extend(self.defaultOpts, overrideOpts or {})
 
     -- Color
     self.colorFocused = {white = 0.9, alpha = opts.alphaFocused}
@@ -181,11 +126,9 @@ function Window:drawIndicator(overrideOpts, focusedHint) -- {{{
 
     -- Unfocused icons less transparent than bg color, but no more than 1
     self.iconAlphaFocused = opts.alphaFocused
-    self.iconAlphaUnfocused = math.min(opts.alphaUnfocused * 2, 1)
+    self.iconAlphaUnfocused = math.min(opts.alphaUnfocused * 2.25, 1)
 
-    self.shadowOpts = {blur = self.focus}
-
-    local showIcons = stacksMgr:getShowIconsState()
+    local showIcons = sm:getShowIconsState()
     local radius = showIcons and self.iconRadius or self.indicatorRadius
     local fadeDuration = opts.shouldFade and self.fadeDuration or 0
 
@@ -202,11 +145,6 @@ function Window:drawIndicator(overrideOpts, focusedHint) -- {{{
         fillColor = self.focus and self.colorFocused or self.colorUnfocused,
         imageAlpha = self.focus and self.iconAlphaFocused or
             self.iconAlphaUnfocused,
-        shadow = {
-            blurRadius = 20.0,
-            color = {alpha = 1 / 5},
-            offset = {h = -2.0, w = 0.0},
-        },
     }
 
     self.indicator:insertElement({
@@ -217,6 +155,7 @@ function Window:drawIndicator(overrideOpts, focusedHint) -- {{{
         roundedRectRadii = {xRadius = radius, yRadius = radius},
         padding = 60,
         withShadow = true,
+        shadow = self:getShadowAttrs(),
     }, self.rectIdx)
 
     if showIcons then
@@ -233,9 +172,7 @@ function Window:drawIndicator(overrideOpts, focusedHint) -- {{{
     self.indicator:show(fadeDuration)
 end -- }}}
 
-function Window:redrawIndicator(overrideOpts, isFocused) -- {{{
-    _.pheader('redraw')
-    print(self.id, self.app, isFocused)
+function Window:redrawIndicator(isFocused) -- {{{
     -- bail early if there's nothing to do
     if isFocused == self.focus then
         return false
@@ -243,24 +180,67 @@ function Window:redrawIndicator(overrideOpts, isFocused) -- {{{
         self.focus = isFocused
     end
 
-    local set = _.partial(self.indicator.elementAttribute, self.indicator)
-    local setRect = _.partial(set, self.rectIdx)
-    local setIcon = _.partial(set, self.iconIdx)
+    if not self.indicator then
+        self:setupIndicator()
+    end
 
-    local fillColor = self.focus and self.colorFocused or self.colorUnfocused
-    local imageAlpha = self.focus and self.iconAlphaFocused or
-                           self.iconAlphaUnfocused
+    local f = self.focus
+    local rect = self.indicator[self.rectIdx]
+    local icon = self.indicator[self.iconIdx]
 
-    setRect('fillColor', fillColor)
-    if stacksMgr:getShowIconsState() then
-        print(self.focus, 'imageAlpha:', imageAlpha)
-        setIcon('imageAlpha', imageAlpha)
+    rect.fillColor = f and self.colorFocused or self.colorUnfocused
+    rect.shadow = self:getShadowAttrs(f)
+    if sm:getShowIconsState() then
+        icon.imageAlpha = f and self.iconAlphaFocused or self.iconAlphaUnfocused
     end
 end -- }}}
 
 function Window:iconFromAppName() -- {{{
     appBundle = hs.appfinder.appFromName(self.app):bundleID()
     return hs.image.imageFromAppBundle(appBundle)
+end -- }}}
+
+function Window:getShadowAttrs() -- {{{
+    local shadowAlpha = self.focus and 3 or 3.75 -- denominator in 1 / N, so "2" == 50% alpha 
+    local shadowBlur = self.focus and 18.0 or 5.0
+
+    -- Shadows should cast outwards toward the screen edges as if due to the glow of onscreen windows…
+    -- …or, if you prefer, from a light source originating from the center of the screen.
+    local shadowXDirection = (self:getScreenSide() == 'left') and -1 or 1
+    local shadowOffset = {
+        h = (self.focus and 3.0 or 2.0) * -1.0,
+        w = (self.focus and 7.0 or 6.0) * shadowXDirection,
+    }
+    -- TODO [just for fun]: Dust off an old Geometry textbook and try get the
+    -- shadow's angle to rotate around a point at the center of the screen (aka, 'light source').
+    -- Here's a super crude POC that uses the indicator's stack index such that
+    -- higher indicators have a negative Y offset and lower indicators have a
+    -- positive Y offset ;-) 
+    --      h = (self.focus and 3.0 or 2.0 - (2 + (self.stackIdx * 5))) * -1.0,
+
+    -- TODO ↓ align all alpha values to be defined like this
+    return {
+        blurRadius = shadowBlur,
+        color = {alpha = 1 / shadowAlpha},
+        offset = shadowOffset,
+    }
+end -- }}}
+
+function Window:makeStackId(hsWin) -- {{{
+    -- stackId is top-left window frame coordinates
+    -- example: "302|35|63|1185|741"
+    -- OLD definition:
+    --    generate stackId from spaceId & frame values
+    --    example (old): "302|35|63|1185|741"
+    local frame = hsWin:frame():floor()
+    local x = frame.x
+    local y = frame.y
+    local w = frame.w
+    local h = frame.h
+    return {
+        topLeft = table.concat({x, y}, '|'),
+        stackId = table.concat({x, y, w, h}, '|'),
+    }
 end -- }}}
 
 function Window:deleteIndicator() -- {{{
