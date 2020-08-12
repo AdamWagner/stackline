@@ -45,7 +45,7 @@ local windowEvents = {
     wf.windowDestroyed,
     wf.windowHidden,
     wf.windowMinimized,
-    wf.windowNotInCurrentSpace,
+    -- wf.windowNotInCurrentSpace, -- depends on hs._asm.undocumented.spaces
 }
 
 -- TO CONFIRM: Compared to calling wsi.update() directly in wf:subscribe 

@@ -3,10 +3,10 @@
 -- riding a bit too fast and found myself in a place where nothing worked, and I
 -- didn't know why. So, this mess lives another day. Conceptually, it'll be
 -- pretty easy to put this stuff where it belongs.
-
-
--- luacheck: ignore (spaces isn't used, but augments hs.window module)
-local spaces = require("hs._asm.undocumented.spaces")
+--
+-- DONE: remove dependency on hs._asm.undocumented.spaces
+-- Affects line at ./stackline/stackline.lua:48 using hs.window.filter.windowNotInCurrentSpace
+-- local spaces = require 'hs._asm.undocumented.spaces'
 local _ = require 'stackline.utils.utils'
 local u = require 'stackline.utils.underscore'
 
@@ -24,6 +24,7 @@ function Query:getWinStackIdxs() -- {{{
 end -- }}}
 
 function Query:makeStacksFromWindows(ws) -- {{{
+    _.p(ws)
     local windows = _.map(ws, function(w)
         return Window:new(w)
     end)
@@ -35,7 +36,7 @@ function Query:makeStacksFromWindows(ws) -- {{{
     local byStack = _.filter(groupedWins, _.greaterThan(1)) -- stacks have >1 window, so ignore 'groups' of 1
     local byApp = _.groupBy(_.reduce(u.values(byStack), _.concat), 'app') -- group stacked windows by app (app name is key)
 
-    -- stacks contain more than one window, 
+    -- stacks contain more than one window,
     -- so ignore groups with only 1 window
     self.appWindows = byApp
     self.stacks = byStack
@@ -50,6 +51,13 @@ function Query:mergeWinStackIdxs() -- {{{
 end -- }}}
 
 function shouldRestack(new) -- {{{
+    -- Analyze self.stacks to determine if a stack refresh is needed
+    --  • change space
+    --  • change num stacks (+/-)
+    --  • changes to existing stack
+    --    • change num windows (covers win added / removed)
+    --    • change position
+
     local curr = sm:getSummary()
     local new = sm:getSummary(u.values(new))
 
@@ -70,17 +78,9 @@ function shouldRestack(new) -- {{{
 end -- }}}
 
 function Query:windowsCurrentSpace() -- {{{
-    self:makeStacksFromWindows(wfd:getWindows()) -- set self.stacks
-
-    -- Analyze self.stacks to determine if a stack refresh is needed
-    --  • change space
-    --  • change num stacks (+/-)
-    --  • changes to existing stack
-    --    • change num windows (covers win added / removed)
-    --    • change position
+    self:makeStacksFromWindows(wfd:getWindows()) -- set self.stacks & self.appWindows
 
     local shouldRefresh = false -- tmp var mocking ↑
-
     local extantStacks = sm:get()
     local extantStackSummary = sm:getSummary()
     local extantStackExists = extantStackSummary.numStacks > 0

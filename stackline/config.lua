@@ -1,5 +1,4 @@
 local _ = require 'stackline.utils.utils'
-
 local handleSignal = function(_, msgID, msg) -- {{{
     if msgID == 900 then
         return "version:2.0a"
