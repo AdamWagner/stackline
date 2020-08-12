@@ -64,20 +64,6 @@ function StackConfig:toggle(key)
     return toggledVal
 end
 
-function StackConfig:handleSingal(msgID, msg)
-    if msgID == 900 then
-        return "version:2.0a"
-    end
-
-    if msgID == 500 then
-        local key, _value = msg:match(".+:([%a_-]+):([%a%d_-]+)")
-        if key == "toggle_icons" then
-            self:toggle('showIcons')
-        end
-    end
-    return "ok"
-end
-
 function StackConfig:makePath(key)
     return self.id .. '-' .. key
 end
