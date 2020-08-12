@@ -2,12 +2,9 @@ local _ = require 'stackline.utils.utils'
 local u = require 'stackline.utils.underscore'
 
 local Class = require 'stackline.utils.self'
--- NOTE: using simple 'self' library fixed 
--- the issue of only 1 of N stacks responding to focus events.
--- Experimented with even smaller libs, but only 'self' worked so far.
-
--- Class example in vanilla lua
--- https://github.com/lharck/inheritance-example
+-- NOTE: using simple 'self' library fixed the issue of only 1 of N stacks
+-- responding to focus events.  Experimented with even smaller libs, but only
+-- 'self' worked so far.
 
 -- ARGS: Class(className,
 --             parentClass,
@@ -93,9 +90,8 @@ local Stack = Class("Stack", nil, {
 
         -- Returns true if any non-stack window occludes the stack's frame.
         -- This can occur when an unstacked window is zoomed to cover a stack.
-        -- In this situation, we  want to *hide* the occluded stack's indicators
+        -- In this situation, we  want to hide or dim the occluded stack's indicators
 
-        -- DONE: Convert to Stack instance method (wouldn't need to pass in the 'stack' arg)
         local stackedHsWins = self:getHs()
 
         function notInStack(hsWin)
@@ -111,7 +107,7 @@ local Stack = Class("Stack", nil, {
             return self:isWindowOccludedBy(w)
         end))
         return stackIsOccluded
-    end -- }}}
+    end, -- }}}
 })
 
 return Stack

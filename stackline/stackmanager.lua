@@ -65,7 +65,7 @@ function Stackmanager:cleanup() -- {{{
 end -- }}}
 
 function Stackmanager:getSummary(external) -- {{{
-    -- Summariaes all stacks on the current space, making it easy to determine
+    -- Summarizes all stacks on the current space, making it easy to determine
     -- what needs to be updated (if anything)
     local stacks = external or self.tabStacks
     return {
@@ -108,8 +108,9 @@ function Stackmanager:findWindow(wid) -- {{{
 end -- }}}
 
 function Stackmanager:findStackByWindow(win) -- {{{
-    -- NOTE: may not need when HS issue #2400 is closed
-    -- NOTE 2: Unused, since I'm storing reference to "otherAppWindows" directly on each window
+    -- NOTE: may not need when Hammerspoon #2400 is closed
+    -- NOTE 2: Currently unused, since reference to "otherAppWindows" is sstored
+    -- directly on each window. Likely to be useful, tho, so keeping it around.
     for _stackId, stack in pairs(self.tabStacks) do
         if stack.id == win.stackId then
             return stack

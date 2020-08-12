@@ -41,6 +41,10 @@ function Window:getScreenSide() -- {{{
 
     return side
 
+    -- TODO: BUG: Right-side window incorrectly reports as a left-side window with
+    -- very large padding settings. Will need to consider coordinates from both
+    -- sides of a window.
+
     -- TODO: find a way to use hs.window.filter.windowsTo{Dir} 
     -- to determine side instead of percLeft/Right ↑
     --    https://www.hammerspoon.org/docs/hs.window.filter.html#windowsToWest
@@ -133,7 +137,7 @@ function Window:drawIndicator(overrideOpts) -- {{{
     local fadeDuration = opts.shouldFade and self.fadeDuration or 0
 
     self.focus = self:isFocused()
-    -- PROFILE: 0.0123s / 75 (0.0002s) :: isFocused 
+    -- Speed profile: 0.0123s / 75 (0.0002s) :: isFocused 
 
     if self.indicator then
         self.indicator:delete()
@@ -160,7 +164,8 @@ function Window:drawIndicator(overrideOpts) -- {{{
 
     if showIcons then
         -- TODO: Figure out how to prevent clipping when adding a subtle shadow
-        -- to the icon to help distinguish icons with a near-white edge.
+        -- to the icon to help distinguish icons with a near-white edge.Note
+        -- that `padding` attribute, which works for rects, does not work for images.
         self.indicator:insertElement({
             type = "image",
             image = self:iconFromAppName(),
@@ -218,10 +223,9 @@ function Window:getShadowAttrs() -- {{{
     -- positive Y offset ;-) 
     --      h = (self.focus and 3.0 or 2.0 - (2 + (self.stackIdx * 5))) * -1.0,
 
-    -- TODO ↓ align all alpha values to be defined like this
     return {
         blurRadius = shadowBlur,
-        color = {alpha = 1 / shadowAlpha},
+        color = {alpha = 1 / shadowAlpha}, -- TODO align all alpha values to be defined like this (1/X)
         offset = shadowOffset,
     }
 end -- }}}
@@ -229,9 +233,6 @@ end -- }}}
 function Window:makeStackId(hsWin) -- {{{
     -- stackId is top-left window frame coordinates
     -- example: "302|35|63|1185|741"
-    -- OLD definition:
-    --    generate stackId from spaceId & frame values
-    --    example (old): "302|35|63|1185|741"
     local frame = hsWin:frame():floor()
     local x = frame.x
     local y = frame.y

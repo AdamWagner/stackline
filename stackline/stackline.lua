@@ -82,6 +82,7 @@ function redrawWinIndicator(hsWin, _app, event) -- {{{
     local stackedWin = sm:findWindow(id)
     if stackedWin then -- when falsey, the focused win is not stacked
         -- BUG: Unfocused window(s) flicker when an app has 2+ win in a stack {{{
+        --      Wouldn't be an issue if Hammerspon #2400 is fixed
         -- TODO: If there are 2+ windows of the same app in a stack, then the
         -- *unfocused* window(s) indicator(s) flash 'focused' styles for a split second *before* the 
         -- the actually focused window's indicator :< 
