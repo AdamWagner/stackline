@@ -27,13 +27,16 @@ local shouldClean = tut.Set{
     "window_minimized",
 }
 
-function resetLuminanceCache()
+function resetLuminanceCache(paths, flagTables)
+    print("Changed wallpaper, resetting luminanceCache")
     utils.luminanceCache = {}
     wsi.cleanup()
     wsi = Stack:newStackManager(hs.settings.get("show_icons"))
 end
 
-local wallpaperWatcher = hs.pathwatcher.new(os.getenv("HOME") .. "/Library/Application Support/Dock/desktoppicture.db", resetLuminanceCache):start()
+local wallpaperDB = os.getenv("HOME") .. "/Library/Application Support/Dock/"
+print("Watching", wallpaperDB)
+wallpaperWatcher = hs.pathwatcher.new(wallpaperDB, resetLuminanceCache):start()
 
 function configHandler(_, msgID, msg)
     if msgID == 900 then
