@@ -66,7 +66,8 @@ Enter stackline, which adds non-obtrusive visual indicators to yabai'e 's stacki
 
 1. https://github.com/koekeishiya/yabai ([install guide](http://https://github.com/koekeishiya/yabai/wiki/Installing-yabai-(latest-release)))
 2. https://github.com/Hammerspoon/hammerspoon ([getting started guide](https://www.hammerspoon.org/go/))
-3. https://github.com/stedolan/jq (`brew install jq`)
+3. https://github.com/asmagill/hs._asm.undocumented.spaces
+4. https://github.com/stedolan/jq (`brew install jq`)
 
 
 You're free to bind yabai commands using your favorite key remapper tool (skhd, karabiner elements, and even hammerspoon are all viable options).
