@@ -62,6 +62,16 @@ wfd:subscribe(windowEvents, function()
     queryWindowState:start()
 end)
 
+-- Added 2020-08-12 to fill the gap of hs._asm.undocumented.spaces
+-- Stacks refresh on every space/monitor change, wasting resources shelling out to yabai
+-- & redrawing all indicators from scratch. 
+-- TODO: It would better to update our data model to store:
+--     screens[] → spaces[] → stacks[] → windows[]
+-- … and then only update on *window* change events
+hs.spaces.watcher.new(function()
+    queryWindowState:start()
+end):start()
+
 -- ┌───────────────────────────────────────────────┐
 -- │ special case: focus events → optimized redraw │
 -- └───────────────────────────────────────────────┘

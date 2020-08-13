@@ -22,7 +22,11 @@ function Stackmanager:new() -- {{{
 end -- }}}
 
 function Stackmanager:ingest(stacks, appWindows, shouldClean) -- {{{
-    if shouldClean then
+
+    local stacksCount = _.length(stacks)
+    print('\n\nlength of ingested stacks is', stacksCount, '\n\n')
+
+    if shouldClean or (stacksCount == 0) then
         self:cleanup()
     end
 

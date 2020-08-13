@@ -24,7 +24,7 @@ function Query:getWinStackIdxs() -- {{{
 end -- }}}
 
 function Query:makeStacksFromWindows(ws) -- {{{
-    _.p(ws)
+    -- _.p(ws)
     local windows = _.map(ws, function(w)
         return Window:new(w)
     end)
@@ -34,7 +34,11 @@ function Query:makeStacksFromWindows(ws) -- {{{
     local groupedWins = _.groupBy(windows, 'stackId')
 
     local byStack = _.filter(groupedWins, _.greaterThan(1)) -- stacks have >1 window, so ignore 'groups' of 1
-    local byApp = _.groupBy(_.reduce(u.values(byStack), _.concat), 'app') -- group stacked windows by app (app name is key)
+    local byApp
+
+    if _.length(byStack) > 0 then -- if byStack == {}, there are no more stacks on space, so just cleanup
+        byApp = _.groupBy(_.reduce(u.values(byStack), _.concat), 'app') -- group stacked windows by app (app name is key)
+    end
 
     -- stacks contain more than one window,
     -- so ignore groups with only 1 window
@@ -59,7 +63,7 @@ function shouldRestack(new) -- {{{
     --    • change position
 
     local curr = sm:getSummary()
-    local new = sm:getSummary(u.values(new))
+    new = sm:getSummary(u.values(new))
 
     if curr.numStacks ~= new.numStacks then
         print('num stacks changed')
@@ -80,7 +84,7 @@ end -- }}}
 function Query:windowsCurrentSpace() -- {{{
     self:makeStacksFromWindows(wfd:getWindows()) -- set self.stacks & self.appWindows
 
-    local shouldRefresh = false -- tmp var mocking ↑
+    local shouldRefresh
     local extantStacks = sm:get()
     local extantStackSummary = sm:getSummary()
     local extantStackExists = extantStackSummary.numStacks > 0
