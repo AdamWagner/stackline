@@ -3,64 +3,68 @@
 -- riding a bit too fast and found myself in a place where nothing worked, and I
 -- didn't know why. So, this mess lives another day. Conceptually, it'll be
 -- pretty easy to put this stuff where it belongs.
---
 -- DONE: remove dependency on hs._asm.undocumented.spaces
 -- Affects line at ./stackline/stackline.lua:48 using hs.window.filter.windowNotInCurrentSpace
 -- local spaces = require 'hs._asm.undocumented.spaces'
 local _ = require 'stackline.utils.utils'
 local u = require 'stackline.utils.underscore'
 
--- stackline modules
-local Window = require 'stackline.stackline.window'
-
 local scriptPath = hs.configdir .. '/stackline/bin/yabai-get-stack-idx'
 
+-- stackline modules
+local Window = require 'stackline.stackline.window'
 local Query = {}
 
 function Query:getWinStackIdxs() -- {{{
+    -- call out to yabai to get stack-indexes
     hs.task.new("/usr/local/bin/dash", function(_code, stdout, _stderr)
         self.winStackIdxs = hs.json.decode(stdout)
     end, {scriptPath}):start()
 end -- }}}
 
 function Query:makeStacksFromWindows(ws) -- {{{
-    -- _.p(ws)
+    -- Given windows from hs.window.filter: 
+    --    1. Create stackline window objects
+    --    2. Group wins by `stackId` prop (aka top-left frame coords) 
+    --    3. If at least one such group, also group wins by app (to workaround hs bug unfocus event bug)
+
+    local byStack
+    local byApp
     local windows = _.map(ws, function(w)
         return Window:new(w)
     end)
 
-    -- NOTE: 'stackID' groups by full frame, so windows with min-size > stack
-    -- width will not be stacked properly. See above ↑
-    local groupedWins = _.groupBy(windows, 'stackId')
+    -- See 'stackId' def @ /window.lua:233
+    byStack = _.filter(_.groupBy(windows, 'stackId'), _.greaterThan(1)) -- stacks have >1 window, so ignore 'groups' of 1
 
-    local byStack = _.filter(groupedWins, _.greaterThan(1)) -- stacks have >1 window, so ignore 'groups' of 1
-    local byApp
-
-    if _.length(byStack) > 0 then -- if byStack == {}, there are no more stacks on space, so just cleanup
-        byApp = _.groupBy(_.reduce(u.values(byStack), _.concat), 'app') -- group stacked windows by app (app name is key)
+    if _.length(byStack) > 0 then
+        -- app names are keys in group
+        local stackedWins = _.reduce(u.values(byStack), _.concat)
+        byApp = _.groupBy(stackedWins, 'app')
     end
 
-    -- stacks contain more than one window,
-    -- so ignore groups with only 1 window
     self.appWindows = byApp
     self.stacks = byStack
 end -- }}}
 
 function Query:mergeWinStackIdxs() -- {{{
-    hs.fnutils.each(self.stacks, function(stack)
-        hs.fnutils.each(stack, function(win)
-            win.stackIdx = self.winStackIdxs[tostring(win.id)]
-        end)
+    -- merge windowID <> stack-index mapping queried from yabai into window objs
+
+    function assignStackIndex(win)
+        win.stackIdx = self.winStackIdxs[tostring(win.id)]
+    end
+
+    _.each(self.stacks, function(stack)
+        _.each(stack, assignStackIndex)
     end)
 end -- }}}
 
 function shouldRestack(new) -- {{{
     -- Analyze self.stacks to determine if a stack refresh is needed
-    --  • change space
     --  • change num stacks (+/-)
     --  • changes to existing stack
-    --    • change num windows (covers win added / removed)
     --    • change position
+    --    • change num windows (win added / removed)
 
     local curr = sm:getSummary()
     new = sm:getSummary(u.values(new))
@@ -91,7 +95,8 @@ function Query:windowsCurrentSpace() -- {{{
 
     if extantStackExists then
         shouldRefresh = shouldRestack(self.stacks, extantStacks)
-        -- stacksMgr:dimOccluded() TODO: revisit in a future update. This is kind of an edge case — there are bigger fish to fry.
+        -- stacksMgr:dimOccluded() TODO: revisit in a future update. This is
+        -- kind of an edge case — there are bigger fish to fry.
     else
         shouldRefresh = true
     end

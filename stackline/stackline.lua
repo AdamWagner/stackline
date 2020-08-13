@@ -10,7 +10,7 @@ print(hs.settings.bundleID)
 -- │ config │
 -- └────────┘
 stackConfig = StackConfig:new():setEach({
-    showIcons = false,
+    showIcons = true,
     enableTmpFixForHsBug = true,
 }):registerWatchers()
 
