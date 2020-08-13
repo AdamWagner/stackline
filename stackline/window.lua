@@ -32,27 +32,6 @@ function Window:isFocused() -- {{{
     return isFocused
 end -- }}}
 
-function Window:getScreenSide() -- {{{
-    local screenWidth = self._win:screen():fullFrame().w
-    local frame = self.frame
-    local percRight = 1 - ((screenWidth - (frame.x + frame.w)) / screenWidth)
-    local percLeft = (screenWidth - frame.x) / screenWidth
-    local side = (percRight > 0.95 and percLeft < 0.95) and 'right' or 'left'
-
-    return side
-
-    -- TODO: BUG: Right-side window incorrectly reports as a left-side window with
-    -- very large padding settings. Will need to consider coordinates from both
-    -- sides of a window.
-
-    -- TODO: find a way to use hs.window.filter.windowsTo{Dir} 
-    -- to determine side instead of percLeft/Right ↑
-    --    https://www.hammerspoon.org/docs/hs.window.filter.html#windowsToWest
-    --      wfd:windowsToWest(self._win)
-    --    https://www.hammerspoon.org/docs/hs.window.html#windowsToWest
-    --      self._win:windowsToSouth()
-end -- }}}
-
 function Window:setupIndicator() -- {{{
     -- Config
     local showIcons = sm:getShowIconsState()
@@ -83,9 +62,9 @@ function Window:setupIndicator() -- {{{
     -- Display indicators on 
     --   left edge of windows on the left side of the screen, &
     --   right edge of windows on the right side of the screen
-    local side = self:getScreenSide()
+    self.side = self:getScreenSide()
     local xval
-    if side == 'right' then
+    if self.side == 'right' then
         xval = (self.frame.x + self.frame.w) + self.offsetX
     else
         xval = self.frame.x - (self.width + self.offsetX)
@@ -200,6 +179,32 @@ function Window:redrawIndicator(isFocused) -- {{{
     end
 end -- }}}
 
+function Window:getScreenSide() -- {{{
+    local thresh = 0.75
+    local screenWidth = self._win:screen():fullFrame().w
+
+    local leftEdge = self.frame.x
+    local rightEdge = self.frame.x + self.frame.w
+
+    local percR = 1 - ((screenWidth - rightEdge) / screenWidth)
+    local percL = (screenWidth - leftEdge) / screenWidth
+
+    local side = (percR > thresh and percL < thresh) and 'right' or 'left'
+
+    return side
+
+    -- TODO: BUG: Right-side window incorrectly reports as a left-side window with
+    -- very large padding settings. Will need to consider coordinates from both
+    -- sides of a window.
+
+    -- TODO: find a way to use hs.window.filter.windowsTo{Dir} 
+    -- to determine side instead of percLeft/Right ↑
+    --    https://www.hammerspoon.org/docs/hs.window.filter.html#windowsToWest
+    --      wfd:windowsToWest(self._win)
+    --    https://www.hammerspoon.org/docs/hs.window.html#windowsToWest
+    --      self._win:windowsToSouth()
+end -- }}}
+
 function Window:iconFromAppName() -- {{{
     appBundle = hs.appfinder.appFromName(self.app):bundleID()
     return hs.image.imageFromAppBundle(appBundle)
@@ -211,7 +216,7 @@ function Window:getShadowAttrs() -- {{{
 
     -- Shadows should cast outwards toward the screen edges as if due to the glow of onscreen windows…
     -- …or, if you prefer, from a light source originating from the center of the screen.
-    local shadowXDirection = (self:getScreenSide() == 'left') and -1 or 1
+    local shadowXDirection = (self.side == 'left') and -1 or 1
     local shadowOffset = {
         h = (self.focus and 3.0 or 2.0) * -1.0,
         w = (self.focus and 7.0 or 6.0) * shadowXDirection,
