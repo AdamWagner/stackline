@@ -1,7 +1,5 @@
-local _ = require 'stackline.utils.utils'
-local u = require 'stackline.utils.underscore'
-
-local Class = require 'stackline.utils.self'
+local u = require 'stackline.lib.utils'
+local Class = require 'stackline.lib.self'
 -- NOTE: using simple 'self' library fixed the issue of only 1 of N stacks
 -- responding to focus events.  Experimented with even smaller libs, but only
 -- 'self' worked so far.
@@ -23,7 +21,7 @@ local Stack = Class("Stack", nil, {
     end, -- }}}
 
     getHs = function(self) -- {{{
-        return _.map(self.windows, function(w)
+        return u.map(self.windows, function(w)
             return w._win
         end)
     end, -- }}}
@@ -44,9 +42,9 @@ local Stack = Class("Stack", nil, {
 
     getOtherAppWindows = function(self, win) -- {{{
         -- NOTE: may not need when HS issue #2400 is closed
-        return _.filter(self:get(), function(w)
-            _.pheader('window in getOtherAppWindows')
-            _.p(w)
+        return u.filter(self:get(), function(w)
+            u.pheader('window in getOtherAppWindows')
+            u.p(w)
             return w.app == win.app
         end)
     end, -- }}}
@@ -99,11 +97,11 @@ local Stack = Class("Stack", nil, {
         end
 
         local windowsCurrSpace = wfd:getWindows()
-        local nonStackWindows = _.filter(windowsCurrSpace, notInStack)
+        local nonStackWindows = u.filter(windowsCurrSpace, notInStack)
 
         -- true if *any* non-stacked windows occlude the stack's frame
         -- NOTE: u.any() works, hs.fnutils.some does NOT work :~
-        local stackIsOccluded = u.any(_.map(nonStackWindows, function(w)
+        local stackIsOccluded = u.any(u.map(nonStackWindows, function(w)
             return self:isWindowOccludedBy(w)
         end))
         return stackIsOccluded

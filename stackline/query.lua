@@ -6,8 +6,7 @@
 -- DONE: remove dependency on hs._asm.undocumented.spaces
 -- Affects line at ./stackline/stackline.lua:48 using hs.window.filter.windowNotInCurrentSpace
 -- local spaces = require 'hs._asm.undocumented.spaces'
-local _ = require 'stackline.utils.utils'
-local u = require 'stackline.utils.underscore'
+local u = require 'stackline.lib.utils'
 
 local scriptPath = hs.configdir .. '/stackline/bin/yabai-get-stack-idx'
 
@@ -30,17 +29,17 @@ function Query:makeStacksFromWindows(ws) -- {{{
 
     local byStack
     local byApp
-    local windows = _.map(ws, function(w)
+    local windows = u.map(ws, function(w)
         return Window:new(w)
     end)
 
     -- See 'stackId' def @ /window.lua:233
-    byStack = _.filter(_.groupBy(windows, 'stackId'), _.greaterThan(1)) -- stacks have >1 window, so ignore 'groups' of 1
+    byStack = u.filter(u.groupBy(windows, 'stackId'), u.greaterThan(1)) -- stacks have >1 window, so ignore 'groups' of 1
 
-    if _.length(byStack) > 0 then
+    if u.length(byStack) > 0 then
         -- app names are keys in group
-        local stackedWins = _.reduce(u.values(byStack), _.concat)
-        byApp = _.groupBy(stackedWins, 'app')
+        local stackedWins = u.reduce(u.values(byStack), u.concat)
+        byApp = u.groupBy(stackedWins, 'app')
     end
 
     self.appWindows = byApp
@@ -54,8 +53,8 @@ function Query:mergeWinStackIdxs() -- {{{
         win.stackIdx = self.winStackIdxs[tostring(win.id)]
     end
 
-    _.each(self.stacks, function(stack)
-        _.each(stack, assignStackIndex)
+    u.each(self.stacks, function(stack)
+        u.each(stack, assignStackIndex)
     end)
 end -- }}}
 
@@ -66,20 +65,20 @@ function shouldRestack(new) -- {{{
     --    • change position
     --    • change num windows (win added / removed)
 
-    local curr = sm:getSummary()
-    new = sm:getSummary(u.values(new))
+    local curr = Sm:getSummary()
+    new = Sm:getSummary(u.values(new))
 
     if curr.numStacks ~= new.numStacks then
         print('num stacks changed')
         return true
     end
 
-    if not _.equal(curr.topLeft, new.topLeft) then
+    if not u.equal(curr.topLeft, new.topLeft) then
         print('position changed')
         return true
     end
 
-    if not _.equal(curr.numWindows, new.numWindows) then
+    if not u.equal(curr.numWindows, new.numWindows) then
         print('num windows changed')
         return true
     end
@@ -89,8 +88,8 @@ function Query:windowsCurrentSpace() -- {{{
     self:makeStacksFromWindows(wfd:getWindows()) -- set self.stacks & self.appWindows
 
     local shouldRefresh
-    local extantStacks = sm:get()
-    local extantStackSummary = sm:getSummary()
+    local extantStacks = Sm:get()
+    local extantStackSummary = Sm:getSummary()
     local extantStackExists = extantStackSummary.numStacks > 0
 
     if extantStackExists then
@@ -106,7 +105,7 @@ function Query:windowsCurrentSpace() -- {{{
 
         function whenStackIdxDone()
             self:mergeWinStackIdxs() -- Add the stack indexes from yabai to the hs window data
-            sm:ingest(self.stacks, self.appWindows, extantStackExists) -- hand over to the Stack module
+            Sm:ingest(self.stacks, self.appWindows, extantStackExists) -- hand over to the Stack module
         end
 
         local pollingInterval = 0.1

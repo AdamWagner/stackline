@@ -1,6 +1,5 @@
 -- TODO: consolidate these utils!
-local _ = require 'stackline.utils.utils'
-local u = require 'stackline.utils.underscore'
+local u = require 'stackline.lib.utils'
 
 -- stackline modules
 local Query = require 'stackline.stackline.query'
@@ -23,7 +22,7 @@ end -- }}}
 
 function Stackmanager:ingest(stacks, appWindows, shouldClean) -- {{{
 
-    local stacksCount = _.length(stacks)
+    local stacksCount = u.length(stacks)
     print('\n\nlength of ingested stacks is', stacksCount, '\n\n')
 
     if shouldClean or (stacksCount == 0) then
@@ -31,7 +30,7 @@ function Stackmanager:ingest(stacks, appWindows, shouldClean) -- {{{
     end
 
     for _stackId, stack in pairs(stacks) do
-        _.each(stack, function(win)
+        u.each(stack, function(win)
             win.otherAppWindows = u.filter(appWindows[win.app], function(w)
                 return w.id ~= win.id
             end)
@@ -74,15 +73,15 @@ function Stackmanager:getSummary(external) -- {{{
     local stacks = external or self.tabStacks
     return {
         numStacks = #stacks,
-        topLeft = _.map(stacks, function(s)
+        topLeft = u.map(stacks, function(s)
             local windows = external and s or s.windows
             return windows[1].topLeft
         end),
-        dimensions = _.map(stacks, function(s)
+        dimensions = u.map(stacks, function(s)
             local windows = external and s or s.windows
             return windows[1].stackId
         end),
-        numWindows = _.map(stacks, function(s)
+        numWindows = u.map(stacks, function(s)
             local windows = external and s or s.windows
             return #windows
         end),

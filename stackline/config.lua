@@ -1,4 +1,3 @@
-local _ = require 'stackline.utils.utils'
 local handleSignal = function(_, msgID, msg) -- {{{
     if msgID == 900 then
         return "version:2.0a"
@@ -72,14 +71,14 @@ function StackConfig:registerWatchers()
     local identifier = self:makePath(key .. '-handler')
     local settingPath = self:makePath(key)
     self.store.watchKey(identifier, settingPath, function(_val)
-        sm:toggleIcons()
+        Sm:toggleIcons()
     end)
     return self
 end
 
 -- One very out-of-place hotkey binding (•_•)
 hs.hotkey.bind({'alt', 'ctrl'}, 't', function()
-    sm:toggleIcons()
+    Sm:toggleIcons()
 end)
 
 -- luacheck: ignore

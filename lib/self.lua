@@ -1,4 +1,3 @@
-local unp = unpack or table.unpack
 local getmt = getmetatable
 local setmt = setmetatable
 local Class = {}
@@ -10,6 +9,7 @@ local function dump(t, name, indent)
     local cart
     local autoref
 
+    -- luacheck: ignore
     local function isemptytable(t)
         return next(t) == nil
     end
@@ -31,7 +31,7 @@ local function dump(t, name, indent)
         end
     end
 
-    local function addtocart(value, name, indent, saved, field)
+    local function addtocart(value, _name, _indent, saved, field)
         indent = indent or ""
         saved = saved or {}
         field = field or name
@@ -71,7 +71,7 @@ local function dump(t, name, indent)
 end
 
 local function err(exp, msg, ...)
-    local msg = msg:format(...)
+    msg = msg:format(...)
     if not (exp) then
         error(msg, 0)
     else
@@ -139,7 +139,7 @@ end
 function Class:is(cls)
     err(type(cls) == "table", "Object.is: bad argument, class expected, got %s",
         type(cls))
-    for i, v in ipairs(self.__parent) do
+    for i, _v in ipairs(self.__parent) do
         if self.__parent[i] == cls or self.__name == cls.__name then
             return true
         end

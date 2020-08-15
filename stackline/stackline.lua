@@ -2,7 +2,7 @@ require("hs.ipc")
 
 local StackConfig = require 'stackline.stackline.config'
 local Stackmanager = require 'stackline.stackline.stackmanager'
-local _ = require 'stackline.utils.utils'
+local u = require 'stackline.lib.utils'
 
 print(hs.settings.bundleID)
 
@@ -15,7 +15,7 @@ stackConfig = StackConfig:new():setEach({
 }):registerWatchers()
 
 -- instantiate an instance of the stack manager globally
-sm = Stackmanager:new(showIcons)
+Sm = Stackmanager:new(showIcons)
 
 -- ┌─────────┐
 -- │ globals │
@@ -51,7 +51,7 @@ local windowEvents = {
 -- TO CONFIRM: Compared to calling wsi.update() directly in wf:subscribe 
 -- callback, even a delay of "0" appears to coalesce events as desired.
 local queryWindowState = hs.timer.delayed.new(0.30, function()
-    sm:update()
+    Sm:update()
 end)
 
 -- ┌───────────────────────────────┐
@@ -79,7 +79,7 @@ function unfocusOtherAppWindows(win) -- {{{
     -- To workaround HS BUG "windowUnfocused event not fired for same-app windows "
     -- https://github.com/Hammerspoon/hammerspoon/issues/2400
     -- ../notes-query.md:103
-    _.each(win.otherAppWindows, function(w)
+    u.each(win.otherAppWindows, function(w)
         w:redrawIndicator(false)
     end)
 end -- }}}
@@ -89,7 +89,7 @@ function redrawWinIndicator(hsWin, _app, event) -- {{{
     -- faster than deleting the entire indicator & rebuilding it from scratch,
     -- particularly since this skips querying the app icon & building the icon image.
     local id = hsWin:id()
-    local stackedWin = sm:findWindow(id)
+    local stackedWin = Sm:findWindow(id)
     if stackedWin then -- when falsey, the focused win is not stacked
         -- BUG: Unfocused window(s) flicker when an app has 2+ win in a stack {{{
         --      Wouldn't be an issue if Hammerspon #2400 is fixed
@@ -113,5 +113,5 @@ wfd:subscribe(wf.windowFocused, redrawWinIndicator)
 wfd:subscribe({wf.windowNotVisible, wf.windowUnfocused}, redrawWinIndicator)
 
 -- always update on load
-sm:update()
+Sm:update()
 

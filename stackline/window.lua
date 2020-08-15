@@ -1,5 +1,4 @@
-local _ = require 'stackline.utils.utils'
-local u = require 'stackline.utils.underscore'
+local u = require 'stackline.lib.utils'
 
 -- ┌───────────────┐
 -- │ Window module │
@@ -34,7 +33,7 @@ end -- }}}
 
 function Window:setupIndicator() -- {{{
     -- Config
-    local showIcons = sm:getShowIconsState()
+    local showIcons = Sm:getShowIconsState()
 
     -- Padding
     self.padding = 4
@@ -111,7 +110,7 @@ function Window:drawIndicator(overrideOpts) -- {{{
     self.iconAlphaFocused = opts.alphaFocused
     self.iconAlphaUnfocused = math.min(opts.alphaUnfocused * 2.25, 1)
 
-    local showIcons = sm:getShowIconsState()
+    local showIcons = Sm:getShowIconsState()
     local radius = showIcons and self.iconRadius or self.indicatorRadius
     local fadeDuration = opts.shouldFade and self.fadeDuration or 0
 
@@ -174,7 +173,7 @@ function Window:redrawIndicator(isFocused) -- {{{
 
     rect.fillColor = f and self.colorFocused or self.colorUnfocused
     rect.shadow = self:getShadowAttrs(f)
-    if sm:getShowIconsState() then
+    if Sm:getShowIconsState() then
         icon.imageAlpha = f and self.iconAlphaFocused or self.iconAlphaUnfocused
     end
 end -- }}}
