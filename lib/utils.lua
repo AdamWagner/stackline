@@ -2,9 +2,12 @@
 -- https://github.com/luapower/glue/blob/master/glue.lua
 -- https://github.com/Desvelao/f/blob/master/f/table.lua (new in 2020)
 -- https://github.com/moriyalb/lamda (based on ramda, updated May 2020, 27 stars)
--- -----------------------------------------------------------------------------
+-- https://github.com/EvandroLG/Hash.lua (new - updated Aug 2020, 7 stars)
+-- https://github.com/Mudlet/Mudlet/tree/development/src/mudlet-lua/lua ← Very unusual / interesting lua utils
+--
 utils = {}
 
+-- Alias hs.fnutils methods {{{
 utils.map = hs.fnutils.map
 utils.filter = hs.fnutils.filter
 utils.reduce = hs.fnutils.reduce
@@ -15,6 +18,100 @@ utils.some = hs.fnutils.some
 utils.any = hs.fnutils.some -- also rename 'some()' to 'any()'
 utils.concat = hs.fnutils.concat
 utils.copy = hs.fnutils.copy
+-- }}}
+
+-- FROM: https://github.com/rxi/lume/blob/master/lume.lua
+function utils.isarray(x) -- {{{
+    return type(x) == "table" and x[1] ~= nil
+end -- }}}
+local getiter = function(x) -- {{{
+    if utils.isarray(x) then
+        return ipairs
+    elseif type(x) == "table" then
+        return pairs
+    end
+    error("expected table", 3)
+end -- }}}
+function utils.invert(t) -- {{{
+    local rtn = {}
+    for k, v in pairs(t) do
+        rtn[v] = k
+    end
+    return rtn
+end -- }}}
+function utils.keys(t) -- {{{
+    local rtn = {}
+    local iter = getiter(t)
+    for k in iter(t) do
+        rtn[#rtn + 1] = k
+    end
+    return rtn
+end -- }}}
+function utils.find(t, value) -- {{{
+    local iter = getiter(t)
+    result = nil
+    for k, v in iter(t) do
+        print('value looking for')
+        print(value)
+        print('key matching against')
+        print(k)
+        print('are they equal?')
+        print(k == value)
+        if k == value then
+            result = v
+        end
+    end
+    -- utils.pheader('result')
+    print(result)
+    return result
+end -- }}}
+-- END lume.lua
+
+-- underscore.lua
+function utils.identity(value) -- {{{
+    return value
+end -- }}}
+function utils.iter(list_or_iter) -- {{{
+    if type(list_or_iter) == "function" then
+        return list_or_iter
+    end
+
+    return coroutine.wrap(function()
+        for i = 1, #list_or_iter do
+            coroutine.yield(list_or_iter[i])
+        end
+    end)
+end -- }}}
+function utils.values(t) -- {{{
+    local values = {}
+    for _k, v in pairs(t) do
+        values[#values + 1] = v
+    end
+    return values
+end -- }}}
+function utils.extend(destination, source) -- {{{
+    for k, v in pairs(source) do
+        destination[k] = v
+    end
+    return destination
+end -- }}}
+function utils.include(list, value) -- {{{
+    for i in Underscore.iter(list) do
+        if i == value then
+            return true
+        end
+    end
+    return false
+end -- }}}
+function utils.any(list, func) -- {{{
+    for i in utils.iter(list) do
+        if func(i) then
+            return true
+        end
+    end
+    return false
+end -- }}}
+-- end underscore.lua
 
 function utils.keyBind(hyper, keyFuncTable) -- {{{
     for key, fn in pairs(keyFuncTable) do
@@ -103,53 +200,6 @@ function utils.isEqual(a, b) -- {{{
     end
 
 end -- }}}
-
--- FROM: lume.lua — https://github.com/rxi/lume/blob/master/lume.lua
-function utils.isarray(x) -- {{{
-    return type(x) == "table" and x[1] ~= nil
-end -- }}}
-local getiter = function(x) -- {{{
-    if utils.isarray(x) then
-        return ipairs
-    elseif type(x) == "table" then
-        return pairs
-    end
-    error("expected table", 3)
-end -- }}}
-function utils.invert(t) -- {{{
-    local rtn = {}
-    for k, v in pairs(t) do
-        rtn[v] = k
-    end
-    return rtn
-end -- }}}
-function utils.keys(t) -- {{{
-    local rtn = {}
-    local iter = getiter(t)
-    for k in iter(t) do
-        rtn[#rtn + 1] = k
-    end
-    return rtn
-end -- }}}
-function utils.find(t, value) -- {{{
-    local iter = getiter(t)
-    result = nil
-    for k, v in iter(t) do
-        print('value looking for')
-        print(value)
-        print('key matching against')
-        print(k)
-        print('are they equal?')
-        print(k == value)
-        if k == value then
-            result = v
-        end
-    end
-    -- utils.pheader('result')
-    print(result)
-    return result
-end -- }}}
--- END lume.lua
 
 local function filter_row(row, key_constraints) -- {{{
     -- Check if a row matches the specified key constraints.
@@ -283,7 +333,6 @@ function utils.Set(list) -- {{{
     return set
 end -- }}}
 
--- TODO: Confirm that hs.fnutils.partial works just as well
 function utils.partial(f, ...) -- {{{
     -- FROM: https://www.reddit.com/r/lua/comments/fh2go5/a_partialcurry_implementation_of_mine_hope_you/
     -- WHEN: 2020-08-08
@@ -300,10 +349,6 @@ function utils.partial(f, ...) -- {{{
         return f(unpack(a, 1, a_len + tmp_len))
     end
 end -- }}}
-
-utils.flattenForce = require 'stackline.utils.flatten'
--- table will be squashed down to 1 level deep. Previously nested structures
--- will be converted to long, path-like string keys.
 
 function utils.greaterThan(n) -- {{{
     return function(t)

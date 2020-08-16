@@ -1,27 +1,22 @@
 require("hs.ipc")
+print(hs.settings.bundleID)
 
 local StackConfig = require 'stackline.stackline.config'
 local Stackmanager = require 'stackline.stackline.stackmanager'
-local _ = require 'stackline.utils.utils'
-
-print(hs.settings.bundleID)
+local wf = hs.window.filter
 
 -- ┌────────┐
 -- │ config │
 -- └────────┘
-stackConfig = StackConfig:new():setEach({
-    showIcons = true,
-    enableTmpFixForHsBug = true,
-}):registerWatchers()
-
--- instantiate an instance of the stack manager globally
-sm = Stackmanager:new(showIcons)
+local config = {showIcons = true, enableTmpFixForHsBug = true}
 
 -- ┌─────────┐
 -- │ globals │
 -- └─────────┘
-wf = hs.window.filter
-wfd = wf.new():setOverrideFilter{
+-- instantiate instances of key classes and assign to global table (_G)
+_G.stackConfig = StackConfig:new():setEach(config):registerWatchers()
+_G.Sm = Stackmanager:new(showIcons)
+_G.wfd = wf.new():setOverrideFilter{
     visible = true, -- (i.e. not hidden and not minimized)
     fullscreen = false,
     currentSpace = true,
@@ -29,7 +24,7 @@ wfd = wf.new():setOverrideFilter{
 }
 
 -- TODO: review how @alin32 structured window (and config!) events into
--- 'shouldRestack' and 'shouldClean' and integrate the good parts here.
+-- 'shouldRestack' and 'shouldClean' and apply those ideas here.
 local windowEvents = {
     -- window added
     wf.windowCreated,
@@ -45,13 +40,12 @@ local windowEvents = {
     wf.windowDestroyed,
     wf.windowHidden,
     wf.windowMinimized,
-    -- wf.windowNotInCurrentSpace, -- depends on hs._asm.undocumented.spaces
 }
 
 -- TO CONFIRM: Compared to calling wsi.update() directly in wf:subscribe 
 -- callback, even a delay of "0" appears to coalesce events as desired.
 local queryWindowState = hs.timer.delayed.new(0.30, function()
-    sm:update()
+    Sm:update()
 end)
 
 -- ┌───────────────────────────────┐
@@ -62,49 +56,18 @@ wfd:subscribe(windowEvents, function()
     queryWindowState:start()
 end)
 
--- Added 2020-08-12 to fill the gap of hs._asm.undocumented.spaces
--- Stacks refresh on every space/monitor change, wasting resources shelling out to yabai
--- & redrawing all indicators from scratch. 
--- TODO: It would better to update our data model to store:
---     screens[] → spaces[] → stacks[] → windows[]
--- … and then only update on *window* change events
 hs.spaces.watcher.new(function()
+    -- Added 2020-08-12 to fill the gap of hs._asm.undocumented.spaces
     queryWindowState:start()
 end):start()
 
--- ┌───────────────────────────────────────────────┐
--- │ special case: focus events → optimized redraw │
--- └───────────────────────────────────────────────┘
-function unfocusOtherAppWindows(win) -- {{{
-    -- To workaround HS BUG "windowUnfocused event not fired for same-app windows "
-    -- https://github.com/Hammerspoon/hammerspoon/issues/2400
-    -- ../notes-query.md:103
-    _.each(win.otherAppWindows, function(w)
-        w:redrawIndicator(false)
-    end)
-end -- }}}
-
-function redrawWinIndicator(hsWin, _app, event) -- {{{
+function redrawWinIndicator(hsWin, _app, _event) -- {{{
     -- Dedicated redraw method to *adjust* the existing canvas element is WAY
     -- faster than deleting the entire indicator & rebuilding it from scratch,
     -- particularly since this skips querying the app icon & building the icon image.
-    local id = hsWin:id()
-    local stackedWin = sm:findWindow(id)
+    local stackedWin = Sm:findWindow(hsWin:id())
     if stackedWin then -- when falsey, the focused win is not stacked
-        -- BUG: Unfocused window(s) flicker when an app has 2+ win in a stack {{{
-        --      Wouldn't be an issue if Hammerspon #2400 is fixed
-        -- TODO: If there are 2+ windows of the same app in a stack, then the
-        -- *unfocused* window(s) indicator(s) flash 'focused' styles for a split second *before* the 
-        -- the actually focused window's indicator :< 
-        -- REPRO TIP #1: A non-common app window must be between the same-app windows.
-        -- REPRO TIP #2: You must be switching FROM a non-common app window TO a a shared app-window. 
-        --               Switching between same-app windows is fine, even when a
-        --               non-common window is in the same stack. You must. }}}
-        if stackConfig:get('enableTmpFixForHsBug') then
-            unfocusOtherAppWindows(stackedWin)
-        end
-        local focused = (event == wf.windowFocused)
-        stackedWin:redrawIndicator(focused) -- draw instantly on focus change
+        stackedWin:redrawIndicator()
     end
 end -- }}}
 
@@ -113,5 +76,5 @@ wfd:subscribe(wf.windowFocused, redrawWinIndicator)
 wfd:subscribe({wf.windowNotVisible, wf.windowUnfocused}, redrawWinIndicator)
 
 -- always update on load
-sm:update()
+Sm:update()
 

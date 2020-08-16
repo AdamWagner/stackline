@@ -1,21 +1,15 @@
-local _ = require 'stackline.utils.utils'
-local u = require 'stackline.utils.underscore'
-
-local Class = require 'stackline.utils.self'
+local u = require 'stackline.lib.utils'
+local Class = require 'stackline.lib.self'
 -- NOTE: using simple 'self' library fixed the issue of only 1 of N stacks
 -- responding to focus events.  Experimented with even smaller libs, but only
 -- 'self' worked so far.
 
--- ARGS: Class(className,
---             parentClass,
---             table [define methods],
---             isGlobal)
+-- args: Class(className, parentClass, table [define methods], isGlobal)
 local Stack = Class("Stack", nil, {
     windows = {},
 
     new = function(self, stackedWindows) -- {{{
         self.windows = stackedWindows
-        self.id = stackedWindows[1].stackId
     end, -- }}}
 
     get = function(self) -- {{{
@@ -23,7 +17,7 @@ local Stack = Class("Stack", nil, {
     end, -- }}}
 
     getHs = function(self) -- {{{
-        return _.map(self.windows, function(w)
+        return u.map(self.windows, function(w)
             return w._win
         end)
     end, -- }}}
@@ -44,17 +38,31 @@ local Stack = Class("Stack", nil, {
 
     getOtherAppWindows = function(self, win) -- {{{
         -- NOTE: may not need when HS issue #2400 is closed
-        return _.filter(self:get(), function(w)
-            _.pheader('window in getOtherAppWindows')
-            _.p(w)
+        return u.filter(self:get(), function(w)
+            u.pheader('window in getOtherAppWindows')
+            u.p(w)
             return w.app == win.app
         end)
     end, -- }}}
 
-    redrawAllIndicators = function(self) -- {{{
+    anyFocused = function(self) -- {{{
+        return u.any(self.windows, function(w)
+            return w:isFocused()
+        end)
+    end, -- }}}
+
+    resetAllIndicators = function(self) -- {{{
         self:eachWin(function(win)
             win:setupIndicator()
             win:drawIndicator()
+        end)
+    end, -- }}}
+
+    redrawAllIndicators = function(self, opts) -- {{{
+        self:eachWin(function(win)
+            if win.id ~= opts.except then
+                win:redrawIndicator()
+            end
         end)
     end, -- }}}
 
@@ -64,50 +72,52 @@ local Stack = Class("Stack", nil, {
         end)
     end, -- }}}
 
-    dimAllIndicators = function(self) -- {{{
-        self:eachWin(function(win)
-            win:drawIndicator({unfocusedAlpha = 1})
-        end)
-    end, -- }}}
+    -- all occlusion-related methods currently disabled, but should be revisted
+    -- soon
+    -- dimAllIndicators = function(self) -- {{{
+    --     self:eachWin(function(win)
+    --         win:drawIndicator({unfocusedAlpha = 1})
+    --     end)
+    -- end, -- }}}
 
-    restoreAlpha = function(self) -- {{{
-        self:eachWin(function(win)
-            win:drawIndicator({unfocusedAlpha = nil})
-        end)
-    end, -- }}}
+    -- restoreAlpha = function(self) -- {{{
+    --     self:eachWin(function(win)
+    --         win:drawIndicator({unfocusedAlpha = nil})
+    --     end)
+    -- end, -- }}}
 
-    isWindowOccludedBy = function(self, otherWin, win) -- {{{
-        -- Test uses optional 'win' arg if provided,
-        -- otherwise test uses 1st window of stack
-        local stackedFrame = win and win:frame() or self:frame()
-        return stackedFrame:inside(otherWin:frame())
-    end, -- }}}
+    -- isWindowOccludedBy = function(self, otherWin, win) -- {{{
+    --     -- Test uses optional 'win' arg if provided,
+    --     -- otherwise test uses 1st window of stack
+    --     local stackedFrame = win and win:frame() or self:frame()
+    --     return stackedFrame:inside(otherWin:frame())
+    -- end, -- }}}
 
-    isOccluded = function(self) -- {{{
-        -- FIXES: https://github.com/AdamWagner/stackline/issues/11
-        -- When a stack that has "zoom-parent": 1 occludes another stack, the
-        -- occluded stack's indicators shouldn't be displaed
+    -- isOccluded = function(self) -- {{{
+    --     -- FIXES: https://github.com/AdamWagner/stackline/issues/11
+    --     -- When a stack that has "zoom-parent": 1 occludes another stack, the
+    --     -- occluded stack's indicators shouldn't be displaed
 
-        -- Returns true if any non-stack window occludes the stack's frame.
-        -- This can occur when an unstacked window is zoomed to cover a stack.
-        -- In this situation, we  want to hide or dim the occluded stack's indicators
+    --     -- Returns true if any non-stack window occludes the stack's frame.
+    --     -- This can occur when an unstacked window is zoomed to cover a stack.
+    --     -- In this situation, we  want to hide or dim the occluded stack's indicators
 
-        local stackedHsWins = self:getHs()
+    --     local stackedHsWins = self:getHs()
 
-        function notInStack(hsWin)
-            return not u.include(stackedHsWins, hsWin)
-        end
+    --     function notInStack(hsWin)
+    --         return not u.include(stackedHsWins, hsWin)
+    --     end
 
-        local windowsCurrSpace = wfd:getWindows()
-        local nonStackWindows = _.filter(windowsCurrSpace, notInStack)
+    --     local windowsCurrSpace = wfd:getWindows()
+    --     local nonStackWindows = u.filter(windowsCurrSpace, notInStack)
 
-        -- true if *any* non-stacked windows occlude the stack's frame
-        -- NOTE: u.any() works, hs.fnutils.some does NOT work :~
-        local stackIsOccluded = u.any(_.map(nonStackWindows, function(w)
-            return self:isWindowOccludedBy(w)
-        end))
-        return stackIsOccluded
-    end, -- }}}
+    --     -- true if *any* non-stacked windows occlude the stack's frame
+    --     -- NOTE: u.any() works, hs.fnutils.some does NOT work :~
+    --     local stackIsOccluded = u.any(u.map(nonStackWindows, function(w)
+    --         return self:isWindowOccludedBy(w)
+    --     end))
+    --     return stackIsOccluded
+    -- end, -- }}}
 })
 
 return Stack

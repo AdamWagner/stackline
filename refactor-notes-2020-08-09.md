@@ -21,7 +21,24 @@ I also hope for tertiary benefits:
 ┌────────┐
 │ Status │
 └────────┘
-2020-08-02
+
+## 2020-08-16
+
+### Changes
+
+- Support stack focus "events"! Now, a stack takes on a new look when all windows become unfocused, with the last-active window distinct from the rest. This required a fair bit more complexity than expected, but is unavoidable (I think). There's a minor, barely noticable performance hit, too (not yet a problem, tho).
+- Centralized indicator config settings & consistent "current style" retrieval. Reduced reliance on magic numbers (indicator style is more purely from user config settings now).
+- Store a reference to the stack on each window, so any window can easily call stack methods. This allowed `redrawOtherAppWindows()` to move into the window class, where it's less awkward.
+- Resolved bug in which unfocused same-app windows would 'flash focus' briefly
+
+### Multi-monitor support is still a `?`
+
+Stacks refresh on every space/monitor change, wasting resources shelling out to yabai & redrawing all indicators from scratch. 
+
+Instead, it might better to update our data model to store: `screens[] → spaces[] → stacks[] → windows[]` … and then only update on *window* change events.
+
+## 2020-08-02
+
 We're not yet using any of the code in this file to actually render the indiators or query ata — all of that is still achieved via the "old" methods.
 
 However, `query.lua` IS being required by ./core.lua and runs one every window focus event, and the resulting "stack" data is printed to the hammerspoon console.
