@@ -230,7 +230,7 @@ function Window:getScreenSide() -- {{{
     -- sides of a window. Impact is minimal with smaller threshold (<= 0.75).
 
     -- TODO [very-low-priority]: find a way to use hs.window.filter.windowsTo{Dir} 
-    -- to determine side instead of percLeft/Right ��
+    -- to determine side instead of percLeft/Right
     --    https://www.hammerspoon.org/docs/hs.window.filter.html#windowsToWest
     --      wfd:windowsToWest(self._win)
     --    https://www.hammerspoon.org/docs/hs.window.html#windowsToWest
