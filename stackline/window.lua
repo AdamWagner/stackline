@@ -184,7 +184,7 @@ function Window:redrawIndicator() -- {{{
 
     elseif onlyStackChange then
         -- aka, already unfocused window's stack is now unfocused, too
-        -- in this case, we *do* update self.focus
+        -- so update stackFocus
         self.stackFocus = isStackFocused
 
         -- if only stack changed *and* win is focused, it means a previously
