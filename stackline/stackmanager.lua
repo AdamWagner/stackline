@@ -20,23 +20,24 @@ function Stackmanager:new() -- {{{
     return self
 end -- }}}
 
-function Stackmanager:ingest(stacks, appWindows, shouldClean) -- {{{
-
-    local stacksCount = u.length(stacks)
-    print('\n\nlength of ingested stacks is', stacksCount, '\n\n')
-
+function Stackmanager:ingest(windowGroups, appWindows, shouldClean) -- {{{
+    local stacksCount = u.length(windowGroups)
     if shouldClean or (stacksCount == 0) then
         self:cleanup()
     end
 
-    for _stackId, stack in pairs(stacks) do
-        u.each(stack, function(win)
+    for stackId, groupedWindows in pairs(windowGroups) do
+        local stack = Stack(groupedWindows)
+        stack.id = stackId
+        u.each(stack.windows, function(win)
+            -- win.otherAppWindows needed to workaround Hammerspoon issue #2400
             win.otherAppWindows = u.filter(appWindows[win.app], function(w)
                 return w.id ~= win.id
             end)
+            win.stack = stack -- enables calling stack methods from window
         end)
-        table.insert(self.tabStacks, Stack(stack))
-        self:redrawAllIndicators()
+        table.insert(self.tabStacks, stack)
+        self:resetAllIndicators()
     end
 end -- }}}
 
@@ -48,16 +49,6 @@ function Stackmanager:eachStack(fn) -- {{{
     for _stackId, stack in pairs(self.tabStacks) do
         fn(stack)
     end
-end -- }}}
-
-function Stackmanager:dimOccluded() -- {{{
-    self:eachStack(function(stack)
-        if stack:isOccluded() then
-            stack:dimAllIndicators()
-        else
-            stack:restoreAlpha()
-        end
-    end)
 end -- }}}
 
 function Stackmanager:cleanup() -- {{{
@@ -88,15 +79,15 @@ function Stackmanager:getSummary(external) -- {{{
     }
 end -- }}}
 
-function Stackmanager:redrawAllIndicators() -- {{{
+function Stackmanager:resetAllIndicators() -- {{{
     self:eachStack(function(stack)
-        stack:redrawAllIndicators()
+        stack:resetAllIndicators()
     end)
 end -- }}}
 
 function Stackmanager:toggleIcons() -- {{{
     self.showIcons = not self.showIcons
-    self:redrawAllIndicators()
+    self:resetAllIndicators()
 end -- }}}
 
 function Stackmanager:findWindow(wid) -- {{{
@@ -124,5 +115,16 @@ end -- }}}
 function Stackmanager:getShowIconsState() -- {{{
     return self.showIcons
 end -- }}}
+
+-- function Stackmanager:dimOccluded() -- {{{
+--    -- disabled for now, but should revisit soon
+--     self:eachStack(function(stack)
+--         if stack:isOccluded() then
+--             stack:dimAllIndicators()
+--         else
+--             stack:restoreAlpha()
+--         end
+--     end)
+-- end -- }}}
 
 return Stackmanager

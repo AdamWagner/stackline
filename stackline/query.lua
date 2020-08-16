@@ -3,9 +3,6 @@
 -- riding a bit too fast and found myself in a place where nothing worked, and I
 -- didn't know why. So, this mess lives another day. Conceptually, it'll be
 -- pretty easy to put this stuff where it belongs.
--- DONE: remove dependency on hs._asm.undocumented.spaces
--- Affects line at ./stackline/stackline.lua:48 using hs.window.filter.windowNotInCurrentSpace
--- local spaces = require 'hs._asm.undocumented.spaces'
 local u = require 'stackline.lib.utils'
 
 local scriptPath = hs.configdir .. '/stackline/bin/yabai-get-stack-idx'
@@ -21,14 +18,14 @@ function Query:getWinStackIdxs() -- {{{
     end, {scriptPath}):start()
 end -- }}}
 
-function Query:makeStacksFromWindows(ws) -- {{{
+function Query:groupWindows(ws) -- {{{
     -- Given windows from hs.window.filter: 
     --    1. Create stackline window objects
     --    2. Group wins by `stackId` prop (aka top-left frame coords) 
     --    3. If at least one such group, also group wins by app (to workaround hs bug unfocus event bug)
-
     local byStack
     local byApp
+
     local windows = u.map(ws, function(w)
         return Window:new(w)
     end)
@@ -48,7 +45,6 @@ end -- }}}
 
 function Query:mergeWinStackIdxs() -- {{{
     -- merge windowID <> stack-index mapping queried from yabai into window objs
-
     function assignStackIndex(win)
         win.stackIdx = self.winStackIdxs[tostring(win.id)]
     end
@@ -85,22 +81,18 @@ function shouldRestack(new) -- {{{
 end -- }}}
 
 function Query:windowsCurrentSpace() -- {{{
-    self:makeStacksFromWindows(wfd:getWindows()) -- set self.stacks & self.appWindows
+    self:groupWindows(wfd:getWindows()) -- set self.stacks & self.appWindows
 
-    local shouldRefresh
     local extantStacks = Sm:get()
     local extantStackSummary = Sm:getSummary()
     local extantStackExists = extantStackSummary.numStacks > 0
 
-    if extantStackExists then
-        shouldRefresh = shouldRestack(self.stacks, extantStacks)
-        -- stacksMgr:dimOccluded() TODO: revisit in a future update. This is
-        -- kind of an edge case — there are bigger fish to fry.
-    else
-        shouldRefresh = true
-    end
-
+    local shouldRefresh = extantStackExists and
+                              shouldRestack(self.stacks, extantStacks) or true
     if shouldRefresh then
+        -- TODO: revisit in a future update. This is
+        -- kind of an edge case — there are bigger fish to fry.
+        -- stacksMgr:dimOccluded() 
         self:getWinStackIdxs() -- set self.winStackIdxs (async shell call to yabai)
 
         function whenStackIdxDone()

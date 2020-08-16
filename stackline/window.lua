@@ -31,32 +31,43 @@ function Window:isFocused() -- {{{
     return isFocused
 end -- }}}
 
+function Window:isStackFocused() -- {{{
+    return self.stack:anyFocused()
+end -- }}}
+
 function Window:setupIndicator() -- {{{
     -- Config
-    local showIcons = Sm:getShowIconsState()
+    self.showIcons = Sm:getShowIconsState()
+    self:isStackFocused()
 
-    -- Padding
-    self.padding = 4
-    self.iconPadding = 4
+    -- TODO: move into stackConfig module (somehow… despite its lack of support for nested keys :/)
+    self.config = {
+        color = {white = 0.90},
+        alpha = 1,
 
-    -- Size
-    self.aspectRatio = 6 -- determines width of pills when showIcons = false
-    self.size = 32
-    self.width = showIcons and self.size or (self.size / self.aspectRatio)
+        dimmer = 2.5, -- larger numbers increase contrast b/n focused & unfocused states
+        iconDimmer = 1.1, -- custom dimmer for icons
 
-    -- Position
-    self.offsetY = 2
-    self.offsetX = 4
-    --    example: overlapped with window + percent top offset
-    --    self.offsetY = self.frame.h * 0.1
-    --    self.offsetX = -(self.width / 2)
+        size = 32,
+        radius = 3,
+        padding = 4,
+        iconPadding = 4,
+        pillThinness = 6,
 
-    -- Roundness
-    self.indicatorRadius = 3
-    self.iconRadius = self.width / 4.0
+        vertSpacing = 1.2,
+        offset = {y = 2, x = 4},
+        -- example: overlapped with window + percent top offset
+        --  offset = { y = self.frame.h * 0.1, x = -(self.width / 2) }
 
-    -- Fade-in/out duration
-    self.fadeDuration = 0.2
+        shouldFade = true,
+        fadeDuration = 0.2,
+    }
+
+    local c = self.config -- alias config for convenience
+
+    -- computed from config
+    self.width = self.showIcons and c.size or (c.size / c.pillThinness)
+    self.iconRadius = self.width / 3
 
     -- Display indicators on 
     --   left edge of windows on the left side of the screen, &
@@ -64,9 +75,9 @@ function Window:setupIndicator() -- {{{
     self.side = self:getScreenSide()
     local xval
     if self.side == 'right' then
-        xval = (self.frame.x + self.frame.w) + self.offsetX
+        xval = (self.frame.x + self.frame.w) + c.offset.x
     else
-        xval = self.frame.x - (self.width + self.offsetX)
+        xval = self.frame.x - (self.width + c.offset.x)
     end
 
     -- Set canvas to fill entire screen
@@ -80,42 +91,29 @@ function Window:setupIndicator() -- {{{
     -- NOTE: self.stackIdx comes from yabai
     self.indicator_rect = {
         x = xval,
-        y = self.frame.y + ((self.stackIdx - 1) * self.size * 1.1),
+        y = self.frame.y + c.offset.y +
+            ((self.stackIdx - 1) * c.size * c.vertSpacing),
         w = self.width,
-        h = self.size,
+        h = c.size,
     }
 
     self.icon_rect = {
-        x = xval + self.iconPadding,
-        y = self.indicator_rect.y + self.iconPadding,
-        w = self.indicator_rect.w - (self.iconPadding * 2),
-        h = self.indicator_rect.h - (self.iconPadding * 2),
+        x = xval + c.iconPadding,
+        y = self.indicator_rect.y + c.iconPadding,
+        w = self.indicator_rect.w - (c.iconPadding * 2),
+        h = self.indicator_rect.h - (c.iconPadding * 2),
     }
 end -- }}}
 
 function Window:drawIndicator(overrideOpts) -- {{{
-    self.defaultOpts = {
-        shouldFade = true,
-        alphaFocused = 1,
-        alphaUnfocused = 0.33,
-    }
+    -- should there be a dedicated "Indicator" class to perform the actual drawing?
 
-    local opts = u.extend(self.defaultOpts, overrideOpts or {})
-
-    -- Color
-    self.colorFocused = {white = 0.9, alpha = opts.alphaFocused}
-    self.colorUnfocused = {white = 0.9, alpha = opts.alphaUnfocused}
-
-    -- Unfocused icons less transparent than bg color, but no more than 1
-    self.iconAlphaFocused = opts.alphaFocused
-    self.iconAlphaUnfocused = math.min(opts.alphaUnfocused * 2.25, 1)
-
-    local showIcons = Sm:getShowIconsState()
-    local radius = showIcons and self.iconRadius or self.indicatorRadius
-    local fadeDuration = opts.shouldFade and self.fadeDuration or 0
+    local opts = u.extend(self.config, overrideOpts or {})
+    local radius = self.showIcons and self.iconRadius or opts.radius
+    local fadeDuration = opts.shouldFade and opts.fadeDuration or 0
 
     self.focus = self:isFocused()
-    -- Speed profile: 0.0123s / 75 (0.0002s) :: isFocused 
+    self.stackFocus = true
 
     if self.indicator then
         self.indicator:delete()
@@ -123,16 +121,10 @@ function Window:drawIndicator(overrideOpts) -- {{{
 
     self.indicator = hs.canvas.new(self.canvas_frame)
 
-    self.currStyle = {
-        fillColor = self.focus and self.colorFocused or self.colorUnfocused,
-        imageAlpha = self.focus and self.iconAlphaFocused or
-            self.iconAlphaUnfocused,
-    }
-
     self.indicator:insertElement({
         type = "rectangle",
-        action = "fill",
-        fillColor = self.currStyle.fillColor,
+        action = "fill", -- options: strokeAndFill, stroke, fill
+        fillColor = self:getColorAttrs(self.stackFocus, self.focus).bg,
         frame = self.indicator_rect,
         roundedRectRadii = {xRadius = radius, yRadius = radius},
         padding = 60,
@@ -140,42 +132,83 @@ function Window:drawIndicator(overrideOpts) -- {{{
         shadow = self:getShadowAttrs(),
     }, self.rectIdx)
 
-    if showIcons then
-        -- TODO: Figure out how to prevent clipping when adding a subtle shadow
+    if self.showIcons then
+        -- TODO [low priority]: Figure out how to prevent clipping when adding a subtle shadow
         -- to the icon to help distinguish icons with a near-white edge.Note
         -- that `padding` attribute, which works for rects, does not work for images.
         self.indicator:insertElement({
             type = "image",
             image = self:iconFromAppName(),
             frame = self.icon_rect,
-            imageAlpha = self.currStyle.imageAlpha,
+            imageAlpha = self:getColorAttrs(self.stackFocus, self.focus).img,
         }, self.iconIdx)
     end
 
     self.indicator:show(fadeDuration)
 end -- }}}
 
-function Window:redrawIndicator(isFocused) -- {{{
-    -- bail early if there's nothing to do
-    if isFocused == self.focus then
+function Window:redrawIndicator() -- {{{
+    local isWindowFocused = self:isFocused()
+    local isStackFocused = self:isStackFocused()
+
+    -- has stack, window focus changed?
+    local stackFocusChange = isStackFocused ~= self.stackFocus
+    local windowFocusChange = isWindowFocused ~= self.focus
+
+    -- permutations of stack, window change combos
+    local noChange = not stackFocusChange and not windowFocusChange
+    local bothChange = stackFocusChange and windowFocusChange
+    local onlyStackChange = stackFocusChange and not windowFocusChange
+    local onlyWinChange = not stackFocusChange and windowFocusChange
+
+    -- LOGIC: Redraw according to what changed.
+    -- Supports indicating the *last-active* window in an unfocused stack.
+    if noChange then
+        -- bail early if there's nothing to do
         return false
-    else
-        self.focus = isFocused
+
+    elseif bothChange then
+        -- If both change, it means a *focused* window's stack is now unfocused.
+        self.stackFocus = isStackFocused
+        self.stack:redrawAllIndicators({except = self.id})
+        -- Despite the window being unfocused, do *not* update self.focus
+        -- (unfocused stack + focused window = last-active window)
+
+    elseif onlyWinChange then
+        -- changing window focus within a stack
+        self.focus = isWindowFocused
+
+        if self.focus and stackConfig:get('enableTmpFixForHsBug') then
+            self:unfocusOtherAppWindows()
+        end
+
+    elseif onlyStackChange then
+        -- aka, already unfocused window's stack is now unfocused, too
+        -- in this case, we *do* update self.focus
+        self.stackFocus = isStackFocused
+
+        -- if only stack changed *and* win is focused, it means a previously
+        -- unfocused stack is now focused, so redraw other window indicators
+        if isWindowFocused then
+            self.stack:redrawAllIndicators({except = self.id})
+        end
     end
 
     if not self.indicator then
         self:setupIndicator()
     end
 
+    -- ACTION: Update canvas values
     local f = self.focus
     local rect = self.indicator[self.rectIdx]
     local icon = self.indicator[self.iconIdx]
 
-    rect.fillColor = f and self.colorFocused or self.colorUnfocused
-    rect.shadow = self:getShadowAttrs(f)
-    if Sm:getShowIconsState() then
-        icon.imageAlpha = f and self.iconAlphaFocused or self.iconAlphaUnfocused
+    local colorAttrs = self:getColorAttrs(self.stackFocus, self.focus)
+    rect.fillColor = colorAttrs.bg
+    if self.showIcons then
+        icon.imageAlpha = colorAttrs.img
     end
+    rect.shadow = self:getShadowAttrs(f)
 end -- }}}
 
 function Window:getScreenSide() -- {{{
@@ -192,16 +225,92 @@ function Window:getScreenSide() -- {{{
 
     return side
 
-    -- TODO: BUG: Right-side window incorrectly reports as a left-side window with
+    -- TODO [low-priority]: BUG: Right-side window incorrectly reports as a left-side window with
     -- very large padding settings. Will need to consider coordinates from both
-    -- sides of a window.
+    -- sides of a window. Impact is minimal with smaller threshold (<= 0.75).
 
-    -- TODO: find a way to use hs.window.filter.windowsTo{Dir} 
-    -- to determine side instead of percLeft/Right ↑
+    -- TODO [very-low-priority]: find a way to use hs.window.filter.windowsTo{Dir} 
+    -- to determine side instead of percLeft/Right ��
     --    https://www.hammerspoon.org/docs/hs.window.filter.html#windowsToWest
     --      wfd:windowsToWest(self._win)
     --    https://www.hammerspoon.org/docs/hs.window.html#windowsToWest
     --      self._win:windowsToSouth()
+end -- }}}
+
+function Window:getColorAttrs(isStackFocused, isWinFocused) -- {{{
+    local opts = self.config
+    -- Lookup bg color and image alpha based on stack + window focus
+    -- e.g., fillColor = self:getColorAttrs(self.stackFocus, self.focus).bg
+    --       iconAlpha = self:getColorAttrs(self.stackFocus, self.focus).img
+    local colorLookup = {
+        stack = {
+            ['true'] = {
+                window = {
+                    ['true'] = {
+                        bg = u.extend(opts.color, {alpha = opts.alpha}),
+                        img = opts.alpha,
+                    },
+                    ['false'] = {
+                        bg = u.extend(u.copy(opts.color),
+                            {alpha = opts.alpha / opts.dimmer}),
+                        img = opts.alpha / opts.iconDimmer,
+                    },
+                },
+            },
+            ['false'] = {
+                window = {
+                    ['true'] = {
+                        bg = u.extend(u.copy(opts.color), {
+                            alpha = opts.alpha / (opts.dimmer / 1.2),
+                        }),
+                        -- last-focused icon stays full alpha when stack unfocused
+                        img = opts.alpha,
+                    },
+                    ['false'] = {
+                        bg = u.extend(u.copy(opts.color), {
+                            alpha = Sm:getShowIconsState() and 0 or 0.2,
+                        }),
+                        -- unfocused icon has slightly lower alpha when stack also unfocused
+                        img = opts.alpha /
+                            (opts.iconDimmer + (opts.iconDimmer * 0.70)),
+                    },
+                },
+            },
+        },
+    }
+    -- end
+
+    local isStackFocusedKey = tostring(isStackFocused)
+    local isWinFocusedKey = tostring(isWinFocused)
+    return colorLookup.stack[isStackFocusedKey].window[isWinFocusedKey]
+end -- }}}
+
+function Window:getShadowAttrs() -- {{{
+    -- less opaque & blurry when iconsDisabled
+    -- even less opaque & blurry when unfocused
+    local iconsDisabledDimmer = Sm:getShowIconsState() and 1 or 5
+    local alphaDimmer = (self.focus and 3 or 4) * iconsDisabledDimmer
+    local blurDimmer = (self.focus and 15.0 or 7.0) / iconsDisabledDimmer
+
+    -- Shadows should cast outwards toward the screen edges as if due to the glow of onscreen windows…
+    -- …or, if you prefer, from a light source originating from the center of the screen.
+    local xDirection = (self.side == 'left') and -1 or 1
+    local offset = {
+        h = (self.focus and 3.0 or 2.0) * -1.0,
+        w = ((self.focus and 7.0 or 6.0) * xDirection) / iconsDisabledDimmer,
+    }
+    -- TODO [just for fun]: Dust off an old Geometry textbook and try get the
+    -- shadow's angle to rotate around a point at the center of the screen (aka, 'light source').
+    -- Here's a super crude POC that uses the indicator's stack index such that
+    -- higher indicators have a negative Y offset and lower indicators have a
+    -- positive Y offset ;-) 
+    --   h = (self.focus and 3.0 or 2.0 - (2 + (self.stackIdx * 5))) * -1.0,
+
+    return {
+        blurRadius = blurDimmer,
+        color = {alpha = 1 / alphaDimmer}, -- TODO align all alpha values to be defined like this (1/X)
+        offset = offset,
+    }
 end -- }}}
 
 function Window:iconFromAppName() -- {{{
@@ -209,34 +318,7 @@ function Window:iconFromAppName() -- {{{
     return hs.image.imageFromAppBundle(appBundle)
 end -- }}}
 
-function Window:getShadowAttrs() -- {{{
-    local shadowAlpha = self.focus and 3 or 3.75 -- denominator in 1 / N, so "2" == 50% alpha 
-    local shadowBlur = self.focus and 18.0 or 5.0
-
-    -- Shadows should cast outwards toward the screen edges as if due to the glow of onscreen windows…
-    -- …or, if you prefer, from a light source originating from the center of the screen.
-    local shadowXDirection = (self.side == 'left') and -1 or 1
-    local shadowOffset = {
-        h = (self.focus and 3.0 or 2.0) * -1.0,
-        w = (self.focus and 7.0 or 6.0) * shadowXDirection,
-    }
-    -- TODO [just for fun]: Dust off an old Geometry textbook and try get the
-    -- shadow's angle to rotate around a point at the center of the screen (aka, 'light source').
-    -- Here's a super crude POC that uses the indicator's stack index such that
-    -- higher indicators have a negative Y offset and lower indicators have a
-    -- positive Y offset ;-) 
-    --      h = (self.focus and 3.0 or 2.0 - (2 + (self.stackIdx * 5))) * -1.0,
-
-    return {
-        blurRadius = shadowBlur,
-        color = {alpha = 1 / shadowAlpha}, -- TODO align all alpha values to be defined like this (1/X)
-        offset = shadowOffset,
-    }
-end -- }}}
-
 function Window:makeStackId(hsWin) -- {{{
-    -- stackId is top-left window frame coordinates
-    -- example: "302|35|63|1185|741"
     local frame = hsWin:frame():floor()
     local x = frame.x
     local y = frame.y
@@ -250,8 +332,14 @@ end -- }}}
 
 function Window:deleteIndicator() -- {{{
     if self.indicator then
-        self.indicator:delete(self.fadeDuration)
+        self.indicator:delete(self.config.fadeDuration)
     end
+end -- }}}
+
+function Window:unfocusOtherAppWindows() -- {{{
+    u.each(self.otherAppWindows, function(w)
+        w:redrawIndicator()
+    end)
 end -- }}}
 
 return Window

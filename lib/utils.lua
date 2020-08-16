@@ -2,12 +2,8 @@
 -- https://github.com/luapower/glue/blob/master/glue.lua
 -- https://github.com/Desvelao/f/blob/master/f/table.lua (new in 2020)
 -- https://github.com/moriyalb/lamda (based on ramda, updated May 2020, 27 stars)
--- u.values(
--- u.values(
--- u.extend(
--- u.include(
--- u.any(
--- u.filter(
+-- https://github.com/EvandroLG/Hash.lua (new - updated Aug 2020, 7 stars)
+-- https://github.com/Mudlet/Mudlet/tree/development/src/mudlet-lua/lua ← Very unusual / interesting lua utils
 --
 utils = {}
 
