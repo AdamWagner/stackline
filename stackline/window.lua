@@ -4,6 +4,7 @@ local u = require 'stackline.lib.utils'
 -- │ Window module │
 -- └───────────────┘
 local Window = {}
+-- TODO: Click on indicator to activate target window (like tabs) https://github.com/AdamWagner/stackline/issues/19
 
 function Window:new(hsWin) -- {{{
     local ws = {
@@ -69,6 +70,8 @@ function Window:setupIndicator() -- {{{
     self.width = self.showIcons and c.size or (c.size / c.pillThinness)
     self.iconRadius = self.width / 3
 
+    -- TODO: Limit the stack left/right side to the screen boundary so it doesn't go off screen https://github.com/AdamWagner/stackline/issues/21
+
     -- Display indicators on 
     --   left edge of windows on the left side of the screen, &
     --   right edge of windows on the right side of the screen
@@ -88,7 +91,7 @@ function Window:setupIndicator() -- {{{
     self.rectIdx = 1
     self.iconIdx = 2
 
-    -- NOTE: self.stackIdx comes from yabai
+    -- NOTE: self.stackIdx comes from yabai. Window is stacked if stackIdx > 0
     self.indicator_rect = {
         x = xval,
         y = self.frame.y + c.offset.y +
@@ -299,11 +302,10 @@ function Window:getShadowAttrs() -- {{{
         h = (self.focus and 3.0 or 2.0) * -1.0,
         w = ((self.focus and 7.0 or 6.0) * xDirection) / iconsDisabledDimmer,
     }
-    -- TODO [just for fun]: Dust off an old Geometry textbook and try get the
-    -- shadow's angle to rotate around a point at the center of the screen (aka, 'light source').
+
+    -- TODO [just for fun]: Dust off an old Geometry textbook and try get the shadow's angle to rotate around a point at the center of the screen (aka, 'light source')
     -- Here's a super crude POC that uses the indicator's stack index such that
-    -- higher indicators have a negative Y offset and lower indicators have a
-    -- positive Y offset ;-) 
+    -- higher indicators have a negative Y offset and lower indicators have a positive Y offset 
     --   h = (self.focus and 3.0 or 2.0 - (2 + (self.stackIdx * 5))) * -1.0,
 
     return {

@@ -1,4 +1,3 @@
--- TODO: consolidate these utils!
 local u = require 'stackline.lib.utils'
 
 -- stackline modules

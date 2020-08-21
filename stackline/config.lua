@@ -76,6 +76,7 @@ function StackConfig:registerWatchers()
     return self
 end
 
+-- TODO: Remove keybinding from codebase, add to readme
 -- One very out-of-place hotkey binding (•_•)
 hs.hotkey.bind({'alt', 'ctrl'}, 't', function()
     Sm:toggleIcons()
