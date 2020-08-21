@@ -70,21 +70,27 @@ function Window:setupIndicator() -- {{{
     self.width = self.showIcons and c.size or (c.size / c.pillThinness)
     self.iconRadius = self.width / 3
 
-    -- TODO: Limit the stack left/right side to the screen boundary so it doesn't go off screen https://github.com/AdamWagner/stackline/issues/21
+    -- Set canvas to fill entire screen
+    local screenFrame = self._win:screen():frame()
+    self.canvas_frame = screenFrame
 
     -- Display indicators on 
     --   left edge of windows on the left side of the screen, &
     --   right edge of windows on the right side of the screen
     self.side = self:getScreenSide()
     local xval
+
+    -- DONE: Limit the stack left/right side to the screen boundary so it doesn't go off screen https://github.com/AdamWagner/stackline/issues/21
     if self.side == 'right' then
         xval = (self.frame.x + self.frame.w) + c.offset.x
+        if xval + self.width > screenFrame.w then
+            -- don't go beyond the right screen edge
+            xval = screenFrame.w - self.width
+        end
     else
         xval = self.frame.x - (self.width + c.offset.x)
+        xval = math.max(xval, 0) -- don't go beyond left screen edge
     end
-
-    -- Set canvas to fill entire screen
-    self.canvas_frame = self._win:screen():frame()
 
     -- Store  canvas elements indexes to reference via :elementAttribute()
     -- https://www.hammerspoon.org/docs/hs.canvas.html#elementAttribute
