@@ -78,3 +78,4 @@ wfd:subscribe({wf.windowNotVisible, wf.windowUnfocused}, redrawWinIndicator)
 -- always update on load
 Sm:update()
 
+return {config = _G.stackConfig, manager = _G.Sm}

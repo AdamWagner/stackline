@@ -162,6 +162,15 @@ To toggle icons:
  echo ":toggle_icons:1" | hs -m stackline-config
 ```
 
+You can also configure a keybinding in your `init.lua` to toggle icons:
+
+```lua
+stackline = require "stackline.stackline.stackline"
+hs.hotkey.bind({'alt', 'ctrl'}, 't', function()
+    stackline.manager:toggleIcons()
+end)
+```
+
 ![stackline setup 02](assets/stackline-icon-indicators.png)
 
 Image (and feature!) courtesy of [@alin23](https://github.com/alin23).
