@@ -43,15 +43,37 @@ function Query:groupWindows(ws) -- {{{
     self.stacks = byStack
 end -- }}}
 
+function Query:removeGroupedWin(win)
+    self.stacks = u.map(self.stacks, function(stack)
+        return u.filter(stack, function(w)
+            return w.id ~= win.id
+        end)
+    end)
+end
+
 function Query:mergeWinStackIdxs() -- {{{
     -- merge windowID <> stack-index mapping queried from yabai into window objs
+
     function assignStackIndex(win)
-        win.stackIdx = self.winStackIdxs[tostring(win.id)]
+        local stackIdx = self.winStackIdxs[tostring(win.id)]
+
+        if stackIdx == 0 then
+            -- DONE: Fix error stackline/window.lua:95: attempt to perform arithmetic on a nil value (field 'stackIdx')
+            -- Remove windows with stackIdx == 0. Such windows overlap exactly with
+            -- other (potentially stacked) windows, and so are grouped with them,
+            -- but they are NOT stacked according to yabai. 
+            -- Windows that belong to a *real* stack have stackIdx > 0.
+            self:removeGroupedWin(win)
+        end
+
+        -- set the stack idx 
+        win.stackIdx = stackIdx
     end
 
     u.each(self.stacks, function(stack)
         u.each(stack, assignStackIndex)
     end)
+
 end -- }}}
 
 function shouldRestack(new) -- {{{
@@ -90,8 +112,7 @@ function Query:windowsCurrentSpace() -- {{{
     local shouldRefresh = extantStackExists and
                               shouldRestack(self.stacks, extantStacks) or true
     if shouldRefresh then
-        -- TODO: revisit in a future update. This is
-        -- kind of an edge case — there are bigger fish to fry.
+        -- TODO: revisit in a future update. This is kind of an edge case — there are bigger fish to fry.
         -- stacksMgr:dimOccluded() 
         self:getWinStackIdxs() -- set self.winStackIdxs (async shell call to yabai)
 
