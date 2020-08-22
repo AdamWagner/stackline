@@ -1,129 +1,122 @@
-local _ = require 'stackline.utils.utils'
-local Window = require 'stackline.stackline.window'
-local tut = require 'stackline.utils.table-utils'
-local under = require 'stackline.utils.underscore'
+local u = require 'stackline.lib.utils'
+local Class = require 'stackline.lib.self'
+-- NOTE: using simple 'self' library fixed the issue of only 1 of N stacks
+-- responding to focus events.  Experimented with even smaller libs, but only
+-- 'self' worked so far.
 
-local Stack = {}
+-- args: Class(className, parentClass, table [define methods], isGlobal)
+local Stack = Class("Stack", nil, {
+    windows = {},
 
-function Stack:toggleIcons() -- {{{
-    self.showIcons = not self.showIcons
-    Stack.update()
-end -- }}}
+    new = function(self, stackedWindows) -- {{{
+        self.windows = stackedWindows
+    end, -- }}}
 
-function Stack:each_win_id(fn) -- {{{
-    _.each(self.tabStacks, function(stack)
-        local winIds = _.map(under.values(stack), function(w)
-            return w.id
+    get = function(self) -- {{{
+        return self.windows
+    end, -- }}}
+
+    getHs = function(self) -- {{{
+        return u.map(self.windows, function(w)
+            return w._win
         end)
+    end, -- }}}
 
-        for i = 1, #winIds do
-            -- ┌────────────────────┐
-            --     the main event!
-            -- └────────────────────┘
-            -- hs.alert.show(winIds[i])
+    frame = function(self) -- {{{
+        -- All stacked windows have the same dimensions, 
+        -- so the 1st Hs window's frame is ~= to the stack's frame
+        -- FIXME: Incorrect when the 1st window has min-size < stack width 
+        --        See ./query.lua:104
+        return self.windows[1]._win:frame()
+    end, -- }}}
 
-            fn(winIds[i]) -- Call the `fn` provided with win ID
+    eachWin = function(self, fn) -- {{{
+        for _idx, win in pairs(self.windows) do
+            fn(win)
         end
-    end)
-end -- }}}
+    end, -- }}}
 
--- NOTE: A window must be *in* a stack to be found with this method!
-function Stack:findWindow(wid) -- {{{
-    for _idx, stack in pairs(self.tabStacks) do
-        extantWin = stack[wid]
-        if extantWin then
-            return extantWin
-        end
-    end
-end -- }}}
-
-function Stack:cleanup() -- {{{
-    for key, stack in pairs(self.tabStacks) do
-        -- For each window, clear canvas element
-        _.each(stack, function(w)
-            w.indicator:delete()
+    getOtherAppWindows = function(self, win) -- {{{
+        -- NOTE: may not need when HS issue #2400 is closed
+        return u.filter(self:get(), function(w)
+            u.pheader('window in getOtherAppWindows')
+            u.p(w)
+            return w.app == win.app
         end)
+    end, -- }}}
 
-        self.tabStacks[key] = nil
-    end
-end -- }}}
+    anyFocused = function(self) -- {{{
+        return u.any(self.windows, function(w)
+            return w:isFocused()
+        end)
+    end, -- }}}
 
-function Stack:newStack(stack, stackId) -- {{{
-    local extantStack = self.tabStacks[stackId]
-    if not extantStack then
-        self.tabStacks[stackId] = {}
-    end
+    resetAllIndicators = function(self) -- {{{
+        self:eachWin(function(win)
+            win:setupIndicator()
+            win:drawIndicator()
+        end)
+    end, -- }}}
 
-    for k, w in pairs(stack) do
-        if not extantStack then
-            local win = Window:new(w)
-            win:process(self.showIcons, k)
-            win.indicator:show()
-            win.stackId = stackId -- set stackId on win for easy lookup later
-            self.tabStacks[stackId][win.id] = win
-
-        else
-            local extantWin = extantStack[w.id]
-            local win = Window:new(w)
-
-            if (type(extantWin) == 'nil') or
-                not (extantWin.focused == win.focused) then
-                extantWin.indicator:delete()
-                win:process(self.showIcons, k)
-                win.indicator:show()
-                win.stackId = stackId -- set stackId on win for easy lookup later
-                self.tabStacks[stackId][win.id] = win
+    redrawAllIndicators = function(self, opts) -- {{{
+        self:eachWin(function(win)
+            if win.id ~= opts.except then
+                win:redrawIndicator()
             end
-        end
-    end
-end -- }}}
+        end)
+    end, -- }}}
 
-function Stack:ingest(windowData) -- {{{
-    _.each(windowData, function(winGroup)
-        local stackId = table.concat(_.map(winGroup, function(w)
-            return w.id
-        end), '')
-        Stack:newStack(winGroup, stackId)
-    end)
-end -- }}}
+    deleteAllIndicators = function(self) -- {{{
+        self:eachWin(function(win)
+            win:deleteIndicator()
+        end)
+    end, -- }}}
 
-function Stack:update(shouldClean) -- {{{
-    if shouldClean then
-        Stack:cleanup()
-    end
+    -- all occlusion-related methods currently disabled, but should be revisted soon
+    -- dimAllIndicators = function(self) -- {{{
+    --     self:eachWin(function(win)
+    --         win:drawIndicator({unfocusedAlpha = 1})
+    --     end)
+    -- end, -- }}}
 
-    local yabai_get_stacks = 'stackline/bin/yabai-get-stacks'
+    -- restoreAlpha = function(self) -- {{{
+    --     self:eachWin(function(win)
+    --         win:drawIndicator({unfocusedAlpha = nil})
+    --     end)
+    -- end, -- }}}
 
-    hs.task.new("/bin/dash", function(_code, stdout)
-        local windowData = hs.json.decode(stdout)
-        Stack:ingest(windowData)
-    end, {yabai_get_stacks}):start()
-end -- }}}
+    -- isWindowOccludedBy = function(self, otherWin, win) -- {{{
+    --     -- Test uses optional 'win' arg if provided,
+    --     -- otherwise test uses 1st window of stack
+    --     local stackedFrame = win and win:frame() or self:frame()
+    --     return stackedFrame:inside(otherWin:frame())
+    -- end, -- }}}
 
-function Stack:newStackManager(showIcons)
-    self.tabStacks = {}
-    self.showIcons = showIcons
-    return {
-        ingest = function(windowData)
-            return self:ingest(windowData)
-        end,
-        update = self.update,
-        cleanup = function()
-            return self:cleanup()
-        end,
-        toggleIcons = function()
-            return self:toggleIcons()
-        end,
-        findWindow = function(wid)
-            return self:findWindow(wid)
-        end,
-        each_win = function(wid)
-            return self:each_win_id(wid)
-        end,
-        get_win_str = function()
-            return Stack.win_str
-        end,
-    }
-end
+    -- isOccluded = function(self) -- {{{
+    --     -- FIXES: https://github.com/AdamWagner/stackline/issues/11
+    --     -- When a stack that has "zoom-parent": 1 occludes another stack, the
+    --     -- occluded stack's indicators shouldn't be displaed
+
+    --     -- Returns true if any non-stack window occludes the stack's frame.
+    --     -- This can occur when an unstacked window is zoomed to cover a stack.
+    --     -- In this situation, we  want to hide or dim the occluded stack's indicators
+
+    --     local stackedHsWins = self:getHs()
+
+    --     function notInStack(hsWin)
+    --         return not u.include(stackedHsWins, hsWin)
+    --     end
+
+    --     local windowsCurrSpace = wfd:getWindows()
+    --     local nonStackWindows = u.filter(windowsCurrSpace, notInStack)
+
+    --     -- true if *any* non-stacked windows occlude the stack's frame
+    --     -- NOTE: u.any() works, hs.fnutils.some does NOT work :~
+    --     local stackIsOccluded = u.any(u.map(nonStackWindows, function(w)
+    --         return self:isWindowOccludedBy(w)
+    --     end))
+    --     return stackIsOccluded
+    -- end, -- }}}
+})
 
 return Stack
