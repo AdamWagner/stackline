@@ -1,4 +1,5 @@
-![stackline-logo](assets/stackline-github-banner@2x.png)
+<!-- vim: set tw=0 :-->
+![stackline-logo](https://user-images.githubusercontent.com/1683979/90966915-1f9b1400-e48d-11ea-8cbb-0ceea6fcfc39.png)
 <p>
   <img alt="Version" src="https://img.shields.io/badge/version-0.1.50-blue.svg?cacheSeconds=2592000" />
   <a href="#" target="_blank">
@@ -8,61 +9,61 @@
 
 > Visualize yabai window stacks on macOS. Works with yabai & hammerspoon.
 
-## ⚠️  ~~WARNING: THIS IS A PROOF-OF-CONCEPT~~ (it's more like an 'alpha' now!)
-
-My humble thanks to all who have been suffering through error-ridden setup instructions, spinning fans, flickering UI, and crashes. I'm happy  to say that I _think_ this branch fixes enough of these issues that it _should_ be reasonable for actual use ;-) 
-
-As before, if you notice something that's off, or could be better, please open an issue (or a  PR!).
-
----
-
+You can find all the info below and more in the [wiki](https://github.com/AdamWagner/stackline/wiki/Install-dependencies).
 
 ## What is stackline & why would I want to use it?
 
-Consider a browser window with many tabs.
+A 'stack' provides a generalized subset of a tabbed UI: a stack enables multiple macOS windows to occupy the same screen space and behave as a single unit. A stack provides the user mechanisms to:
 
-A tabbed user interface consists of a collection of windows that occupy the same screen space. Only _one_ tabbed window may be visible at any given time, and it's the user's job to specify the 'active' window.
+- add & remove windows from a stack
+- navigate between stacked windows
 
-Tabbed interfaces provide visual indicators for each tab. The indicators are relatively small, so they can be visible at all times. Each indicator _identifies the contents of a window_ & _communicates its position relative to the active window_.
+Stacks are a recent addition (June 2020) to the (_excellent!_) macOS tiling window manager [koekeishiya/yabai](https://github.com/koekeishiya/yabai). There is currently no visual indication that a stack exists, what windows are contained in the stack, or which window is currently active.
 
-A 'stack' provides a generalized subset of a tabbed UI: it enables multiple to windows to occupy the same screen space, and provides mechanisms to navigate its member windows. It also provides mechanisms to add & remove windows from the stack.
+Enter stackline, which adds non-obtrusive visual indicators to `yabai` stacks.
 
-Stacks are a recent addition (June 2020) to the (_excellent!_) macOS tiling window manager [koekeishiya/yabai,](https://github.com/koekeishiya/yabai,) and visualization UI is not yet in-the-box.
+![stackline-demo](https://user-images.githubusercontent.com/1683979/90967233-08f6bc00-e491-11ea-9b0a-d75f248ce4b1.gif)
 
-Enter stackline, which adds non-obtrusive visual indicators to yabai'e 's stacking functionality.
+### Features
 
-![stackline-demo](assets/stackline-demo.gif)
+- 🚦 **See your stacks**. Window indicators show you which BSP leaves are stacks & how many windows each stack contains
+- 🔦 **App icons**. Toggle icons on to know exactly which apps are stacked where. Toggle icons off and get a slim minimalistic indicator that doesn't get in the way.
+- 🧘‍♂️️ **Smart positioning**. Whichever mode you prefer, indicators always stay out of the way on the outside edge of the window (nearest the screen edge)
+- 🧮 **Always in sync**. stackline keeps track of stacks as you move between spaces, resize windows, and add or remove stacks.
+- 🕹️ **Flexible control**. Control stackline via shell commands, or access the instance directly via Hammerspoon.
+
+<table>
+<tbody>
+<thead>
+ <th>Icon indicators…</th>
+ <th>…or minimal indicators</th>
+</thead>
+  <tr>
+    <td>
+       <img src="https://user-images.githubusercontent.com/1683979/90966909-1ad66000-e48d-11ea-9f64-7708a9e1d149.png"/>
+    </td>
+    <td>
+       <img src="https://user-images.githubusercontent.com/1683979/90966912-1dd15080-e48d-11ea-9890-3e10ea7ce397.png"/>
+    </td>
+  </tr>
+</tbody>
+</table>
+
 
 ## Getting started with stackline
 
-**Prerequisites**
+### Prerequisites
 
-1. https://github.com/koekeishiya/yabai ([install guide](http://https://github.com/koekeishiya/yabai/wiki/Installing-yabai-(latest-release)))
-2. https://github.com/Hammerspoon/hammerspoon ([getting started guide](https://www.hammerspoon.org/go/))
-3. https://github.com/stedolan/jq (`brew install jq`)
+- https://github.com/koekeishiya/yabai ([install guide](http://https://github.com/koekeishiya/yabai/wiki/Installing-yabai-(latest-release)))
+- https://github.com/Hammerspoon/hammerspoon ([getting started guide](https://www.hammerspoon.org/go/))
+- https://github.com/stedolan/jq (`brew install jq`)
 
-
-You're free to bind yabai commands using your favorite key remapper tool (skhd, karabiner elements, and even hammerspoon are all viable options).
-
-That said, you're _probably_ using https://github.com/koekeishiya/skhd. If so, now is a good time to map keys for navigating and manipulating yabai stacks.
-
-```sh
-# Focus window up/down in stack
-ctrl - n : yabai -m window --focus stack.next
-ctrl - p : yabai -m window --focus stack.prev
-
-# Add the active window  to the window or stack to the {direction}
-# Note that this only works when the active window does *not* already belong to a stack
-cmd + ctrl - left  : yabai -m window west --stack $(yabai -m query --windows --window | jq -r '.id')
-cmd + ctrl - down  : yabai -m window south --stack $(yabai -m query --windows --window | jq -r '.id')
-cmd + ctrl - up    : yabai -m window north --stack $(yabai -m query --windows --window | jq -r '.id')
-cmd + ctrl - right : yabai -m window east --stack $(yabai -m query --windows --window | jq -r '.id')
-```
+See [wiki](https://github.com/AdamWagner/stackline/wiki/Install-dependencies) for example keybindings to create and navigate between stacks.
 
 ### Installing stackline
 
-1. Clone the repo into ~/.hammerspoon/stackline
-2. Install the hammerspoon cli tool
+1. [Clone the repo into ~/.hammerspoon/stackline](https://github.com/AdamWagner/stackline/wiki/Install-stackline#1-clone-the-repo-into-hammerspoonstackline)
+2. [Install the hammerspoon cli tool](https://github.com/AdamWagner/stackline/wiki/Install-stackline#2-install-the-hammerspoon-cli-tool)
 
 #### 1. Clone the repo into ~/.hammerspoon/stackline
 
@@ -118,60 +119,38 @@ brew services start yabai
 open -a "Hammerspoon"
 ```
 
-Now, assuming you've been issuing these commands from a terminal and _also_ have a browser window open  on the same space, make sure your terminal is positioned immediately to the _left_ of Safari and issue the following command:
+Now, assuming you've been issuing these commands from a terminal and _also_ have a browser window open  on the same space, make sure your terminal is positioned immediately to the _left_ of Safari and issue the following command (or use [keybindings](https://github.com/AdamWagner/stackline/wiki/Install-dependencies)) to create a stack:
 
 ```sh
 yabai -m window --stack next
 ```
 
-Did the terminal window expand to cover the area previously occupied by Safari? Great! At this point, you should notice **two pill-shaped vertical blobs just left of the top-left corner of your terminal window**, like this:
+Did the terminal window expand to cover the area previously occupied by Safari? Great! At this point, you should notice **two app icons at the top-left corner of your terminal window**, like this:
 
-![stackline setup 01](assets/stackline-setup-01@2x.png)
+<img width="50%" src="https://user-images.githubusercontent.com/1683979/90969027-53376780-e4a8-11ea-88c9-354f43b0a4ef.png" />
 
-The default stack indicator style is a "pill" as seen ↑
-
-To toggle icons:
+If the icons are a bit too heavy for you, you can toggle minimalist mode by turning the icons off:
 
 ```sh
- echo ":toggle_icons:1" | hs -m stackline-config
+ echo ":toggle_icons:0" | hs -m stackline-config
+ # …use ":toggle_icons:1" to toggle icons back on
 ```
 
-![stackline setup 02](assets/stackline-icon-indicators.png)
 
-Image (and feature!) courtesy of [@alin23](https://github.com/alin23).
+<img width="50%" src="https://user-images.githubusercontent.com/1683979/90969026-52063a80-e4a8-11ea-885d-9dd5b1409f20.png" />
 
+The minimalist stack indicator style is shown here ↑
 
-#### Keybindings
+See the wiki to [for details about how to do this with a key binding!](https://github.com/AdamWagner/stackline/wiki/Keybindings).
 
-If you use `shkd`, you can bind a key combo to toggle icons `~/.skhdrc` file using the hammerspoon cli we installed earlier.
-
-```sh
-# if this doesn't work, try using the absolute path to the hammerspoon cli: /usr/local/bin/hs
-shift + alt - b :  echo ":toggle_icons:1" | hs -m stackline-config
-```
-
-Alternatively, you can control stackline by accessing the instance directly via Hammerspoon.
-
-For example, to bind a key combo to toggle icons, you could add the following to your `~/.hammerspoon/init.lua` file, _after_ requiring the stackline module & assigning a local variable `stackline`:
-
-```lua
-local stackline = require "stackline.stackline.stackline" -- you should already have this line ;-)
-
--- bind alt+ctrl+t to toggle stackline icons
-hs.hotkey.bind({'alt', 'ctrl'}, 't', function()
-    stackline.manager:toggleIcons()
-end)
-```
 
 ## Help us get to v1.0.0!
 
 Give a ⭐️ if you think (a more fully-featured version of) stackline would be useful!
 
-
 ## Thanks to contributors!
 
 All are welcome (actually, _please_ help us, 🤣️)! Feel free to dive in by opening an [issue](https://github.com/AdamWagner/stackline/issues/new) or submitting a PR.
-
 
 [@alin23(https://github.com/alin23), initially proposed the [concept for stackline here](https://github.com/koekeishiya/yabai/issues/203#issuecomment-652948362) and encouraged [@AdamWagner](https://github.com/AdamWagner) to share the mostly-broken proof-of-concept publicly. Since then, [@alin23](https://github.com/alin23) dramatically improved upon the initial proof-of-concept with https://github.com/AdamWagner/stackline/pull/13, has some pretty whiz-bang functionality on deck with https://github.com/AdamWagner/stackline/pull/17, and has been a great thought partner/reviewer.  
 
@@ -198,4 +177,3 @@ stackline is licensed under the [&nearr;&nbsp;MIT&nbsp;License](stackline-licens
 MIT is a simple permissive license with conditions only requiring preservation of copyright and license notices. Licensed works, modifications, and larger works may be distributed under different terms and without source code.
 
 [MIT](LICENSE) © Adam Wagner
-

@@ -298,7 +298,7 @@ function Window:getShadowAttrs() -- {{{
     -- less opaque & blurry when iconsDisabled
     -- even less opaque & blurry when unfocused
     local iconsDisabledDimmer = Sm:getShowIconsState() and 1 or 5
-    local alphaDimmer = (self.focus and 3 or 4) * iconsDisabledDimmer
+    local alphaDimmer = (self.focus and 6 or 7) * iconsDisabledDimmer
     local blurDimmer = (self.focus and 15.0 or 7.0) / iconsDisabledDimmer
 
     -- Shadows should cast outwards toward the screen edges as if due to the glow of onscreen windows…
