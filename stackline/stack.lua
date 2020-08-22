@@ -72,8 +72,7 @@ local Stack = Class("Stack", nil, {
         end)
     end, -- }}}
 
-    -- all occlusion-related methods currently disabled, but should be revisted
-    -- soon
+    -- all occlusion-related methods currently disabled, but should be revisted soon
     -- dimAllIndicators = function(self) -- {{{
     --     self:eachWin(function(win)
     --         win:drawIndicator({unfocusedAlpha = 1})

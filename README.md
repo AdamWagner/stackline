@@ -16,33 +16,6 @@ As before, if you notice something that's off, or could be better, please open a
 
 ---
 
-**2020-08-09 Status update**
-
-This update makes adds performance, reliability, and even some new functionality: 
-
-- Hammerspoon is now responsible for querying and processing macOS window data. Hammerspoon's ability to coalesce the swarm of asynchronous change events that were causing your fans to spin up is a major improvement over calling `yabai -m query --windows --space …` dozens of times a minute. The move also made it possible to take a more traditional OOP approach, which has made tracking and mutating all of this desktop state a bit simpler.  Unfortunately, it's still necessary to call out `yabai`, as it's the the keeper of each window's `stack-index` — a key bit of info that, afaict, is neither available elsewhere nor inferrable. That said, `yabai` is invoked _much less frequently_ in this update.
-- In addition to only updating data when it's actually necessary, special attention has been given to _changing focus within a stack_: the POC blew away all of the UI state and _regenerated it from scratch … every … time … a window gained/lost focus. That approach is easier to think about, but it's far too slow to be useful. In this version, indicators should be _snappy_ when changing focus :)
-
-There's also some fun new functionality:
-
-- Stack indicators are always positioned on the side of the window that's closest to the edge of the screen. This allows for tight `window_gaps`, — even with `showIcons` enabled. 
-- Magic numbers are less entangled in the implementation details (though it's still pretty bad) — and a few of them have even been abstracted into easy-to-mess with configuration settings. The new `config.lua` file isn't that exciting yet (it's mostly boilerplate), but I think the _next_ update will bring the much-needed configuration mojo.
-
-**NOTE:** even though this update focused on performance and reliability, there are _still plenty of bugs_. One particularly annoying bug appears to be [Hammerspoon's fault](https://github.com/Hammerspoon/hammerspoon/issues/2400), and required ugly workarounds to get a so-so result. 
-
-Also I'm still very new to lua and find its behavior (particularly its silence about errors) pretty baffling … it's quite hard to diagnose — or — even _notice_ small problems, which of course means they eventually become large, messy problems. ( ͡° ʖ̯ ͡°) If you're a lua pro and you're reading this, it'd be great to get your critique.  ---
-
-**2020-08-01 | Status update**
-
-https://github.com/AdamWagner/stackline is a proof-of-concept for visualizing the # of windows in a stack & the currently active window. 
-
-There is much crucial fuctionality that is either missing or broken. For example, stack indicators do not refresh when:
-
-1. the tree is rotated or mirrored
-2. updating padding or gap values
-3. a stacked window is warped out of the stack
-4. app icons are toggled on/off
-
 
 ## What is stackline & why would I want to use it?
 
@@ -73,7 +46,7 @@ You're free to bind yabai commands using your favorite key remapper tool (skhd, 
 
 That said, you're _probably_ using https://github.com/koekeishiya/skhd. If so, now is a good time to map keys for navigating and manipulating yabai stacks.
 
-```sh 
+```sh
 # Focus window up/down in stack
 ctrl - n : yabai -m window --focus stack.next
 ctrl - p : yabai -m window --focus stack.prev
@@ -99,7 +72,7 @@ git clone https://github.com/AdamWagner/stackline.git ~/.hammerspoon/stackline
 
 # Make stackline run when hammerspoon launches
 cd ~/.hammerspoon
-echo 'require "stackline.stackline.stackline"' >> init.lua
+echo 'local stackline = require "stackline.stackline.stackline"' >> init.lua
 ```
 
 Now your `~/.hammerspoon` directory should look like this:
@@ -156,55 +129,70 @@ Did the terminal window expand to cover the area previously occupied by Safari? 
 ![stackline setup 01](assets/stackline-setup-01@2x.png)
 
 The default stack indicator style is a "pill" as seen ↑
+
 To toggle icons:
 
 ```sh
  echo ":toggle_icons:1" | hs -m stackline-config
 ```
 
-You can also configure a keybinding in your `init.lua` to toggle icons:
+![stackline setup 02](assets/stackline-icon-indicators.png)
+
+Image (and feature!) courtesy of [@alin23](https://github.com/alin23).
+
+
+#### Keybindings
+
+If you use `shkd`, you can bind a key combo to toggle icons `~/.skhdrc` file using the hammerspoon cli we installed earlier.
+
+```sh
+# if this doesn't work, try using the absolute path to the hammerspoon cli: /usr/local/bin/hs
+shift + alt - b :  echo ":toggle_icons:1" | hs -m stackline-config
+```
+
+Alternatively, you can control stackline by accessing the instance directly via Hammerspoon.
+
+For example, to bind a key combo to toggle icons, you could add the following to your `~/.hammerspoon/init.lua` file, _after_ requiring the stackline module & assigning a local variable `stackline`:
 
 ```lua
-stackline = require "stackline.stackline.stackline"
+local stackline = require "stackline.stackline.stackline" -- you should already have this line ;-)
+
+-- bind alt+ctrl+t to toggle stackline icons
 hs.hotkey.bind({'alt', 'ctrl'}, 't', function()
     stackline.manager:toggleIcons()
 end)
 ```
 
-![stackline setup 02](assets/stackline-icon-indicators.png)
-
-Image (and feature!) courtesy of [@alin23](https://github.com/alin23).
-
 ## Help us get to v1.0.0!
 
-Give a ⭐️ if you think (a fully functional version of) stackline would be useful!
+Give a ⭐️ if you think (a more fully-featured version of) stackline would be useful!
 
 
 ## Thanks to contributors!
 
 All are welcome (actually, _please_ help us, 🤣️)! Feel free to dive in by opening an [issue](https://github.com/AdamWagner/stackline/issues/new) or submitting a PR.
 
-[@AdamWagner](https://github.com/AdamWagner) wrote the initial proof-of-concept (POC) for stackline.
 
-[@alin23](https://github.com/alin23), initially proposed the [concept for stackline here](https://github.com/koekeishiya/yabai/issues/203#issuecomment-652948362) and encouraged [@AdamWagner](https://github.com/AdamWagner) to share this mostly-broken POC publicly.
-
-- After [@alin23](https://github.com/alin23)'s https://github.com/AdamWagner/stackline/pull/13, stackline sucks a lot less.
-
-Thanks to [@johnallen3d](https://github.com/johnallen3d) for being one the first folks to install stackline, and for identifying several mistakes & gaps in the setup instructions. 
+[@alin23(https://github.com/alin23), initially proposed the [concept for stackline here](https://github.com/koekeishiya/yabai/issues/203#issuecomment-652948362) and encouraged [@AdamWagner](https://github.com/AdamWagner) to share the mostly-broken proof-of-concept publicly. Since then, [@alin23](https://github.com/alin23) dramatically improved upon the initial proof-of-concept with https://github.com/AdamWagner/stackline/pull/13, has some pretty whiz-bang functionality on deck with https://github.com/AdamWagner/stackline/pull/17, and has been a great thought partner/reviewer.  
 
 [@zweck](https://github.com/zweck), who, [in the same thread](https://github.com/koekeishiya/yabai/issues/203#issuecomment-656780281), got the gears turning about how [@alin23](gh-alin23)'s idea could be implemented and _also_ urged Adam to share his POC.
+
+[@johnallen3d](https://github.com/johnallen3d) for being one the first folks to install stackline, and for identifying several mistakes & gaps in the setup instructions. 
+
+[@AdamWagner](https://github.com/AdamWagner) wrote the initial proof-of-concept (POC) for stackline.
 
 ### …on the shoulders of giants
 
 Thanks to [@koekeishiya](gh-koekeishiya) without whom the _wonderful_ [yabai](https://github.com/koekeishiya/yabai) would not exist, and projects like this would have no reason to exist.
 
-Similarly, thanks to [@dominiklohmann](https://github.com/dominiklohmann), who has helped _so many people_ make chunkwm/yabai "do the thing" they want, that I seriously doubt either project would enjoy the vibrant user bases they do today.
+Similarly, thanks to [@dominiklohmann](https://github.com/dominiklohmann), who has helped _so many people_ make chunkwm/yabai "do the thing" they want and provides great feedback on new and proposed yabai features.
 
-And of course, thanks to [@cmsj](https://github.com/cmsj), [@asmagill](https://github.com/asmagill), and all of the contributors to [hammerspoon](https://github.com/Hammerspoon/hammerspoon) for opening up macOS APIs to all of us!
+Thanks to [@cmsj](https://github.com/cmsj), [@asmagill](https://github.com/asmagill), and all of the contributors to [hammerspoon](https://github.com/Hammerspoon/hammerspoon) for making macOS APIs accessible to the rest of us!
 
-Thanks to the creators & maintainers of [underscore.lua](https://github.com/mirven/underscore.lua), [lume.lua](https://github.com/rxi/lume), [self.lua](https://github.com/M1que4s/self), and several other lua utility belts that have been helpful.
+Thanks to the creators & maintainers of the lua utility libaries [underscore.lua](https://github.com/mirven/underscore.lua), [lume.lua](https://github.com/rxi/lume), and [self.lua](https://github.com/M1que4s/self).
 
 ## License & attribution
+
 stackline is licensed under the [&nearr;&nbsp;MIT&nbsp;License](stackline-license), the same license used by [yabai](https://github.com/koekeishiya/yabai/blob/master/LICENSE.txt) and [hammerspoon](https://github.com/Hammerspoon/hammerspoon/blob/master/LICENSE).
 
 MIT is a simple permissive license with conditions only requiring preservation of copyright and license notices. Licensed works, modifications, and larger works may be distributed under different terms and without source code.
