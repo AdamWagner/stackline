@@ -13,7 +13,7 @@ local Query = {}
 
 function Query:getWinStackIdxs() -- {{{
     -- call out to yabai to get stack-indexes
-    hs.task.new("/usr/local/bin/dash", function(_code, stdout, _stderr)
+    hs.task.new("/bin/dash", function(_code, stdout, _stderr)
         self.winStackIdxs = hs.json.decode(stdout)
     end, {scriptPath}):start()
 end -- }}}

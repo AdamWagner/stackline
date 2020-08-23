@@ -10,17 +10,21 @@
 > Visualize yabai window stacks on macOS. Works with yabai & hammerspoon.
 
 You can find all the info below and more in the [wiki](https://github.com/AdamWagner/stackline/wiki/Install-dependencies).
+See what's new in the [changelog](https://github.com/AdamWagner/stackline/wiki/Changelog).
 
 ## What is stackline & why would I want to use it?
 
-A 'stack' provides a generalized subset of a tabbed UI: a stack enables multiple macOS windows to occupy the same screen space and behave as a single unit. A stack provides the user mechanisms to:
+`stackline` adds simple, unobtrusive visual indicators to compliment `yabai`'s window stacking functionality.
+
+A 'stack' is a generalized subset of a tabbed UI that enables multiple macOS windows to occupy the same screen space and behave as a single unit. A stack let's a user…
 
 - add & remove windows from a stack
 - navigate between stacked windows
+- _understand the contents of a stack at a glance_
 
-Stacks are a recent addition (June 2020) to the (_excellent!_) macOS tiling window manager [koekeishiya/yabai](https://github.com/koekeishiya/yabai). There is currently no visual indication that a stack exists, what windows are contained in the stack, or which window is currently active.
+Stacks are a recent addition (June 2020) to the (_excellent!_) macOS tiling window manager [koekeishiya/yabai](https://github.com/koekeishiya/yabai). Currently, there is no visual indication of the active window, surrounding inactive windows, or even that a stack exists in the first place.
 
-Enter stackline, which adds non-obtrusive visual indicators to `yabai` stacks.
+Enter `stackline`, which adds simple, unobtrusive visual indicators to compliment `yabai`'s window stacking functionality.
 
 ![stackline-demo](https://user-images.githubusercontent.com/1683979/90967233-08f6bc00-e491-11ea-9b0a-d75f248ce4b1.gif)
 
