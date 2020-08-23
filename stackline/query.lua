@@ -26,7 +26,12 @@ function Query:groupWindows(ws) -- {{{
     local byStack
     local byApp
 
-    local windows = u.map(ws, function(w)
+    local mainScreenId = hs.screen.mainScreen():id()
+    local onScreen = u.filter(ws, function(w)
+        return w:screen():id() == mainScreenId
+    end)
+
+    local windows = u.map(onScreen, function(w)
         return Window:new(w)
     end)
 
@@ -43,13 +48,13 @@ function Query:groupWindows(ws) -- {{{
     self.stacks = byStack
 end -- }}}
 
-function Query:removeGroupedWin(win)
+function Query:removeGroupedWin(win) -- {{{
     self.stacks = u.map(self.stacks, function(stack)
         return u.filter(stack, function(w)
             return w.id ~= win.id
         end)
     end)
-end
+end -- }}}
 
 function Query:mergeWinStackIdxs() -- {{{
     -- merge windowID <> stack-index mapping queried from yabai into window objs
