@@ -36,6 +36,8 @@ Enter `stackline`, which adds simple, unobtrusive visual indicators to complimen
 - 🧮 **Always in sync**. stackline keeps track of stacks as you move between spaces, resize windows, and add or remove stacks.
 - 🕹️ **Flexible control**. Control stackline via shell commands, or access the instance directly via Hammerspoon.
 
+**NOTE:** Multi-monitor support is currently 🚧 under construction ([#22](https://github.com/AdamWagner/stackline/issues/22)). If you use multiple monitors, it's probably best wait for the [feature/multi-monitor](https://github.com/AdamWagner/stackline/tree/feature/multi-monitor) branch to be merged.
+
 <table>
 <tbody>
 <thead>
