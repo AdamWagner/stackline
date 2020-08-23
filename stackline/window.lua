@@ -7,13 +7,11 @@ local Window = {}
 -- TODO: Click on indicator to activate target window (like tabs) https://github.com/AdamWagner/stackline/issues/19
 
 function Window:new(hsWin) -- {{{
-    print("hsWin.stackIdx", hsWin.stackIdx)
     local ws = {
         title = hsWin:title(), -- window title
         app = hsWin:application():name(), -- app name (string)
         id = hsWin:id(), -- window id (string) NOTE: the ID is the same as yabai! So we could interopt if we need to
         frame = hsWin:frame(), -- x,y,w,h of window (table)
-        -- stackIdx = hsWin.stackIdx, -- only from yabai, unfort.
         stackId = self:makeStackId(hsWin).stackId, -- "{{x}|{y}|{w}|{h}" e.g., "35|63|1185|741" (string)
         topLeft = self:makeStackId(hsWin).topLeft, -- "{{x}|{y}" e.g., "35|63" (string)
         _win = hsWin, -- hs.window object (table)
@@ -87,7 +85,6 @@ function Window:setupIndicator() -- {{{
     --   right edge of windows on the right side of the screen
     self.side = self:getScreenSide()
     local xval
-    -- local xval = self.frame.x
 
     -- DONE: Limit the stack left/right side to the screen boundary so it doesn't go off screen https://github.com/AdamWagner/stackline/issues/21
     if self.side == 'right' then
