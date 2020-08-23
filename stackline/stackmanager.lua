@@ -69,7 +69,7 @@ function Stackmanager:getSummary(external) -- {{{
         end),
         dimensions = u.map(stacks, function(s)
             local windows = external and s or s.windows
-            return windows[1].stackId
+            return windows[1].stackId -- stackId is stringified window frame dims ("1150|93|531|962")
         end),
         numWindows = u.map(stacks, function(s)
             local windows = external and s or s.windows
