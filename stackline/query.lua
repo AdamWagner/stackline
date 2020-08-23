@@ -26,6 +26,11 @@ function Query:groupWindows(ws) -- {{{
     local byStack
     local byApp
 
+    -- Filter out windows that *aren't* on the main screen.
+    -- This could work as a stop-gap for multi-mon support 
+    -- (ie - indicators only drawn on active space + refresh on every space switch)
+    -- …but as a stop gap, it doesn't seem to work very well either.
+    -- Probably worth just going all-in with dedicated space-tracking / modeling
     local mainScreenId = hs.screen.mainScreen():id()
     local onScreen = u.filter(ws, function(w)
         return w:screen():id() == mainScreenId
