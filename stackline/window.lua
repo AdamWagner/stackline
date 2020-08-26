@@ -164,7 +164,7 @@ function Window:drawIndicator(overrideOpts) -- {{{
         padding = 60,
         withShadow = true,
         shadow = self:getShadowAttrs(),
-        trackMouseDown = true,
+        -- trackMouseDown = true,
     }, self.rectIdx)
 
     if self.showIcons then
@@ -179,7 +179,7 @@ function Window:drawIndicator(overrideOpts) -- {{{
         }, self.iconIdx)
     end
 
-    -- self.indicator:clickActivating(false)
+    self.indicator:clickActivating(false)
     self.indicator:show(fadeDuration)
 end -- }}}
 

@@ -17,18 +17,23 @@ stackline.wf = wf.new():setOverrideFilter{ -- {{{
     allowRoles = 'AXStandardWindow',
 } -- }}}
 
-function stackline.trackClicks()
-    hs.eventtap.new({1}, function(e)
-        -- Listen for left mouse click events
-        -- if indicator containing the clickAt position can be found, focus that indicator's window
-        local clickAt = hs.geometry.point(e:location().x, e:location().y)
-        local clickedWin = stackline.manager:getClickedWindow(clickAt)
-        print('clickedWin', hs.inspect(clickedWin))
-        if clickedWin then
-            clickedWin._win:focus()
-        end
-    end):start()
-end
+stackline.clickTracker = hs.eventtap.new({1}, function(e) -- {{{
+    -- Listen for left mouse click events
+    -- if indicator containing the clickAt position can be found, focus that indicator's window
+    local clickAt = hs.geometry.point(e:location().x, e:location().y)
+    local clickedWin = stackline.manager:getClickedWindow(clickAt)
+    if clickedWin then
+        clickedWin._win:focus()
+        return true -- deletes click event to prevent focusing HS by clicking indicator
+    end
+end) -- }}}
+
+stackline.refreshClickTracker = function() -- {{{
+    if stackline.clickTracker:isEnabled() then
+        stackline.clickTracker:stop()
+    end
+    stackline.clickTracker:start()
+end -- }}}
 
 function stackline.start(userPrefs) -- {{{
     u.pheader('starting stackline')
@@ -37,7 +42,7 @@ function stackline.start(userPrefs) -- {{{
     stackline.config = StackConfig:new():setEach(prefs):registerWatchers()
     stackline.manager = require('stackline.stackline.stackmanager'):new()
     stackline.manager:update() -- always update window state on start
-    stackline.trackClicks()
+    stackline.clickTracker:start()
 end -- }}}
 
 stackline.queryWindowState = hs.timer.delayed.new(0.30, function() -- {{{
@@ -90,6 +95,7 @@ stackline.wf:subscribe(unfocused, stackline.redrawWinIndicator)
 hs.spaces.watcher.new(function() -- {{{
     -- Added 2020-08-12 to fill the gap of hs._asm.undocumented.spaces
     stackline.queryWindowState:start()
+    stacline.refreshClickTracker()
 end):start() -- }}}
 
 -- Delayed start (stackline module needs to be loaded globally before it can reference its own methods)
