@@ -25,14 +25,6 @@ function stackline.start(userPrefs) -- {{{
     stackline.manager:update() -- always update window state on start
 end -- }}}
 
-function stackline.setFocusedScreen(screenId) -- {{{
-    stackline.focusedScreen = screenId
-end -- }}}
-
-function stackline.getFocusedScreen() -- {{{
-    return stackline.focusedScreen
-end -- }}}
-
 stackline.queryWindowState = hs.timer.delayed.new(0.30, function() -- {{{
     -- 0.30s delay debounces querying via Hammerspoon & yabai
     -- yabai is only queried if Hammerspoon query results are different than current state
