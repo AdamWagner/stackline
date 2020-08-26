@@ -1,18 +1,15 @@
--- NOTES: Functionality from this file can be completely factored out into
--- stack.lua and stackline.lua. In fact, I've already done this once, but was
--- riding a bit too fast and found myself in a place where nothing worked, and I
--- didn't know why. So, this mess lives another day. Conceptually, it'll be
--- pretty easy to put this stuff where it belongs.
 local u = require 'stackline.lib.utils'
-local scriptPath = hs.configdir .. '/stackline/bin/yabai-get-stack-idx'
 local Window = require 'stackline.stackline.window'
+
 local Query = {}
+
+Query.scriptPath = hs.configdir .. '/stackline/bin/yabai-get-stack-idx'
 
 function Query:getWinStackIdxs() -- {{{
     -- call out to yabai to get stack-indexes
     hs.task.new("/bin/dash", function(_code, stdout, _stderr)
         self.winStackIdxs = hs.json.decode(stdout)
-    end, {scriptPath}):start()
+    end, {self.scriptPath}):start()
 end -- }}}
 
 function Query:groupWindows(ws) -- {{{
@@ -23,17 +20,7 @@ function Query:groupWindows(ws) -- {{{
     local byStack
     local byApp
 
-    -- Filter out windows that *aren't* on the main screen.
-    -- This could work as a stop-gap for multi-mon support 
-    -- (ie - indicators only drawn on active space + refresh on every space switch)
-    -- …but as a stop gap, it doesn't seem to work very well either.
-    -- Probably worth just going all-in with dedicated space-tracking / modeling
-    local mainScreenId = hs.screen.mainScreen():id()
-    local onScreen = u.filter(ws, function(w)
-        return w:screen():id() == mainScreenId
-    end)
-
-    local windows = u.map(onScreen, function(w)
+    local windows = u.map(ws, function(w)
         return Window:new(w)
     end)
 
@@ -41,9 +28,8 @@ function Query:groupWindows(ws) -- {{{
     byStack = u.filter(u.groupBy(windows, 'stackId'), u.greaterThan(1)) -- stacks have >1 window, so ignore 'groups' of 1
 
     if u.length(byStack) > 0 then
-        -- app names are keys in group
         local stackedWins = u.reduce(u.values(byStack), u.concat)
-        byApp = u.groupBy(stackedWins, 'app')
+        byApp = u.groupBy(stackedWins, 'app') -- app names are keys in group
     end
 
     self.appWindows = byApp
@@ -116,15 +102,6 @@ function shouldRestack(new) -- {{{
     end
 
 end -- }}}
-
-function Query:setFocusedScreen()
-    self.focusedScreen = hs.window:focusedWindow():screen():id()
-    return self.focusedScreen
-end
-
-function Query:getFocusedScreen()
-    return self.focusedScreen
-end
 
 function Query:windowsCurrentSpace() -- {{{
     self:groupWindows(stackline.wf:getWindows()) -- set self.stacks & self.appWindows
