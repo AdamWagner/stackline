@@ -1,9 +1,6 @@
 local u = require 'stackline.lib.utils'
-
--- ┌───────────────┐
--- │ Window module │
--- └───────────────┘
 local Window = {}
+
 -- TODO: Click on indicator to activate target window (like tabs) https://github.com/AdamWagner/stackline/issues/19
 
 function Window:new(hsWin) -- {{{
@@ -37,7 +34,7 @@ end -- }}}
 
 function Window:setupIndicator() -- {{{
     -- Config
-    self.showIcons = Sm:getShowIconsState()
+    self.showIcons = stackline.manager:getShowIconsState()
     self:isStackFocused()
 
     -- TODO: move into stackConfig module (somehow… despite its lack of support for nested keys :/)
@@ -71,19 +68,22 @@ function Window:setupIndicator() -- {{{
 
     -- Set canvas to fill entire screen
     local screenFrame = self._win:screen():frame()
+    self.canvas_frame = screenFrame
 
     -- subtract screen x,y from window x,y
     -- window frame must be relative to screen to support multi-monitor setups
-    -- consider @alin32's suggestion from https://github.com/AdamWagner/stackline/issues/22:
-    -- docs: Transforms from the absolute coordinate space used by
-    -- OSX/Hammerspoon to the screen's local coordinate space, where 0,0 is at the screen's top left corner    
-    --    screen = hs.screen.mainScreen()
-    --    frame = screen:absoluteToLocal(hs.geometry(canvasFrame))
     for _, coord in pairs({'x', 'y'}) do
         self.frame[coord] = self.frame[coord] - screenFrame[coord]
     end
-
-    self.canvas_frame = screenFrame
+    -- NOTE: Try suggestion to use screen:absoluteToLocal from https://github.com/AdamWagner/stackline/issues/22:
+    -- NOTE: 2020-08-25 Can't get ↑ screen:absoluteToLocal(…) approach to work
+    --  screen:absoluteToLocal() transforms from the absolute coordinate space used
+    --  by OSX/Hammerspoon to the screen's local coordinate space, where 0,0 is
+    --  at the screen's top left corner    
+    --  Example:
+    --    screen = self._win:screen() -- or (?)
+    --    screen = hs.screen.mainScreen()
+    --    self.frame = screen:absoluteToLocal(hs.geometry(self.canvas_frame))
 
     -- Display indicators on 
     --   left edge of windows on the left side of the screen, &
@@ -198,7 +198,7 @@ function Window:redrawIndicator() -- {{{
         -- changing window focus within a stack
         self.focus = isWindowFocused
 
-        if self.focus and stackConfig:get('enableTmpFixForHsBug') then
+        if self.focus and stackline.config:get('enableTmpFixForHsBug') then
             self:unfocusOtherAppWindows()
         end
 
@@ -252,7 +252,7 @@ function Window:getScreenSide() -- {{{
     -- TODO [very-low-priority]: find a way to use hs.window.filter.windowsTo{Dir} 
     -- to determine side instead of percLeft/Right
     --    https://www.hammerspoon.org/docs/hs.window.filter.html#windowsToWest
-    --      wfd:windowsToWest(self._win)
+    --      stackline.wf:windowsToWest(self._win)
     --    https://www.hammerspoon.org/docs/hs.window.html#windowsToWest
     --      self._win:windowsToSouth()
 end -- }}}
@@ -288,7 +288,8 @@ function Window:getColorAttrs(isStackFocused, isWinFocused) -- {{{
                     },
                     ['false'] = {
                         bg = u.extend(u.copy(opts.color), {
-                            alpha = Sm:getShowIconsState() and 0 or 0.2,
+                            alpha = stackline.manager:getShowIconsState() and 0 or
+                                0.2,
                         }),
                         -- unfocused icon has slightly lower alpha when stack also unfocused
                         img = opts.alpha /
@@ -308,7 +309,7 @@ end -- }}}
 function Window:getShadowAttrs() -- {{{
     -- less opaque & blurry when iconsDisabled
     -- even less opaque & blurry when unfocused
-    local iconsDisabledDimmer = Sm:getShowIconsState() and 1 or 5
+    local iconsDisabledDimmer = stackline.manager:getShowIconsState() and 1 or 5
     local alphaDimmer = (self.focus and 6 or 7) * iconsDisabledDimmer
     local blurDimmer = (self.focus and 15.0 or 7.0) / iconsDisabledDimmer
 

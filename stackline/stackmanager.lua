@@ -1,21 +1,15 @@
 local u = require 'stackline.lib.utils'
-
--- stackline modules
 local Query = require 'stackline.stackline.query'
 local Stack = require 'stackline.stackline.stack'
 
--- ┌──────────────┐
--- │ Stack module │
--- └──────────────┘
-
 local Stackmanager = {}
-function Stackmanager:update() -- {{{
-    Query:windowsCurrentSpace() -- calls Stack:ingest when ready
+function Stackmanager:update(opts) -- {{{
+    Query:windowsCurrentSpace(opts) -- calls Stack:ingest when ready
 end -- }}}
 
 function Stackmanager:new() -- {{{
     self.tabStacks = {}
-    self.showIcons = stackConfig:get('showIcons')
+    self.showIcons = stackline.config:get('showIcons')
     return self
 end -- }}}
 
