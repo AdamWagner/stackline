@@ -94,13 +94,6 @@ function shouldRestack(new) -- {{{
         print('num windows changed')
         return true
     end
-
-    local lastFocusedScreen = Query:getFocusedScreen()
-    if not lastFocusedScreen == Query:setFocusedScreen() then
-        print('focused screen changed')
-        return true
-    end
-
 end -- }}}
 
 function Query:windowsCurrentSpace() -- {{{

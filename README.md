@@ -36,7 +36,11 @@ Enter `stackline`, which adds simple, unobtrusive visual indicators to complimen
 - 🧮 **Always in sync**. stackline keeps track of stacks as you move between spaces, resize windows, and add or remove stacks.
 - 🕹️ **Flexible control**. Control stackline via shell commands, or access the instance directly via Hammerspoon.
 
+<<<<<<< HEAD
 **NOTE:** Multi-monitor support is currently 🚧 under construction (https://github.com/AdamWagner/stackline/issues/22). If you use multiple monitors, it's probably best wait for https://github.com/AdamWagner/stackline/tree/feature/multi-monitor to be merged.
+=======
+**NOTE:** Multi-monitor support is currently 🚧 under construction ([#22](https://github.com/AdamWagner/stackline/issues/22)). If you use multiple monitors, it's probably best wait for the [feature/multi-monitor](https://github.com/AdamWagner/stackline/tree/feature/multi-monitor) branch to be merged.
+>>>>>>> 4791ca1... Add note on status of multi-monitor support below feature list in readme.
 
 <table>
 <tbody>
@@ -158,7 +162,7 @@ Give a ⭐️ if you think (a more fully-featured version of) stackline would be
 
 All are welcome (actually, _please_ help us, 🤣️)! Feel free to dive in by opening an [issue](https://github.com/AdamWagner/stackline/issues/new) or submitting a PR.
 
-[@alin23(https://github.com/alin23), initially proposed the [concept for stackline here](https://github.com/koekeishiya/yabai/issues/203#issuecomment-652948362) and encouraged [@AdamWagner](https://github.com/AdamWagner) to share the mostly-broken proof-of-concept publicly. Since then, [@alin23](https://github.com/alin23) dramatically improved upon the initial proof-of-concept with https://github.com/AdamWagner/stackline/pull/13, has some pretty whiz-bang functionality on deck with https://github.com/AdamWagner/stackline/pull/17, and has been a great thought partner/reviewer.  
+[@alin23](https://github.com/alin23) initially proposed the [concept for stackline here](https://github.com/koekeishiya/yabai/issues/203#issuecomment-652948362) and encouraged [@AdamWagner](https://github.com/AdamWagner) to share the mostly-broken proof-of-concept publicly. Since then, [@alin23](https://github.com/alin23) dramatically improved upon the initial proof-of-concept with [#13](https://github.com/AdamWagner/stackline/pull/13), has some pretty whiz-bang functionality on deck with [#17](https://github.com/AdamWagner/stackline/pull/17), and has been a great thought partner/reviewer.  
 
 [@zweck](https://github.com/zweck), who, [in the same thread](https://github.com/koekeishiya/yabai/issues/203#issuecomment-656780281), got the gears turning about how [@alin23](gh-alin23)'s idea could be implemented and _also_ urged Adam to share his POC.
 
