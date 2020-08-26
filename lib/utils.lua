@@ -20,6 +20,9 @@ utils.concat = hs.fnutils.concat
 utils.copy = hs.fnutils.copy
 -- }}}
 
+-- TODO: consider adding fnutils extensions here: https://github.com/mikeyp/dotfiles/blob/master/hammerspoon/fntools.lua (compose, maybe, result, etc)
+-- Also https://github.com/muppetjones/hammerspoon_config/blob/master/util.lua
+
 -- FROM: https://github.com/rxi/lume/blob/master/lume.lua
 function utils.isarray(x) -- {{{
     return type(x) == "table" and x[1] ~= nil

@@ -54,6 +54,7 @@ function Query:groupWindows(ws) -- {{{
 end -- }}}
 
 function Query:removeGroupedWin(win) -- {{{
+    -- remove given window if it's present in self.stacks windows
     self.stacks = u.map(self.stacks, function(stack)
         return u.filter(stack, function(w)
             return w.id ~= win.id

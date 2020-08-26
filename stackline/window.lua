@@ -74,6 +74,11 @@ function Window:setupIndicator() -- {{{
 
     -- subtract screen x,y from window x,y
     -- window frame must be relative to screen to support multi-monitor setups
+    -- consider @alin32's suggestion from https://github.com/AdamWagner/stackline/issues/22:
+    -- docs: Transforms from the absolute coordinate space used by
+    -- OSX/Hammerspoon to the screen's local coordinate space, where 0,0 is at the screen's top left corner    
+    --    screen = hs.screen.mainScreen()
+    --    frame = screen:absoluteToLocal(hs.geometry(canvasFrame))
     for _, coord in pairs({'x', 'y'}) do
         self.frame[coord] = self.frame[coord] - screenFrame[coord]
     end

@@ -15,7 +15,7 @@ local config = {showIcons = true, enableTmpFixForHsBug = true}
 -- └─────────┘
 -- instantiate instances of key classes and assign to global table (_G)
 _G.stackConfig = StackConfig:new():setEach(config):registerWatchers()
-_G.Sm = Stackmanager:new(showIcons)
+_G.Sm = Stackmanager:new()
 _G.wfd = wf.new():setOverrideFilter{
     visible = true, -- (i.e. not hidden and not minimized)
     fullscreen = false,
