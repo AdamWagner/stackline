@@ -1,31 +1,84 @@
 require("hs.ipc")
 print(hs.settings.bundleID)
 
+local u = require 'stackline.lib.utils'
 local StackConfig = require 'stackline.stackline.config'
-local Stackmanager = require 'stackline.stackline.stackmanager'
-local wf = hs.window.filter
+local wf = hs.window.filter -- just an alias
 
--- ┌────────┐
--- │ config │
--- └────────┘
-local config = {showIcons = true, enableTmpFixForHsBug = true}
+local stackline = {}
 
--- ┌─────────┐
--- │ globals │
--- └─────────┘
--- instantiate instances of key classes and assign to global table (_G)
-_G.stackConfig = StackConfig:new():setEach(config):registerWatchers()
-_G.Sm = Stackmanager:new()
-_G.wfd = wf.new():setOverrideFilter{
+stackline.focusedScreen = nil
+
+stackline.wf = wf.new():setOverrideFilter{ -- {{{
     visible = true, -- (i.e. not hidden and not minimized)
     fullscreen = false,
     currentSpace = true,
     allowRoles = 'AXStandardWindow',
-}
+} -- }}}
 
--- TODO: review how @alin32 structured window (and config!) events into
--- 'shouldRestack' and 'shouldClean' and apply those ideas here.
-local windowEvents = {
+function stackline.start(userPrefs) -- {{{
+    u.pheader('starting stackline')
+    local defaultUserPrefs = {showIcons = true, enableTmpFixForHsBug = true}
+    local prefs = userPrefs or defaultUserPrefs
+    stackline.config = StackConfig:new():setEach(prefs):registerWatchers()
+    stackline.manager = require('stackline.stackline.stackmanager'):new()
+    stackline.manager:update() -- always update window state on start
+end -- }}}
+
+function stackline.setFocusedScreen(screenId) -- {{{
+    stackline.focusedScreen = screenId
+end -- }}}
+
+function stackline.getFocusedScreen() -- {{{
+    return stackline.focusedScreen
+end -- }}}
+
+stackline.queryWindowState = hs.timer.delayed.new(0.30, function() -- {{{
+    -- 0.30s delay debounces querying via Hammerspoon & yabai
+    -- yabai is only queried if Hammerspoon query results are different than current state
+    print('CALLING UPDATE()')
+    stackline.manager:update()
+end) -- }}}
+
+function stackline.refreshOnScreenChange(hsWin, _app, _even) -- {{{
+    -- Poor man's version of multi-monitor support
+    -- stackline only renders on the monitor that contains the focused window & fades away on the others
+    -- Known issue: if focused window is on screen #1, and hammerspoon console
+    --              is on screen #2, focusing the hammerspoon console will NOT refresh
+    --              stackline to render on screen #2.Only observed with HS console ¯\(◉◡◔)/¯
+    -- TODO: remove when support for multi-monitor rendering is complete
+
+    local lastFocusedScreen = stackline.getFocusedScreen()
+    -- print('lastFocusedScreen is:', lastFocusedScreen)
+
+    local focusedScreenId = hsWin:screen():id()
+    stackline.setFocusedScreen(focusedScreenId)
+    -- print('focused screen ID is:', focusedScreenId)
+
+    local screenChanged = lastFocusedScreen ~= focusedScreenId
+    print('screen changed:', screenChanged)
+
+    if screenChanged then
+        -- print('REFRESHING STACKLINE INDICATORS')
+        return stackline.queryWindowState:start()
+    end
+end -- }}}
+
+function stackline.redrawWinIndicator(hsWin, _app, _event) -- {{{
+    -- Dedicated redraw method to *adjust* the existing canvas element is WAY
+    -- faster than deleting the entire indicator & rebuilding it from scratch,
+    -- particularly since this skips querying the app icon & building the icon image.
+    local stackedWin = stackline.manager:findWindow(hsWin:id())
+    if stackedWin then -- when falsey, the focused win is not stacked
+        stackedWin:redrawIndicator()
+    end
+
+end -- }}}
+
+stackline.windowEvents = { -- {{{
+    -- TODO: review how @alin32 structured window (and config!) events into
+    -- 'shouldRestack' and 'shouldClean' and apply those ideas here.
+
     -- window added
     wf.windowCreated,
     wf.windowUnhidden,
@@ -40,42 +93,30 @@ local windowEvents = {
     wf.windowDestroyed,
     wf.windowHidden,
     wf.windowMinimized,
-}
+} -- }}}
 
--- TO CONFIRM: Compared to calling wsi.update() directly in wf:subscribe 
--- callback, even a delay of "0" appears to coalesce events as desired.
-local queryWindowState = hs.timer.delayed.new(0.30, function()
-    Sm:update()
-end)
-
--- ┌───────────────────────────────┐
--- │ window events → update stacks │
--- └───────────────────────────────┘
-wfd:subscribe(windowEvents, function()
+stackline.wf:subscribe(stackline.windowEvents, function() -- {{{
     -- callback args: window, app, event
-    queryWindowState:start()
-end)
+    stackline.queryWindowState:start()
+end) -- }}}
 
-hs.spaces.watcher.new(function()
+stackline.wf:subscribe(wf.windowFocused, stackline.redrawWinIndicator)
+stackline.wf:subscribe(wf.windowFocused, stackline.refreshOnScreenChange)
+
+local unfocused = {wf.windowNotVisible, wf.windowUnfocused}
+stackline.wf:subscribe(unfocused, stackline.redrawWinIndicator)
+
+hs.spaces.watcher.new(function() -- {{{
     -- Added 2020-08-12 to fill the gap of hs._asm.undocumented.spaces
-    queryWindowState:start()
-end):start()
+    stackline.queryWindowState:start()
+end):start() -- }}}
 
-function redrawWinIndicator(hsWin, _app, _event) -- {{{
-    -- Dedicated redraw method to *adjust* the existing canvas element is WAY
-    -- faster than deleting the entire indicator & rebuilding it from scratch,
-    -- particularly since this skips querying the app icon & building the icon image.
-    local stackedWin = Sm:findWindow(hsWin:id())
-    if stackedWin then -- when falsey, the focused win is not stacked
-        stackedWin:redrawIndicator()
-    end
-end -- }}}
+-- Delayed start (stackline module needs to be loaded globally before it can reference its own methods)
+-- TODO: Add instructions to README.md to call stackline:start(userPrefs) from init.lua, and remove this.
+hs.timer.doUntil(function() -- {{{
+    return stackline.manager
+end, function()
+    stackline.start()
+end, 0.1) -- }}}
 
-wfd:subscribe(wf.windowFocused, redrawWinIndicator)
-
-wfd:subscribe({wf.windowNotVisible, wf.windowUnfocused}, redrawWinIndicator)
-
--- always update on load
-Sm:update()
-
-return {config = _G.stackConfig, manager = _G.Sm}
+return stackline

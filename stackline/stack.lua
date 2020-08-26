@@ -1,8 +1,5 @@
 local u = require 'stackline.lib.utils'
 local Class = require 'stackline.lib.self'
--- NOTE: using simple 'self' library fixed the issue of only 1 of N stacks
--- responding to focus events.  Experimented with even smaller libs, but only
--- 'self' worked so far.
 
 -- args: Class(className, parentClass, table [define methods], isGlobal)
 local Stack = Class("Stack", nil, {
@@ -107,7 +104,7 @@ local Stack = Class("Stack", nil, {
     --         return not u.include(stackedHsWins, hsWin)
     --     end
 
-    --     local windowsCurrSpace = wfd:getWindows()
+    --     local windowsCurrSpace = wf:getWindows()
     --     local nonStackWindows = u.filter(windowsCurrSpace, notInStack)
 
     --     -- true if *any* non-stacked windows occlude the stack's frame
