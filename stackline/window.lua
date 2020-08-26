@@ -1,7 +1,6 @@
+-- TODO: Click on indicator to activate target window (like tabs) https://github.com/AdamWagner/stackline/issues/19
 local u = require 'stackline.lib.utils'
 local Window = {}
-
--- TODO: Click on indicator to activate target window (like tabs) https://github.com/AdamWagner/stackline/issues/19
 
 function Window:new(hsWin) -- {{{
     local ws = {
@@ -12,6 +11,7 @@ function Window:new(hsWin) -- {{{
         stackId = self:makeStackId(hsWin).stackId, -- "{{x}|{y}|{w}|{h}" e.g., "35|63|1185|741" (string)
         topLeft = self:makeStackId(hsWin).topLeft, -- "{{x}|{y}" e.g., "35|63" (string)
         _win = hsWin, -- hs.window object (table)
+        screen = hsWin:screen():id(),
         indicator = nil, -- the canvas element (table)
     }
     setmetatable(ws, self)
@@ -70,11 +70,15 @@ function Window:setupIndicator() -- {{{
     local screenFrame = self._win:screen():frame()
     self.canvas_frame = screenFrame
 
+    local screen = self._win:screen() -- or (?)
+    -- local screen = hs.screen.mainScreen()
+    self.frame = screen:absoluteToLocal(hs.geometry(self._win:frame()))
+
     -- subtract screen x,y from window x,y
     -- window frame must be relative to screen to support multi-monitor setups
-    for _, coord in pairs({'x', 'y'}) do
-        self.frame[coord] = self.frame[coord] - screenFrame[coord]
-    end
+    -- for _, coord in pairs({'x', 'y'}) do
+    --     self.frame[coord] = self.frame[coord] - screenFrame[coord]
+    -- end
     -- NOTE: Try suggestion to use screen:absoluteToLocal from https://github.com/AdamWagner/stackline/issues/22:
     -- NOTE: 2020-08-25 Can't get ↑ screen:absoluteToLocal(…) approach to work
     --  screen:absoluteToLocal() transforms from the absolute coordinate space used
@@ -183,6 +187,7 @@ function Window:redrawIndicator() -- {{{
 
     -- LOGIC: Redraw according to what changed.
     -- Supports indicating the *last-active* window in an unfocused stack.
+    -- TODO: Fix bug causing stack to continue appearing focused when switching to a non-stacked window from the same app as the focused stack window. Another casualtiy of HS #2400 :< 
     if noChange then
         -- bail early if there's nothing to do
         return false

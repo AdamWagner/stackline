@@ -36,40 +36,15 @@ end -- }}}
 stackline.queryWindowState = hs.timer.delayed.new(0.30, function() -- {{{
     -- 0.30s delay debounces querying via Hammerspoon & yabai
     -- yabai is only queried if Hammerspoon query results are different than current state
-    print('CALLING UPDATE()')
     stackline.manager:update()
 end) -- }}}
-
-function stackline.refreshOnScreenChange(hsWin, _app, _even) -- {{{
-    -- Poor man's version of multi-monitor support
-    -- stackline only renders on the monitor that contains the focused window & fades away on the others
-    -- Known issue: if focused window is on screen #1, and hammerspoon console
-    --              is on screen #2, focusing the hammerspoon console will NOT refresh
-    --              stackline to render on screen #2.Only observed with HS console ¯\(◉◡◔)/¯
-    -- TODO: remove when support for multi-monitor rendering is complete
-
-    local lastFocusedScreen = stackline.getFocusedScreen()
-    -- print('lastFocusedScreen is:', lastFocusedScreen)
-
-    local focusedScreenId = hsWin:screen():id()
-    stackline.setFocusedScreen(focusedScreenId)
-    -- print('focused screen ID is:', focusedScreenId)
-
-    local screenChanged = lastFocusedScreen ~= focusedScreenId
-    print('screen changed:', screenChanged)
-
-    if screenChanged then
-        -- print('REFRESHING STACKLINE INDICATORS')
-        return stackline.queryWindowState:start()
-    end
-end -- }}}
 
 function stackline.redrawWinIndicator(hsWin, _app, _event) -- {{{
     -- Dedicated redraw method to *adjust* the existing canvas element is WAY
     -- faster than deleting the entire indicator & rebuilding it from scratch,
     -- particularly since this skips querying the app icon & building the icon image.
     local stackedWin = stackline.manager:findWindow(hsWin:id())
-    if stackedWin then -- when falsey, the focused win is not stacked
+    if stackedWin then -- if non-existent, the focused win is not stacked
         stackedWin:redrawIndicator()
     end
 
@@ -101,7 +76,6 @@ stackline.wf:subscribe(stackline.windowEvents, function() -- {{{
 end) -- }}}
 
 stackline.wf:subscribe(wf.windowFocused, stackline.redrawWinIndicator)
-stackline.wf:subscribe(wf.windowFocused, stackline.refreshOnScreenChange)
 
 local unfocused = {wf.windowNotVisible, wf.windowUnfocused}
 stackline.wf:subscribe(unfocused, stackline.redrawWinIndicator)
