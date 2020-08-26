@@ -143,7 +143,17 @@ function Window:drawIndicator(overrideOpts) -- {{{
         self.indicator:delete()
     end
 
+    -- TODO: Continue WIP to draw canvas _just_ around the indicators instead of
+    -- the whole screen. This seems to be (?) necessary to get mouse event
+    -- tracking to NOT swallow *all* mouse events, even those not on elements
+    -- that are tracking?
     self.indicator = hs.canvas.new(self.canvas_frame)
+    -- self.indicator = hs.canvas.new({
+    --     x = 0,
+    --     y = 25,
+    --     w = self.width * 2,
+    --     h = self.frame.h,
+    -- })
 
     self.indicator:insertElement({
         type = "rectangle",
@@ -154,6 +164,7 @@ function Window:drawIndicator(overrideOpts) -- {{{
         padding = 60,
         withShadow = true,
         shadow = self:getShadowAttrs(),
+        trackMouseDown = true,
     }, self.rectIdx)
 
     if self.showIcons then
@@ -168,6 +179,7 @@ function Window:drawIndicator(overrideOpts) -- {{{
         }, self.iconIdx)
     end
 
+    -- self.indicator:clickActivating(false)
     self.indicator:show(fadeDuration)
 end -- }}}
 

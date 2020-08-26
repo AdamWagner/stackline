@@ -110,4 +110,11 @@ function Stackmanager:getShowIconsState() -- {{{
     return self.showIcons
 end -- }}}
 
+function Stackmanager:getClickedWindow(point)
+    for _stackId, stack in pairs(self.tabStacks) do
+        local target = stack:getWindowByPoint(point)
+        return target and target[1] or nil
+    end
+end
+
 return Stackmanager

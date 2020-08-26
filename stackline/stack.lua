@@ -67,6 +67,24 @@ local Stack = Class("Stack", nil, {
             win:deleteIndicator()
         end)
     end, -- }}}
+
+    getWindowByPoint = function(self, point)
+        local foundWin = u.filter(self.windows, function(w)
+
+            local windowFrame = hs.geometry.rect(
+                w.indicator:canvasElements()[1].frame)
+
+            local isInside = point:inside(windowFrame)
+
+            -- print('winFrame', hs.inspect(windowFrame))
+            -- print('point', point)
+            print('is inside', isInside)
+            return isInside
+        end)
+
+        u.p(foundWin)
+        return foundWin
+    end,
 })
 
 return Stack

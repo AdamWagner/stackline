@@ -12,10 +12,6 @@ local handleSignal = function(_, msgID, msg) -- {{{
     return "ok"
 end -- }}}
 
--- ┌────────┐
--- │ config │
--- └────────┘
-
 local StackConfig = {}
 
 function StackConfig:new()

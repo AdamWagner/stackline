@@ -1,6 +1,7 @@
 require("hs.ipc")
 print(hs.settings.bundleID)
 
+print('im here')
 local u = require 'stackline.lib.utils'
 local StackConfig = require 'stackline.stackline.config'
 local wf = hs.window.filter -- just an alias
@@ -16,6 +17,19 @@ stackline.wf = wf.new():setOverrideFilter{ -- {{{
     allowRoles = 'AXStandardWindow',
 } -- }}}
 
+function stackline.trackClicks()
+    hs.eventtap.new({1}, function(e)
+        -- Listen for left mouse click events
+        -- if indicator containing the clickAt position can be found, focus that indicator's window
+        local clickAt = hs.geometry.point(e:location().x, e:location().y)
+        local clickedWin = stackline.manager:getClickedWindow(clickAt)
+        print('clickedWin', hs.inspect(clickedWin))
+        if clickedWin then
+            clickedWin._win:focus()
+        end
+    end):start()
+end
+
 function stackline.start(userPrefs) -- {{{
     u.pheader('starting stackline')
     local defaultUserPrefs = {showIcons = true, enableTmpFixForHsBug = true}
@@ -23,6 +37,7 @@ function stackline.start(userPrefs) -- {{{
     stackline.config = StackConfig:new():setEach(prefs):registerWatchers()
     stackline.manager = require('stackline.stackline.stackmanager'):new()
     stackline.manager:update() -- always update window state on start
+    stackline.trackClicks()
 end -- }}}
 
 stackline.queryWindowState = hs.timer.delayed.new(0.30, function() -- {{{
