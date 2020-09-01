@@ -85,21 +85,24 @@ echo 'stackline = require "stackline.stackline.stackline"' >> init.lua
 
 Now your `~/.hammerspoon` directory should look like this:
 
+
+
+
 ```
 ├── init.lua
-├── stackline
-│  ├── bin
-│  │  └── yabai-get-stacks
-│  ├── stackline
-│  │  ├── core.lua
-│  │  ├── stack.lua
-│  │  └── window.lua
-│  └── utils
-│     ├── flatten.lua
-│     ├── table-utils.lua
-│     ├── underscore.lua
-│     └── utils.lua
-├── …
+└── stackline
+  ├── bin
+  │   └── yabai-get-stack-idx
+  ├── lib
+  │   ├── self.lua
+  │   └── utils.lua
+  └── stackline
+      ├── config.lua
+      ├── query.lua
+      ├── stack.lua
+      ├── stackline.lua
+      ├── stackmanager.lua
+      └── window.lua
 ```
 
 
