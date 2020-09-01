@@ -80,7 +80,7 @@ git clone https://github.com/AdamWagner/stackline.git ~/.hammerspoon/stackline
 
 # Make stackline run when hammerspoon launches
 cd ~/.hammerspoon
-echo 'local stackline = require "stackline.stackline.stackline"' >> init.lua
+echo 'stackline = require "stackline.stackline.stackline"' >> init.lua
 ```
 
 Now your `~/.hammerspoon` directory should look like this:
