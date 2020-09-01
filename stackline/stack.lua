@@ -1,8 +1,5 @@
 local u = require 'stackline.lib.utils'
 local Class = require 'stackline.lib.self'
--- NOTE: using simple 'self' library fixed the issue of only 1 of N stacks
--- responding to focus events.  Experimented with even smaller libs, but only
--- 'self' worked so far.
 
 -- args: Class(className, parentClass, table [define methods], isGlobal)
 local Stack = Class("Stack", nil, {
@@ -25,8 +22,7 @@ local Stack = Class("Stack", nil, {
     frame = function(self) -- {{{
         -- All stacked windows have the same dimensions, 
         -- so the 1st Hs window's frame is ~= to the stack's frame
-        -- FIXME: Incorrect when the 1st window has min-size < stack width 
-        --        See ./query.lua:104
+        -- TODO: Incorrect when the 1st window has min-size < stack width. See ./query.lua:104
         return self.windows[1]._win:frame()
     end, -- }}}
 
@@ -71,52 +67,6 @@ local Stack = Class("Stack", nil, {
             win:deleteIndicator()
         end)
     end, -- }}}
-
-    -- all occlusion-related methods currently disabled, but should be revisted soon
-    -- dimAllIndicators = function(self) -- {{{
-    --     self:eachWin(function(win)
-    --         win:drawIndicator({unfocusedAlpha = 1})
-    --     end)
-    -- end, -- }}}
-
-    -- restoreAlpha = function(self) -- {{{
-    --     self:eachWin(function(win)
-    --         win:drawIndicator({unfocusedAlpha = nil})
-    --     end)
-    -- end, -- }}}
-
-    -- isWindowOccludedBy = function(self, otherWin, win) -- {{{
-    --     -- Test uses optional 'win' arg if provided,
-    --     -- otherwise test uses 1st window of stack
-    --     local stackedFrame = win and win:frame() or self:frame()
-    --     return stackedFrame:inside(otherWin:frame())
-    -- end, -- }}}
-
-    -- isOccluded = function(self) -- {{{
-    --     -- FIXES: https://github.com/AdamWagner/stackline/issues/11
-    --     -- When a stack that has "zoom-parent": 1 occludes another stack, the
-    --     -- occluded stack's indicators shouldn't be displaed
-
-    --     -- Returns true if any non-stack window occludes the stack's frame.
-    --     -- This can occur when an unstacked window is zoomed to cover a stack.
-    --     -- In this situation, we  want to hide or dim the occluded stack's indicators
-
-    --     local stackedHsWins = self:getHs()
-
-    --     function notInStack(hsWin)
-    --         return not u.include(stackedHsWins, hsWin)
-    --     end
-
-    --     local windowsCurrSpace = wfd:getWindows()
-    --     local nonStackWindows = u.filter(windowsCurrSpace, notInStack)
-
-    --     -- true if *any* non-stacked windows occlude the stack's frame
-    --     -- NOTE: u.any() works, hs.fnutils.some does NOT work :~
-    --     local stackIsOccluded = u.any(u.map(nonStackWindows, function(w)
-    --         return self:isWindowOccludedBy(w)
-    --     end))
-    --     return stackIsOccluded
-    -- end, -- }}}
 })
 
 return Stack

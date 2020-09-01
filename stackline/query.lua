@@ -1,21 +1,15 @@
--- NOTES: Functionality from this file can be completely factored out into
--- stack.lua and stackline.lua. In fact, I've already done this once, but was
--- riding a bit too fast and found myself in a place where nothing worked, and I
--- didn't know why. So, this mess lives another day. Conceptually, it'll be
--- pretty easy to put this stuff where it belongs.
 local u = require 'stackline.lib.utils'
-
-local scriptPath = hs.configdir .. '/stackline/bin/yabai-get-stack-idx'
-
--- stackline modules
 local Window = require 'stackline.stackline.window'
+
 local Query = {}
+
+Query.scriptPath = hs.configdir .. '/stackline/bin/yabai-get-stack-idx'
 
 function Query:getWinStackIdxs() -- {{{
     -- call out to yabai to get stack-indexes
     hs.task.new("/bin/dash", function(_code, stdout, _stderr)
         self.winStackIdxs = hs.json.decode(stdout)
-    end, {scriptPath}):start()
+    end, {self.scriptPath}):start()
 end -- }}}
 
 function Query:groupWindows(ws) -- {{{
@@ -34,22 +28,22 @@ function Query:groupWindows(ws) -- {{{
     byStack = u.filter(u.groupBy(windows, 'stackId'), u.greaterThan(1)) -- stacks have >1 window, so ignore 'groups' of 1
 
     if u.length(byStack) > 0 then
-        -- app names are keys in group
         local stackedWins = u.reduce(u.values(byStack), u.concat)
-        byApp = u.groupBy(stackedWins, 'app')
+        byApp = u.groupBy(stackedWins, 'app') -- app names are keys in group
     end
 
     self.appWindows = byApp
     self.stacks = byStack
 end -- }}}
 
-function Query:removeGroupedWin(win)
+function Query:removeGroupedWin(win) -- {{{
+    -- remove given window if it's present in self.stacks windows
     self.stacks = u.map(self.stacks, function(stack)
         return u.filter(stack, function(w)
             return w.id ~= win.id
         end)
     end)
-end
+end -- }}}
 
 function Query:mergeWinStackIdxs() -- {{{
     -- merge windowID <> stack-index mapping queried from yabai into window objs
@@ -83,8 +77,8 @@ function shouldRestack(new) -- {{{
     --    • change position
     --    • change num windows (win added / removed)
 
-    local curr = Sm:getSummary()
-    new = Sm:getSummary(u.values(new))
+    local curr = stackline.manager:getSummary()
+    new = stackline.manager:getSummary(u.values(new))
 
     if curr.numStacks ~= new.numStacks then
         print('num stacks changed')
@@ -103,14 +97,14 @@ function shouldRestack(new) -- {{{
 end -- }}}
 
 function Query:windowsCurrentSpace() -- {{{
-    self:groupWindows(wfd:getWindows()) -- set self.stacks & self.appWindows
+    self:groupWindows(stackline.wf:getWindows()) -- set self.stacks & self.appWindows
 
-    local extantStacks = Sm:get()
-    local extantStackSummary = Sm:getSummary()
+    local extantStacks = stackline.manager:get()
+    local extantStackSummary = stackline.manager:getSummary()
     local extantStackExists = extantStackSummary.numStacks > 0
 
-    local shouldRefresh = extantStackExists and
-                              shouldRestack(self.stacks, extantStacks) or true
+    local shouldRefresh = (extantStackExists and
+                              shouldRestack(self.stacks, extantStacks)) or true
     if shouldRefresh then
         -- TODO: revisit in a future update. This is kind of an edge case — there are bigger fish to fry.
         -- stacksMgr:dimOccluded() 
@@ -118,7 +112,8 @@ function Query:windowsCurrentSpace() -- {{{
 
         function whenStackIdxDone()
             self:mergeWinStackIdxs() -- Add the stack indexes from yabai to the hs window data
-            Sm:ingest(self.stacks, self.appWindows, extantStackExists) -- hand over to the Stack module
+            stackline.manager:ingest(self.stacks, self.appWindows,
+                extantStackExists) -- hand over to the Stack module
         end
 
         local pollingInterval = 0.1

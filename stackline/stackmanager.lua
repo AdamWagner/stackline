@@ -1,12 +1,6 @@
 local u = require 'stackline.lib.utils'
-
--- stackline modules
 local Query = require 'stackline.stackline.query'
 local Stack = require 'stackline.stackline.stack'
-
--- ┌──────────────┐
--- │ Stack module │
--- └──────────────┘
 
 local Stackmanager = {}
 function Stackmanager:update() -- {{{
@@ -15,7 +9,7 @@ end -- }}}
 
 function Stackmanager:new() -- {{{
     self.tabStacks = {}
-    self.showIcons = stackConfig:get('showIcons')
+    self.showIcons = stackline.config:get('showIcons')
     return self
 end -- }}}
 
@@ -31,7 +25,8 @@ function Stackmanager:ingest(windowGroups, appWindows, shouldClean) -- {{{
         u.each(stack.windows, function(win)
             -- win.otherAppWindows needed to workaround Hammerspoon issue #2400
             win.otherAppWindows = u.filter(appWindows[win.app], function(w)
-                return w.id ~= win.id
+                -- exclude self and other app windows from other others
+                return (w.id ~= win.id) and (w.screen == win.screen)
             end)
             win.stack = stack -- enables calling stack methods from window
         end)
@@ -114,16 +109,5 @@ end -- }}}
 function Stackmanager:getShowIconsState() -- {{{
     return self.showIcons
 end -- }}}
-
--- function Stackmanager:dimOccluded() -- {{{
---    -- disabled for now, but should revisit soon
---     self:eachStack(function(stack)
---         if stack:isOccluded() then
---             stack:dimAllIndicators()
---         else
---             stack:restoreAlpha()
---         end
---     end)
--- end -- }}}
 
 return Stackmanager

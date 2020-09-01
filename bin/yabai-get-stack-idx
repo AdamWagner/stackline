@@ -1,5 +1,9 @@
 #!/bin/dash
 
-/usr/local/bin/yabai -m query --windows --space \
+# /usr/local/bin/yabai -m query --windows --space \
+        # | /usr/local/bin/jq --raw-output --compact-output --monochrome-output  'map({"\(.id)": .["stack-index"]}) | reduce .[] as $item ({}; . + $item)'
+
+# Experimental multi-mon support — don't constrain query to current space only
+/usr/local/bin/yabai -m query --windows \
         | /usr/local/bin/jq --raw-output --compact-output --monochrome-output  'map({"\(.id)": .["stack-index"]}) | reduce .[] as $item ({}; . + $item)'
 
