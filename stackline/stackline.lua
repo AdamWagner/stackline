@@ -17,14 +17,16 @@ stackline.wf = wf.new():setOverrideFilter{ -- {{{
     allowRoles = 'AXStandardWindow',
 } -- }}}
 
-stackline.clickTracker = hs.eventtap.new({1}, function(e) -- {{{
+local click = hs.eventtap.event.types['leftMouseDown'] -- print hs.eventtap.event.types to see all event types
+stackline.clickTracker = hs.eventtap.new({click}, --  {{{
+function(e)
     -- Listen for left mouse click events
     -- if indicator containing the clickAt position can be found, focus that indicator's window
     local clickAt = hs.geometry.point(e:location().x, e:location().y)
     local clickedWin = stackline.manager:getClickedWindow(clickAt)
     if clickedWin then
         clickedWin._win:focus()
-        return true -- deletes click event to prevent focusing HS by clicking indicator
+        return true -- stops propogation
     end
 end) -- }}}
 
@@ -95,7 +97,7 @@ stackline.wf:subscribe(unfocused, stackline.redrawWinIndicator)
 hs.spaces.watcher.new(function() -- {{{
     -- Added 2020-08-12 to fill the gap of hs._asm.undocumented.spaces
     stackline.queryWindowState:start()
-    stacline.refreshClickTracker()
+    stackline.refreshClickTracker()
 end):start() -- }}}
 
 -- Delayed start (stackline module needs to be loaded globally before it can reference its own methods)

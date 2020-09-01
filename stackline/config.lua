@@ -1,47 +1,33 @@
-local handleSignal = function(_, msgID, msg) -- {{{
-    if msgID == 900 then
-        return "version:2.0a"
-    end
-
-    if msgID == 500 then
-        local key, _value = msg:match(".+:([%a_-]+):([%a%d_-]+)")
-        if key == "toggle_icons" then
-            stackConfig:toggle('showIcons') -- global var
-        end
-    end
-    return "ok"
-end -- }}}
-
 local StackConfig = {}
 
-function StackConfig:new()
+function StackConfig:new() -- {{{
     local config = {id = 'stackline', store = hs.settings}
 
     setmetatable(config, self)
     self.__index = self
     return config
-end
+end -- }}}
 
-function StackConfig:get(key)
+function StackConfig:get(key) -- {{{
     local settingPath = self:makePath(key)
     return self.store.get(settingPath)
-end
+end -- }}}
 
-function StackConfig:set(key, val)
+function StackConfig:set(key, val) -- {{{
     local settingPath = self:makePath(key)
     self.store.set(settingPath, val)
     return self.store.get(settingPath)
-end
+end -- }}}
 
-function StackConfig:setEach(settingsTable)
+function StackConfig:setEach(settingsTable) -- {{{
     for key, value in pairs(settingsTable) do
         local settingPath = self:makePath(key)
         self.store.set(settingPath, value)
     end
     return self
-end
+end -- }}}
 
-function StackConfig:getOrSet(key, val)
+function StackConfig:getOrSet(key, val) -- {{{
     local settingPath = self:makePath(key)
     local existingVal = self.store.get(settingPath)
     if val ~= nil then -- set if val provided
@@ -50,27 +36,42 @@ function StackConfig:getOrSet(key, val)
     else
         return existingVal
     end
-end
+end -- }}}
 
-function StackConfig:toggle(key)
+function StackConfig:toggle(key) -- {{{
     local toggledVal = not self:get(key) -- if key is not yet set, initial toggle is "on"
     self:set(key, toggledVal)
     return toggledVal
-end
+end -- }}}
 
-function StackConfig:makePath(key)
+function StackConfig:makePath(key) -- {{{
     return self.id .. '-' .. key
-end
+end -- }}}
 
-function StackConfig:registerWatchers()
+function StackConfig:registerWatchers() -- {{{
     local key = 'showIcons'
     local identifier = self:makePath(key .. '-handler')
     local settingPath = self:makePath(key)
     self.store.watchKey(identifier, settingPath, function(_val)
-        Sm:toggleIcons()
+        stackline.manager:toggleIcons()
     end)
     return self
-end
+end -- }}}
+
+-- TODO: integrate with StackConfig() module
+local handleSignal = function(_, msgID, msg) -- {{{
+    if msgID == 900 then
+        return "version:2.0a"
+    end
+
+    if msgID == 500 then
+        local key, _value = msg:match(".+:([%a_-]+):([%a%d_-]+)")
+        if key == "toggle_icons" then
+            stackline.config:toggle('showIcons') -- global var
+        end
+    end
+    return "ok"
+end -- }}}
 
 -- luacheck: ignore
 ipcConfigPort = hs.ipc.localPort('stackline-config', handleSignal)
