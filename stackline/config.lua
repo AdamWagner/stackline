@@ -6,7 +6,7 @@ local handleSignal = function(_, msgID, msg) -- {{{
     if msgID == 500 then
         local key, _value = msg:match(".+:([%a_-]+):([%a%d_-]+)")
         if key == "toggle_icons" then
-            stackConfig:toggle('showIcons') -- global var
+            stackline.config:toggle('showIcons') -- global var
         end
     end
     return "ok"
@@ -71,7 +71,7 @@ function StackConfig:registerWatchers()
     local identifier = self:makePath(key .. '-handler')
     local settingPath = self:makePath(key)
     self.store.watchKey(identifier, settingPath, function(_val)
-        Sm:toggleIcons()
+        stackline.manager:toggleIcons()
     end)
     return self
 end
