@@ -1,15 +1,15 @@
--- TODO: Click on indicator to activate target window (like tabs) https://github.com/AdamWagner/stackline/issues/19
 local u = require 'stackline.lib.utils'
 local Window = {}
 
 function Window:new(hsWin) -- {{{
+    local frameAttrs = self:makeStackId(hsWin)
     local ws = {
         title = hsWin:title(), -- window title
         app = hsWin:application():name(), -- app name (string)
         id = hsWin:id(), -- window id (string) NOTE: the ID is the same as yabai! So we could interopt if we need to
         frame = hsWin:frame(), -- x,y,w,h of window (table)
-        stackId = self:makeStackId(hsWin).stackId, -- "{{x}|{y}|{w}|{h}" e.g., "35|63|1185|741" (string)
-        topLeft = self:makeStackId(hsWin).topLeft, -- "{{x}|{y}" e.g., "35|63" (string)
+        stackId = frameAttrs.stackId, -- "{{x}|{y}|{w}|{h}" e.g., "35|63|1185|741" (string)
+        topLeft = frameAttrs.topLeft, -- "{{x}|{y}" e.g., "35|63" (string)
         _win = hsWin, -- hs.window object (table)
         screen = hsWin:screen():id(),
         indicator = nil, -- the canvas element (table)
@@ -357,14 +357,22 @@ function Window:iconFromAppName() -- {{{
 end -- }}}
 
 function Window:makeStackId(hsWin) -- {{{
-    local frame = hsWin:frame():floor()
-    local x = frame.x
-    local y = frame.y
-    local w = frame.w
-    local h = frame.h
+    -- NOTE: it might be better to use frame:getstring() -> 1106,58/635x504 
+
+    local fuzzFactor = stackline.config:get('frameFuzz')
+    local roundToFuzzFactor = u.partial(u.roundToNearest, fuzzFactor)
+
+    local f = hsWin:frame():floor():gettable()
+    local ff = u.map(f, roundToFuzzFactor)
+
+    print(hsWin:title(), 'round to neartest 5:', u.roundToNearest(5, 33))
+    u.p(f)
+    u.p(ff)
+
+    -- use fuzzy frame (rounded to nearest )
     return {
-        topLeft = table.concat({x, y}, '|'),
-        stackId = table.concat({x, y, w, h}, '|'),
+        topLeft = table.concat({f.x, f.y}, '|'),
+        stackId = table.concat({ff.x, ff.y, ff.w, ff.h}, '|'),
     }
 end -- }}}
 

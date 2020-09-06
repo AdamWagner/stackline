@@ -16,7 +16,6 @@ stackline.wf = wf.new():setOverrideFilter{ -- {{{
     allowRoles = 'AXStandardWindow',
 } -- }}}
 
-
 local click = hs.eventtap.event.types['leftMouseDown'] -- print hs.eventtap.event.types to see all event types
 stackline.clickTracker = hs.eventtap.new({click}, --  {{{
 function(e)
@@ -39,7 +38,14 @@ end -- }}}
 
 function stackline.start(userPrefs) -- {{{
     u.pheader('starting stackline')
-    local defaultUserPrefs = {showIcons = true, enableTmpFixForHsBug = true}
+    local defaultUserPrefs = {
+        showIcons = true,
+        enableTmpFixForHsBug = true,
+
+        -- Window frames are rounded to fuzzFactor before equality comparison. 
+        -- ~30 is needed to support stacks w/ iTerm
+        frameFuzz = 30,
+    }
     local prefs = userPrefs or defaultUserPrefs
     stackline.config = StackConfig:new():setEach(prefs):registerWatchers()
     stackline.manager = require('stackline.stackline.stackmanager'):new()

@@ -366,6 +366,14 @@ function utils.greaterThan(n) -- {{{
     end
 end -- }}}
 
+function utils.roundToNearest(roundNum, num) -- {{{
+    if num % roundNum >= roundNum / 2 then
+        return num - num % roundNum + roundNum
+    else
+        return num - num % roundNum
+    end
+end -- }}}
+
 function utils.getFields(t, fields) -- {{{
     -- FROM: https://stackoverflow.com/questions/41417971/a-better-way-to-assign-multiple-return-values-to-table-keys-in-lua
     -- WHEN: 2020-08-09
