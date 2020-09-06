@@ -61,7 +61,7 @@ Enter `stackline`: simple, unobtrusive visual indicators that compliments `yabai
 
 ### Prerequisites
 
-- https://github.com/koekeishiya/yabai ([install guide](http://https://github.com/koekeishiya/yabai/wiki/Installing-yabai-(latest-release)))
+- https://github.com/koekeishiya/yabai ([install guide](https://github.com/koekeishiya/yabai/wiki/Installing-yabai-(latest-release)))
 - https://github.com/Hammerspoon/hammerspoon ([getting started guide](https://www.hammerspoon.org/go/))
 - https://github.com/stedolan/jq (`brew install jq`)
 
