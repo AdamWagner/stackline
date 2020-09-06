@@ -82,4 +82,5 @@ local Stack = Class("Stack", nil, {
     end,
 }) -- }}}
 
+
 return Stack

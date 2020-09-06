@@ -22,9 +22,11 @@ A 'stack' is a generalized subset of a tabbed UI that enables multiple macOS win
 - navigate between stacked windows
 - _understand the contents of a stack at a glance_
 
+
 Stacks are a recent addition (June 2020) to the (_excellent!_) macOS tiling window manager [koekeishiya/yabai](https://github.com/koekeishiya/yabai). See [yabai #203](https://github.com/koekeishiya/yabai/issues/203) for more info about `yabai`'s stacking feature. Currently, `yabai` does not provide visual indication of a stack's active window or the inactive windows below. This makes it easy to forgot about the stacked windows that aren't visible.
 
 Enter `stackline`: simple, unobtrusive visual indicators that compliment `yabai` window stacks.
+
 
 ![stackline-demo](https://user-images.githubusercontent.com/1683979/90967233-08f6bc00-e491-11ea-9b0a-d75f248ce4b1.gif)
 
@@ -58,7 +60,7 @@ Enter `stackline`: simple, unobtrusive visual indicators that compliment `yabai`
 
 ### Prerequisites
 
-- https://github.com/koekeishiya/yabai ([install guide](http://https://github.com/koekeishiya/yabai/wiki/Installing-yabai-(latest-release)))
+- https://github.com/koekeishiya/yabai ([install guide](https://github.com/koekeishiya/yabai/wiki/Installing-yabai-(latest-release)))
 - https://github.com/Hammerspoon/hammerspoon ([getting started guide](https://www.hammerspoon.org/go/))
 - https://github.com/stedolan/jq (`brew install jq`)
 
@@ -77,26 +79,29 @@ git clone https://github.com/AdamWagner/stackline.git ~/.hammerspoon/stackline
 
 # Make stackline run when hammerspoon launches
 cd ~/.hammerspoon
-echo 'local stackline = require "stackline.stackline.stackline"' >> init.lua
+echo 'stackline = require "stackline.stackline.stackline"' >> init.lua
 ```
 
 Now your `~/.hammerspoon` directory should look like this:
 
+
+
+
 ```
 ├── init.lua
-├── stackline
-│  ├── bin
-│  │  └── yabai-get-stacks
-│  ├── stackline
-│  │  ├── core.lua
-│  │  ├── stack.lua
-│  │  └── window.lua
-│  └── utils
-│     ├── flatten.lua
-│     ├── table-utils.lua
-│     ├── underscore.lua
-│     └── utils.lua
-├── …
+└── stackline
+  ├── bin
+  │   └── yabai-get-stack-idx
+  ├── lib
+  │   ├── self.lua
+  │   └── utils.lua
+  └── stackline
+      ├── config.lua
+      ├── query.lua
+      ├── stack.lua
+      ├── stackline.lua
+      ├── stackmanager.lua
+      └── window.lua
 ```
 
 

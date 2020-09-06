@@ -1,7 +1,6 @@
 require("hs.ipc")
 print(hs.settings.bundleID)
 
-print('im here')
 local u = require 'stackline.lib.utils'
 local StackConfig = require 'stackline.stackline.config'
 local wf = hs.window.filter -- just an alias
@@ -16,6 +15,7 @@ stackline.wf = wf.new():setOverrideFilter{ -- {{{
     currentSpace = true,
     allowRoles = 'AXStandardWindow',
 } -- }}}
+
 
 local click = hs.eventtap.event.types['leftMouseDown'] -- print hs.eventtap.event.types to see all event types
 stackline.clickTracker = hs.eventtap.new({click}, --  {{{
