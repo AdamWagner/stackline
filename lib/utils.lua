@@ -366,11 +366,13 @@ function utils.greaterThan(n) -- {{{
     end
 end -- }}}
 
-function utils.roundToNearest(roundNum, num) -- {{{
-    if num % roundNum >= roundNum / 2 then
-        return num - num % roundNum + roundNum
+function utils.roundToNearest(roundTo, numToRound) -- {{{
+    if numToRound % roundTo >= roundTo / 2 then
+        -- edge case (numToRound is similar to or smaller than roundTo)
+        return numToRound - numToRound % roundTo + roundTo
     else
-        return num - num % roundNum
+        -- the normal case (numToRound is substantially larger than roundTo)
+        return numToRound - numToRound % roundTo
     end
 end -- }}}
 
