@@ -21,11 +21,7 @@ end -- }}}
 
 function Window:isFocused() -- {{{
     local focusedWin = hs.window.focusedWindow()
-    if focusedWin == nil then
-        return false
-    end
-    local isFocused = self.id == focusedWin:id()
-    return isFocused
+    return focusedWin and (self.id == focusedWin:id())
 end -- }}}
 
 function Window:isStackFocused() -- {{{
