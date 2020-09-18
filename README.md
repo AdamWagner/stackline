@@ -25,7 +25,8 @@ A 'stack' is a generalized subset of a tabbed UI that enables multiple macOS win
 
 Stacks are a recent addition (June 2020) to the (_excellent!_) macOS tiling window manager [koekeishiya/yabai](https://github.com/koekeishiya/yabai). See [yabai #203](https://github.com/koekeishiya/yabai/issues/203) for more info about `yabai`'s stacking feature. Currently, `yabai` does not provide visual indication of a stack's active window or the inactive windows below. This makes it easy to forgot about the stacked windows that aren't visible.
 
-Enter `stackline`: simple, unobtrusive visual indicators that compliments `yabai` window stacks.
+Enter `stackline`: simple, unobtrusive visual indicators that compliment `yabai` window stacks.
+
 
 ![stackline-demo](https://user-images.githubusercontent.com/1683979/90967233-08f6bc00-e491-11ea-9b0a-d75f248ce4b1.gif)
 
@@ -36,8 +37,6 @@ Enter `stackline`: simple, unobtrusive visual indicators that compliments `yabai
 - 🧘‍♂️️ **Smart positioning**. Whichever mode you prefer, indicators always stay out of the way on the outside edge of the window (nearest the screen edge). `stackline v0.1.55` has full support for multi-monitor setups, too.
 - 🧮 **Always in sync**. stackline keeps track of stacks as you move between spaces, resize windows, and add or remove stacks.
 - 🕹️ **Flexible control**. Control stackline via shell commands, or access the instance directly via Hammerspoon.
-
-**NOTE:** Multi-monitor support is currently 🚧 under construction ([#22](https://github.com/AdamWagner/stackline/issues/22)). If you use multiple monitors, it's probably best wait for the [feature/multi-monitor](https://github.com/AdamWagner/stackline/tree/feature/multi-monitor) branch to be merged.
 
 <table>
 <tbody>

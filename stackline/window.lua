@@ -131,7 +131,6 @@ end -- }}}
 
 function Window:drawIndicator(overrideOpts) -- {{{
     -- should there be a dedicated "Indicator" class to perform the actual drawing?
-
     local opts = u.extend(self.config, overrideOpts or {})
     local radius = self.showIcons and self.iconRadius or opts.radius
     local fadeDuration = opts.shouldFade and opts.fadeDuration or 0
@@ -143,6 +142,8 @@ function Window:drawIndicator(overrideOpts) -- {{{
         self.indicator:delete()
     end
 
+    -- TODO: Should we really create a new canvas for each window? Or should
+    -- there be one canvas per screen/space into which each window's indicator element is appended?
     self.indicator = hs.canvas.new(self.canvas_frame)
 
     self.indicator:insertElement({
@@ -151,10 +152,21 @@ function Window:drawIndicator(overrideOpts) -- {{{
         fillColor = self:getColorAttrs(self.stackFocus, self.focus).bg,
         frame = self.indicator_rect,
         roundedRectRadii = {xRadius = radius, yRadius = radius},
-        padding = 60,
         withShadow = true,
         shadow = self:getShadowAttrs(),
+        -- trackMouseEnterExit = true,
+        -- trackMouseByBounds = true,
+        -- trackMouseDown = true,
     }, self.rectIdx)
+
+    -- This unfortunately swallows all mouse clicks b/c the canvas covers the
+    -- whole screen. I haven't found a way to register callbacks for canvas
+    -- *elements* only. Setting windowLevel to minimum has no effect.
+
+    -- self.indicator:level(hs.canvas.windowLevels['_MinimumWindowLevelKey'])
+    -- self.indicator:mouseCallback(function(e)
+    --     print('mouse event', hs.inspect(e))
+    -- end)
 
     if self.showIcons then
         -- TODO [low priority]: Figure out how to prevent clipping when adding a subtle shadow
@@ -168,6 +180,7 @@ function Window:drawIndicator(overrideOpts) -- {{{
         }, self.iconIdx)
     end
 
+    self.indicator:clickActivating(false)
     self.indicator:show(fadeDuration)
 end -- }}}
 

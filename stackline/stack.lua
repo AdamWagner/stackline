@@ -67,6 +67,20 @@ local Stack = Class("Stack", nil, {
             win:deleteIndicator()
         end)
     end, -- }}}
-})
+
+    getWindowByPoint = function(self, point) -- {{{
+        local foundWin = u.filter(self.windows, function(w)
+            local indicatorEls = w.indicator:canvasElements()
+            local wFrame = hs.geometry.rect(indicatorEls[1].frame)
+            return point:inside(wFrame)
+        end)
+
+        if #foundWin > 0 then
+            return foundWin[1]
+        end
+
+    end,
+}) -- }}}
+
 
 return Stack

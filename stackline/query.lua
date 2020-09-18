@@ -7,6 +7,7 @@ Query.scriptPath = hs.configdir .. '/stackline/bin/yabai-get-stack-idx'
 
 function Query:getWinStackIdxs() -- {{{
     -- call out to yabai to get stack-indexes
+    -- TODO guard against unparsable json + retry
     hs.task.new("/bin/sh", function(_code, stdout, _stderr)
         self.winStackIdxs = hs.json.decode(stdout)
     end, {self.scriptPath}):start()

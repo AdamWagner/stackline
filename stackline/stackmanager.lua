@@ -20,7 +20,7 @@ function Stackmanager:ingest(windowGroups, appWindows, shouldClean) -- {{{
     end
 
     for stackId, groupedWindows in pairs(windowGroups) do
-        local stack = Stack(groupedWindows)
+        local stack = Stack(groupedWindows) -- instantiate new instance of Stack()
         stack.id = stackId
         u.each(stack.windows, function(win)
             -- win.otherAppWindows needed to workaround Hammerspoon issue #2400
@@ -28,6 +28,7 @@ function Stackmanager:ingest(windowGroups, appWindows, shouldClean) -- {{{
                 -- exclude self and other app windows from other others
                 return (w.id ~= win.id) and (w.screen == win.screen)
             end)
+            -- TODO: fix error with nil stack field (??): window.lua:32: attempt to index a nil value (field 'stack')
             win.stack = stack -- enables calling stack methods from window
         end)
         table.insert(self.tabStacks, stack)
@@ -108,6 +109,17 @@ end -- }}}
 
 function Stackmanager:getShowIconsState() -- {{{
     return self.showIcons
+end -- }}}
+
+function Stackmanager:getClickedWindow(point) -- {{{
+    -- given the coordinates of a mouse click, return the first window whose
+    -- indicator element encompasses the point, or nil if none.    
+    for _stackId, stack in pairs(self.tabStacks) do
+        local clickedWindow = stack:getWindowByPoint(point)
+        if clickedWindow then
+            return clickedWindow
+        end
+    end
 end -- }}}
 
 return Stackmanager
