@@ -25,7 +25,6 @@ function Query:groupWindows(ws) -- {{{
         return Window:new(w)
     end)
 
-    -- See 'stackId' def @ /window.lua:233
     byStack = u.filter(u.groupBy(windows, 'stackId'), u.greaterThan(1)) -- stacks have >1 window, so ignore 'groups' of 1
 
     if u.length(byStack) > 0 then

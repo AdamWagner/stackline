@@ -122,6 +122,20 @@ function utils.keyBind(hyper, keyFuncTable) -- {{{
     end
 end -- }}}
 
+function utils.concat(obj, obj2)  -- {{{
+    local output = {}
+
+    for i=1, #obj do
+      table.insert(output, obj[i])
+    end
+
+    for i=1, #obj2 do
+      table.insert(output, obj2[i])
+    end
+
+    return output
+end  -- }}}
+
 utils.length = function(t) -- {{{
     local count = 0
     for _ in pairs(t) do
@@ -367,13 +381,7 @@ function utils.greaterThan(n) -- {{{
 end -- }}}
 
 function utils.roundToNearest(roundTo, numToRound) -- {{{
-    if numToRound % roundTo >= roundTo / 2 then
-        -- edge case (numToRound is similar to or smaller than roundTo)
-        return numToRound - numToRound % roundTo + roundTo
-    else
-        -- the normal case (numToRound is substantially larger than roundTo)
-        return numToRound - numToRound % roundTo
-    end
+    return numToRound - numToRound % roundTo
 end -- }}}
 
 function utils.getFields(t, fields) -- {{{
@@ -431,6 +439,25 @@ function utils.setFields(tab, fields, ...) -- {{{
     end
     return tab
 end -- }}}
+
+function utils.split(str, sep, max) -- {{{
+    sep = '^(.-)' .. sep
+    local t, n, p, q, r, s = {}, 1, 1, str:find(sep)
+    while q and n ~= max do
+        t[n], n, p = s, n + 1, r + 1
+        q, r, s = str:find(sep, p)
+    end
+    t[n] = str:sub(p)
+    return t
+end -- }}}
+
+function utils.zip(obj1, obj2)  -- {{{
+    local res = {}
+    for k, v in pairs(obj1) do
+        res[v] = obj2[k]
+    end
+    return res
+end  -- }}}
 
 return utils
 

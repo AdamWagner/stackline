@@ -35,8 +35,8 @@ local Stack = Class("Stack", nil, {
     getOtherAppWindows = function(self, win) -- {{{
         -- NOTE: may not need when HS issue #2400 is closed
         return u.filter(self:get(), function(w)
-            u.pheader('window in getOtherAppWindows')
-            u.p(w)
+            -- u.pheader('window in getOtherAppWindows')
+            -- u.p(w)
             return w.app == win.app
         end)
     end, -- }}}

@@ -17,7 +17,7 @@ stackline.wf = wf.new():setOverrideFilter{ -- {{{
 } -- }}}
 
 local click = hs.eventtap.event.types['leftMouseDown'] -- print hs.eventtap.event.types to see all event types
-stackline.clickTracker = hs.eventtap.new({click}, --  {{{
+stackline.clickTracker = hs.eventtap.new({click}, -- {{{
 function(e)
     -- Listen for left mouse click events
     -- if indicator containing the clickAt position can be found, focus that indicator's window
@@ -42,9 +42,13 @@ function stackline.start(userPrefs) -- {{{
         showIcons = true,
         enableTmpFixForHsBug = true,
 
-        -- Window frames are rounded to fuzzFactor before equality comparison. 
-        -- ~30 is needed to support stacks w/ iTerm
-        frameFuzz = 30,
+        -- ## frameFuzz:
+        --   Window frames rounded to frameFuzz before their stringified form is
+        --   used as a key to group windows into stacks. Windows with equal
+        --   stringified frames will belong to the same stack. 
+        -- ~50 to 200 is recommended to support stacks w/ win. that quantize
+        -- their size, like iTerm.
+        frameFuzz = 200,
     }
     local prefs = userPrefs or defaultUserPrefs
     stackline.config = StackConfig:new():setEach(prefs):registerWatchers()

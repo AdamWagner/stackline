@@ -361,11 +361,11 @@ function Window:makeStackId(hsWin) -- {{{
     local f = hsWin:frame():floor():gettable()
     local ff = u.map(f, roundToFuzzFactor)
 
-    print(hsWin:title(), 'round to neartest 5:', u.roundToNearest(5, 33))
-    u.p(f)
-    u.p(ff)
+    -- print(hsWin:title(), 'round to neartest 5:', u.roundToNearest(5, 33))
+    -- u.p(f)
+    -- u.p(ff)
 
-    -- use fuzzy frame (rounded to nearest )
+    -- use fuzzy frame (rounded to nearest)
     return {
         topLeft = table.concat({f.x, f.y}, '|'),
         stackId = table.concat({ff.x, ff.y, ff.w, ff.h}, '|'),
