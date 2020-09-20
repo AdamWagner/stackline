@@ -5,11 +5,18 @@ local Query = {}
 
 Query.scriptPath = hs.configdir .. '/stackline/bin/yabai-get-stack-idx'
 
+local count = 0
+
 function Query:getWinStackIdxs() -- {{{
     -- call out to yabai to get stack-indexes
-    -- TODO guard against unparsable json + retry
     hs.task.new("/bin/sh", function(_code, stdout, _stderr)
-        self.winStackIdxs = hs.json.decode(stdout)
+        local ok, json = pcall(hs.json.decode, stdout)
+        if ok then -- assign result
+          self.winStackIdxs = json
+        else       -- try again
+            hs.timer.doAfter(1, function() self:getWinStackIdxs() end)
+          return nil
+        end
     end, {self.scriptPath}):start()
 end -- }}}
 
