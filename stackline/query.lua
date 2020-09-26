@@ -7,17 +7,17 @@ Query.scriptPath = hs.configdir .. '/stackline/bin/yabai-get-stack-idx'
 
 local count = 0
 
-function Query:getWinStackIdxs() -- {{{
-    -- call out to yabai to get stack-indexes
+function Query:getWinStackIdxs(onSuccess) -- {{{
+    -- TODO: Consider coroutine (allows HS to do other work while waiting for yabai)
+    --       https://github.com/koekeishiya/yabai/issues/502#issuecomment-633378939
+
     hs.task.new("/bin/sh", function(_code, stdout, _stderr)
+        -- call out to yabai to get stack-indexes
         local ok, json = pcall(hs.json.decode, stdout)
-        if ok then -- assign result
-            self.winStackIdxs = json
+        if ok then
+            onSuccess(json)
         else -- try again
-            hs.timer.doAfter(1, function()
-                self:getWinStackIdxs()
-            end)
-            return nil
+            hs.timer.doAfter(1, function() self:getWinStackIdxs() end)
         end
     end, {self.scriptPath}):start()
 end -- }}}
@@ -48,7 +48,6 @@ function Query:groupWindows(ws) -- {{{
     byStack = u.filter(u.groupBy(windows, 'stackId'), u.greaterThan(1)) -- stacks have >1 window, so ignore 'groups' of 1
 
     if u.length(byStack) > 0 then
-
         -- Fixed: ↓ method of ungrouping only windows that were grouped mutated byStack!
         --        It shouldn't though, right? Bug with hs.fnutils?
         -- local stackedWins = u.reduce(u.values(byStack), u.concat)
@@ -62,8 +61,6 @@ function Query:groupWindows(ws) -- {{{
 
         byApp = u.groupBy(stackedWins, 'app') -- app names are keys in group
     end
-
-    u.p(byStack["45|73|979|1002"])
 
     self.stacks = byStack
     self.appWindows = byApp
@@ -85,7 +82,6 @@ function Query:mergeWinStackIdxs() -- {{{
         local stackIdx = self.winStackIdxs[tostring(win.id)]
 
         if stackIdx == 0 then
-            -- DONE: Fix error stackline/window.lua:95: attempt to perform arithmetic on a nil value (field 'stackIdx')
             -- Remove windows with stackIdx == 0. Such windows overlap exactly with
             -- other (potentially stacked) windows, and so are grouped with them,
             -- but they are NOT stacked according to yabai. 
@@ -132,27 +128,18 @@ end -- }}}
 function Query:windowsCurrentSpace() -- {{{
     self:groupWindows(stackline.wf:getWindows()) -- set self.stacks & self.appWindows
 
-    local extantStacks = stackline.manager:get()
+    local extantStacks       = stackline.manager:get()
     local extantStackSummary = stackline.manager:getSummary()
-    local extantStackExists = extantStackSummary.numStacks > 0
+    local extantStackExists  = extantStackSummary.numStacks > 0
+    local shouldRefresh      = (extantStackExists and shouldRestack(self.stacks, extantStacks)) or true
 
-    local shouldRefresh = (extantStackExists and
-                              shouldRestack(self.stacks, extantStacks)) or true
     if shouldRefresh then
-        -- TODO: revisit in a future update. This is kind of an edge case — there are bigger fish to fry.
-        -- stacksMgr:dimOccluded() 
-        self:getWinStackIdxs() -- set self.winStackIdxs (async shell call to yabai)
-
-        function whenStackIdxDone()
+        function whenStackIdxDone(yabaiRes)
+            self.winStackIdxs = yabaiRes
             self:mergeWinStackIdxs() -- Add the stack indexes from yabai to the hs window data
-            stackline.manager:ingest(self.stacks, self.appWindows,
-                extantStackExists) -- hand over to the Stack module
+            stackline.manager:ingest(self.stacks, self.appWindows, extantStackExists) -- hand over to the Stack module
         end
-
-        local pollingInterval = 0.1
-        hs.timer.waitUntil(function()
-            return self.winStackIdxs ~= nil
-        end, whenStackIdxDone, pollingInterval)
+        self:getWinStackIdxs(whenStackIdxDone) -- set self.winStackIdxs (async shell call to yabai)
     end
 end -- }}}
 
