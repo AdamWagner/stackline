@@ -12,13 +12,25 @@ function Query:getWinStackIdxs() -- {{{
     hs.task.new("/bin/sh", function(_code, stdout, _stderr)
         local ok, json = pcall(hs.json.decode, stdout)
         if ok then -- assign result
-          self.winStackIdxs = json
-        else       -- try again
-            hs.timer.doAfter(1, function() self:getWinStackIdxs() end)
-          return nil
+            self.winStackIdxs = json
+        else -- try again
+            hs.timer.doAfter(1, function()
+                self:getWinStackIdxs()
+            end)
+            return nil
         end
     end, {self.scriptPath}):start()
 end -- }}}
+
+function getStackedWinIds(byStack)
+    stackedWinIds = {}
+    for _, group in pairs(byStack) do
+        for _, win in pairs(group) do
+            stackedWinIds[win.id] = true
+        end
+    end
+    return stackedWinIds
+end
 
 function Query:groupWindows(ws) -- {{{
     -- Given windows from hs.window.filter: 
@@ -36,12 +48,25 @@ function Query:groupWindows(ws) -- {{{
     byStack = u.filter(u.groupBy(windows, 'stackId'), u.greaterThan(1)) -- stacks have >1 window, so ignore 'groups' of 1
 
     if u.length(byStack) > 0 then
-        local stackedWins = u.reduce(u.values(byStack), u.concat)
+
+        -- Fixed: ↓ method of ungrouping only windows that were grouped mutated byStack!
+        --        It shouldn't though, right? Bug with hs.fnutils?
+        -- local stackedWins = u.reduce(u.values(byStack), u.concat)
+
+        -- New method 
+        local stackedWinIds = getStackedWinIds(byStack)
+        local stackedWins = u.filter(windows, function(w)
+            return stackedWinIds[w.id] --true if win id is in stackedWinIds
+        end)
+
+
         byApp = u.groupBy(stackedWins, 'app') -- app names are keys in group
     end
 
-    self.appWindows = byApp
+    u.p(byStack["45|73|979|1002"])
+
     self.stacks = byStack
+    self.appWindows = byApp
 end -- }}}
 
 function Query:removeGroupedWin(win) -- {{{
