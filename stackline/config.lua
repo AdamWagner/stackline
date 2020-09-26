@@ -59,18 +59,22 @@ function StackConfig:registerWatchers() -- {{{
 end -- }}}
 
 -- TODO: integrate with StackConfig() module
-local handleSignal = function(_, msgID, msg) -- {{{
-    if msgID == 900 then
-        return "version:2.0a"
-    end
 
-    if msgID == 500 then
+local handlers = {  -- {{{
+    ['900'] = function() return "version:2.0a" end,
+
+    ['500'] = function()
         local key, _value = msg:match(".+:([%a_-]+):([%a%d_-]+)")
         if key == "toggle_icons" then
-            stackline.config:toggle('showIcons') -- global var
+            stackline.config:toggle('showIcons')   -- global var
         end
     end
-    return "ok"
+}  -- }}}
+
+local function handleSignal(_, msgID, msg) -- {{{
+    print('msgID', msgID)
+    print('msg', msg)
+    return handlers[tostring(msgID)]
 end -- }}}
 
 -- luacheck: ignore
