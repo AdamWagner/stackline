@@ -20,7 +20,7 @@ function Stackmanager:ingest(windowGroups, appWindows, shouldClean) -- {{{
     end
 
     for stackId, groupedWindows in pairs(windowGroups) do
-        local stack = Stack(groupedWindows) -- instantiate new instance of Stack()
+        local stack = Stack:new(groupedWindows) -- instantiate new instance of Stack()
         stack.id = stackId
         u.each(stack.windows, function(win)
             -- win.otherAppWindows needed to workaround Hammerspoon issue #2400
