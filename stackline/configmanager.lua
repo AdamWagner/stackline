@@ -49,13 +49,34 @@ function M.generateValidator(schemaType) -- {{{
 end -- }}}
 
 M.types = { -- {{{
-    ['string']            = v.is_string,
-    ['number']            = v.is_number,
-    ['table']             = v.is_table,
-    ['boolean']           = v.is_boolean,
-    ['color']             = cb(is_color),
-    ['winTitles']         = cb(v.in_list{ true, false, 'when_switching', 'not_implemented' }),
-    ['dynamicLuminosity'] = cb(v.in_list{ true, false, 'not_implemented' }),
+    ['string'] = {
+        validator = v.is_string,
+        coerce = tostring,
+    },
+    ['number'] = {
+        validator = v.is_number,
+        coerce = tonumber,
+    },
+    ['table'] = {
+        validator = v.is_table,
+        coerce = u.identity,
+    },
+    ['boolean'] = {
+        validator = v.is_boolean,
+        coerce = u.toBool,
+    },
+    ['color'] = {
+        validator = u.cb(is_color),
+        coerce = u.identity,
+    },
+    ['winTitles'] = {
+        validator = u.cb(v.in_list { true, false, 'when_switching', 'not_implemented', }),
+        coerce = u.identity,
+    },
+    ['dynamicLuminosity'] = {
+        validator = u.cb(v.in_list {true, false, 'not_implemented'}),
+        coerce = u.identity,
+    },
 } -- }}}
 
 M.schema = { -- {{{
