@@ -195,6 +195,7 @@ function utils.invoke(instance, name, ...) -- {{{
         end
     end
 end -- }}}
+utils.cb = utils.invoke -- shorter u.cb alias for u.invoke
 
 function utils.extract(list, comp, transform, ...) -- {{{
     -- from moses.lua
@@ -225,13 +226,33 @@ function utils.setfield(f, v, t) -- {{{
     end
 end -- }}}
 
-function utils.getfield(f, t) -- {{{
+function utils.getfield(f, t, isSafe) -- {{{
     -- FROM: https://www.lua.org/pil/14.1.html
+    -- TODO: add 'tryGet()' — safe get that *doesn't* cause other errors during startup
+
     local v = t or _G -- start with the table of globals
+    local res = nil
     for w in string.gmatch(f, "[%w_]+") do
-        v = v[w]
+
+        if type(v) ~= 'table' then
+            return v -- if v isn't table, return immediately
+        end
+
+        v = v[w]     -- lookup next val
+
+        if v ~= nil then
+            res = v  -- only update safe result if v not null
+        end
+
+        log.d('utils.getfield — key "word"',w)
+        log.d('utils.getfield — "v" is:', v)
+        log.d('utils.getfield — "res" is:', res)
     end
-    return v
+    if isSafe then          -- return the last non-nil value found
+        if v ~= nil then return v
+        else return res end
+    else return v           -- return the last value found regardless
+    end
 end -- }}}
 
 function utils.max(t, transform) -- {{{
@@ -252,6 +273,8 @@ function utils.boolToNum(value) -- {{{
 end -- }}}
 
 function utils.toBool(val) -- {{{
+    if type(val) == 'boolean' then return val end
+    log.d(val)
     local TRUE = {
         ['1'] = true,
         ['t'] = true,
@@ -409,14 +432,6 @@ function utils.zip(a, b) -- {{{
     return rv
 end -- }}}
 
--- function utils.zip(a, b)
--- 	local rv = {}
---   for k,v in pairs(a) do
---     rv[v] = b[k]
---   end
--- 	return rv
--- end
-
 function utils.copyShallow(orig) -- {{{
     -- FROM: https://github.com/XavierCHN/go/blob/master/game/go/scripts/vscripts/utils/table.lua
     local orig_type = type(orig)
@@ -527,7 +542,7 @@ function utils.levenshteinDistance(str1, str2) -- {{{
                     (char1[i] == char2[j] and 0 or 1))
         end
     end
-    return distance[len1][len2] / #str2 -- note 
+    return distance[len1][len2] / #str2 -- note
 end -- }}}
 
 function flattenDict(tbl) -- {{{
@@ -567,8 +582,8 @@ local function setAsTable(tbl, key, val) -- {{{
     tbl[key] = val
 end -- }}}
 
-local function _flatten(tbl, maxdepth, encoder, depth, prefix, res, circular,
-    setter) -- {{{
+local function _flatten(tbl, maxdepth, encoder, depth, prefix, res, circular, -- {{{
+    setter)
     local k, v = next(tbl)
     while k do
         if type(v) ~= 'table' then

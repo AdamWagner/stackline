@@ -115,7 +115,7 @@ function Window:drawIndicator(overrideOpts) -- {{{
         }, self.iconIdx)
     end
 
-    self.indicator:clickActivating(false)
+    self.indicator:clickActivating(false) -- clicking on a canvas elment should NOT bring Hammerspoon wins to front
     self.indicator:show(fadeDuration)
 end -- }}}
 
