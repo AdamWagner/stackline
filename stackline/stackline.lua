@@ -1,9 +1,12 @@
 require("hs.ipc")
 u = require 'stackline.lib.utils'
 
-local wf = hs.window.filter -- just an alias
-local u = require 'stackline.lib.utils'
-local cb = u.invoke
+local wf  = hs.window.filter -- just an alias
+local u   = require 'stackline.lib.utils'
+local cb  = u.invoke
+local log = hs.logger.new('stackline')
+log.setLogLevel('debug')
+log.i("Loading module")
 
 stackline = {}
 stackline.config = require 'stackline.stackline.configManager'
@@ -39,7 +42,7 @@ stackline.refreshClickTracker = function() -- {{{
 end -- }}}
 
 function stackline.start(userConfig) -- {{{
-    u.pheader('starting stackline')
+    log.i('starting stackline')
 
     -- init config with default conf + user overrides
     stackline.config:init(
@@ -50,15 +53,12 @@ function stackline.start(userConfig) -- {{{
     )
 
     stackline.manager = require('stackline.stackline.stackmanager'):init()
-
     stackline.manager:update() -- always update window state on start
-
-    -- 0.30s delay debounces querying via Hammerspoon & yabai
-    -- yabai is only queried if Hammerspoon query results are different than current state
-
     stackline.clickTracker:start()
 end -- }}}
 
+-- 0.30s delay debounces querying via Hammerspoon & yabai
+-- yabai is only queried if Hammerspoon query results are different than current state
 stackline.queryWindowState = hs.timer.delayed.new(
     0.30, 
     function() stackline.manager:update() end

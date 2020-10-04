@@ -82,11 +82,6 @@ function Stackmanager:resetAllIndicators() -- {{{
     end)
 end -- }}}
 
-function Stackmanager:toggleIcons() -- {{{
-    self.showIcons = not self.showIcons
-    self:resetAllIndicators()
-end -- }}}
-
 function Stackmanager:findWindow(wid) -- {{{
     -- NOTE: A window must be *in* a stack to be found with this method!
     for _stackId, stack in pairs(self.tabStacks) do
