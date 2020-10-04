@@ -2,6 +2,9 @@ local c = hs.console
 local u = require 'stackline.lib.utils'
 local json = require 'stackline.lib.json'
 
+-- local figlet = require 'stackline.lib.figlet'
+-- ...this tomfoolery only exists locally ;) 
+
 -- TIPS
 -- ———————————————————————————————————————————————————————————————————————————
 -- Interactive stackline state search:
@@ -10,9 +13,9 @@ local json = require 'stackline.lib.json'
 -- hs -c 'stackline' | jq
 -- hs -c 'stackline' | gron | rg 
 
+
 -- Console
 -- ———————————————————————————————————————————————————————————————————————————
-
 hs.console.consoleFont({name = 'Operator Mono', size = 12})
 
 local function dark() -- {{{
@@ -48,7 +51,6 @@ local function toggleDark() -- {{{
         light()
     end
 end -- }}}
-
 -- Introspect
 -- ———————————————————————————————————————————————————————————————————————————
 function getGlobals(onlyType) -- {{{
@@ -242,6 +244,16 @@ local function toJson(i) -- {{{
     return json:encode(input)
 end -- }}}
 
+local function inspectByDefault(activate)  -- {{{
+    if activate then
+        hs._consoleInputPreparser = function(s)
+            return 'hs.inspect(' .. s .. ')'
+        end
+    else
+        hs._consoleInputPreparser = nil
+    end
+end  -- }}}
+
 local function repl(activate) -- {{{
     if activate then
         hs._consoleInputPreparser = function(s)
@@ -257,6 +269,7 @@ return {
     toggleDark = toggleDark,
     light = light,
     dark = dark,
+    -- heading = figlet.show, (silly figlet file is local only)
 
     -- introspect
     getGlobals = getGlobals,
@@ -268,5 +281,6 @@ return {
     -- repl
     toJson = toJson,
     repl = repl,
+    inspectByDefault = inspectByDefault,
     getFnDesc = getFnDesc,
 }
