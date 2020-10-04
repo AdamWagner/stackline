@@ -175,12 +175,12 @@ utils.every = utils.all
 -- }}}
 -- end underscore.lua
 
-local function f_max(a, b)
+local function f_max(a, b)  -- {{{
     return a > b
-end
-local function f_min(a, b)
+end  -- }}}
+local function f_min(a, b)  -- {{{
     return a < b
-end
+end  -- }}}
 
 function utils.identity(value) -- {{{
     return value
@@ -196,6 +196,12 @@ function utils.invoke(instance, name, ...) -- {{{
     end
 end -- }}}
 utils.cb = utils.invoke -- shorter u.cb alias for u.invoke
+
+function utils.cb(fn) -- {{{
+    return function()
+        return fn
+    end
+end -- }}}
 
 function utils.extract(list, comp, transform, ...) -- {{{
     -- from moses.lua

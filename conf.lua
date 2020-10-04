@@ -1,8 +1,11 @@
 -- default stackline config
+-- TODO: Experiment with setting __index() metatable to leverage autosuggest when keys not found
+
 c = {}
 c.paths = {}
 c.appearance = {}
 c.features = {}
+c.advanced = {}
 
 -- Paths
 c.paths.getStackIdxs                  = hs.configdir .. '/stackline/bin/yabai-get-stack-idx'
@@ -40,5 +43,7 @@ c.features.fzyFrameDetect.fuzzFactor  = 15                  -- window frame dime
 
 c.features.winTitles                 = 'not_implemented'    -- false, true, 'when_switching', 'not_implemented'
 c.features.dynamicLuminosity         = 'not_implemented'    -- false, true, 'not_implemented'
+
+c.advanced.maxRefreshRate             = 0.3                 -- how aggressively to refresh stackline (higher = slower response time + less battery drain)
 
 return c

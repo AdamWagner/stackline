@@ -15,7 +15,6 @@ local is_color = v.is_table { -- {{{
     blue  = o(v.is_number()),
     alpha = o(v.is_number()),
 } -- }}}
-
 local function unknownTypeValidator(v) -- {{{
     log.i("Not validating: ", schemaType)
     return true
@@ -230,7 +229,7 @@ function M:set(path, val) -- {{{
             log.d('Setting', path, 'to', val)
             u.setfield(path, val, self.conf)
 
-            local onChange = u.getfield(path, self.events, true).onChange
+            local onChange = u.getfield(path, self.events, true)
             if type(onChange) == 'function' then onChange() end
         else
             log.e(hs.inspect(err))

@@ -120,7 +120,6 @@ function Window:drawIndicator(overrideOpts) -- {{{
 end -- }}}
 
 function Window:redrawIndicator() -- {{{
-    -- TODO: Refactor to reduce complexity
     local isWindowFocused = self:isFocused()
     local isStackFocused = self:isStackFocused()
 
@@ -134,6 +133,7 @@ function Window:redrawIndicator() -- {{{
     local onlyStackChange = stackFocusChange and not windowFocusChange
     local onlyWinChange = not stackFocusChange and windowFocusChange
 
+    -- TODO: Refactor to reduce complexity
     -- LOGIC: Redraw according to what changed.
     -- Supports indicating the *last-active* window in an unfocused stack.
     -- TODO: Fix bug causing stack to continue appearing focused when switching to a non-stacked window from the same app as the focused stack window. Another casualtiy of HS #2400 :< 
