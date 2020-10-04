@@ -1,11 +1,13 @@
 require("hs.ipc")
-print(hs.settings.bundleID)
+u = require 'stackline.lib.utils'
 
-local u = require 'stackline.lib.utils'
-local StackConfig = require 'stackline.stackline.config'
 local wf = hs.window.filter -- just an alias
+local u = require 'stackline.lib.utils'
+local cb = u.invoke
 
-local stackline = {}
+stackline = {}
+stackline.config = require 'stackline.stackline.configManager'
+stackline.window = require 'stackline.stackline.window'
 
 stackline.focusedScreen = nil
 
@@ -15,7 +17,6 @@ stackline.wf = wf.new():setOverrideFilter{ -- {{{
     currentSpace = true,
     allowRoles = 'AXStandardWindow',
 } -- }}}
-
 
 local click = hs.eventtap.event.types['leftMouseDown'] -- print hs.eventtap.event.types to see all event types
 stackline.clickTracker = hs.eventtap.new({click}, --  {{{
@@ -37,21 +38,32 @@ stackline.refreshClickTracker = function() -- {{{
     stackline.clickTracker:start()
 end -- }}}
 
-function stackline.start(userPrefs) -- {{{
+function stackline.start(userConfig) -- {{{
     u.pheader('starting stackline')
-    local defaultUserPrefs = {showIcons = true, enableTmpFixForHsBug = true}
-    local prefs = userPrefs or defaultUserPrefs
-    stackline.config = StackConfig:new():setEach(prefs):registerWatchers()
-    stackline.manager = require('stackline.stackline.stackmanager'):new()
+
+    -- init config with default conf + user overrides
+    stackline.config:init(
+        table.merge(
+            require 'stackline.conf', 
+            userConfig
+        )
+    )
+
+    stackline.manager = require('stackline.stackline.stackmanager'):init()
+
     stackline.manager:update() -- always update window state on start
+
+    -- 0.30s delay debounces querying via Hammerspoon & yabai
+    -- yabai is only queried if Hammerspoon query results are different than current state
+
     stackline.clickTracker:start()
 end -- }}}
 
-stackline.queryWindowState = hs.timer.delayed.new(0.30, function() -- {{{
-    -- 0.30s delay debounces querying via Hammerspoon & yabai
-    -- yabai is only queried if Hammerspoon query results are different than current state
-    stackline.manager:update()
-end) -- }}}
+stackline.queryWindowState = hs.timer.delayed.new(
+    0.30, 
+    function() stackline.manager:update() end
+    -- cb(stackline.manager, 'update')  →  This should work but it doesn't
+)
 
 function stackline.redrawWinIndicator(hsWin, _app, _event) -- {{{
     -- Dedicated redraw method to *adjust* the existing canvas element is WAY
@@ -91,7 +103,7 @@ end) -- }}}
 
 stackline.wf:subscribe(wf.windowFocused, stackline.redrawWinIndicator)
 
-local unfocused = {wf.windowNotVisible, wf.windowUnfocused}
+local unfocused = { wf.windowNotVisible, wf.windowUnfocused }
 stackline.wf:subscribe(unfocused, stackline.redrawWinIndicator)
 
 hs.spaces.watcher.new(function() -- {{{
@@ -102,10 +114,11 @@ end):start() -- }}}
 
 -- Delayed start (stackline module needs to be loaded globally before it can reference its own methods)
 -- TODO: Add instructions to README.md to call stackline:start(userPrefs) from init.lua, and remove this.
-hs.timer.doUntil(function() -- {{{
-    return stackline.manager
-end, function()
-    stackline.start()
-end, 0.1) -- }}}
+
+-- hs.timer.doUntil(function() -- {{{
+--     return stackline.manager
+-- end, function()
+--     stackline.start()
+-- end, 0.1) -- }}}
 
 return stackline

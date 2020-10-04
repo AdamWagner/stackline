@@ -1,16 +1,11 @@
 local u = require 'stackline.lib.utils'
-local Window = require 'stackline.stackline.window'
+local c = stackline.config:get()
 
 local Query = {}
-
-Query.scriptPath = hs.configdir .. '/stackline/bin/yabai-get-stack-idx'
-
-local count = 0
 
 function Query:getWinStackIdxs(onSuccess) -- {{{
     -- TODO: Consider coroutine (allows HS to do other work while waiting for yabai)
     --       https://github.com/koekeishiya/yabai/issues/502#issuecomment-633378939
-
     hs.task.new("/bin/sh", function(_code, stdout, _stderr)
         -- call out to yabai to get stack-indexes
         local ok, json = pcall(hs.json.decode, stdout)
@@ -19,10 +14,10 @@ function Query:getWinStackIdxs(onSuccess) -- {{{
         else -- try again
             hs.timer.doAfter(1, function() self:getWinStackIdxs() end)
         end
-    end, {self.scriptPath}):start()
+    end, {c.paths.getStackIdxs}):start()
 end -- }}}
 
-function getStackedWinIds(byStack)
+function getStackedWinIds(byStack)  -- {{{
     stackedWinIds = {}
     for _, group in pairs(byStack) do
         for _, win in pairs(group) do
@@ -30,7 +25,7 @@ function getStackedWinIds(byStack)
         end
     end
     return stackedWinIds
-end
+end  -- }}}
 
 function Query:groupWindows(ws) -- {{{
     -- Given windows from hs.window.filter: 
@@ -41,23 +36,23 @@ function Query:groupWindows(ws) -- {{{
     local byApp
 
     local windows = u.map(ws, function(w)
-        return Window:new(w)
+        return stackline.window:new(w)
     end)
 
     -- See 'stackId' def @ /window.lua:233
-    byStack = u.filter(u.groupBy(windows, 'stackId'), u.greaterThan(1)) -- stacks have >1 window, so ignore 'groups' of 1
+    local groupKey = c.features.fzyFrameDetect.enabled
+                        and 'stackIdFzy' 
+                        or 'stackId'
+
+    byStack = u.filter(
+                u.groupBy(windows, groupKey), 
+                u.greaterThan(1))  -- stacks have >1 window, so ignore 'groups' of 1
 
     if u.length(byStack) > 0 then
-        -- Fixed: ↓ method of ungrouping only windows that were grouped mutated byStack!
-        --        It shouldn't though, right? Bug with hs.fnutils?
-        -- local stackedWins = u.reduce(u.values(byStack), u.concat)
-
-        -- New method 
         local stackedWinIds = getStackedWinIds(byStack)
         local stackedWins = u.filter(windows, function(w)
             return stackedWinIds[w.id] --true if win id is in stackedWinIds
         end)
-
 
         byApp = u.groupBy(stackedWins, 'app') -- app names are keys in group
     end
@@ -123,6 +118,8 @@ function shouldRestack(new) -- {{{
         print('num windows changed')
         return true
     end
+
+    print('Should not redraw.')
 end -- }}}
 
 function Query:windowsCurrentSpace() -- {{{

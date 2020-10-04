@@ -1,15 +1,17 @@
-local u = require 'stackline.lib.utils'
 local Query = require 'stackline.stackline.query'
 local Stack = require 'stackline.stackline.stack'
 
 local Stackmanager = {}
-function Stackmanager:update() -- {{{
-    Query:windowsCurrentSpace() -- calls Stack:ingest when ready
+
+function Stackmanager:init() -- {{{
+    self.tabStacks = {}
+    self.showIcons = stackline.config:get('appearance.showIcons')
+    -- self.__index = self
+    return self
 end -- }}}
 
-function Stackmanager:new() -- {{{
-    self.tabStacks = {}
-    self.showIcons = stackline.config:get('showIcons')
+function Stackmanager:update() -- {{{
+    Query:windowsCurrentSpace() -- calls Stack:ingest when ready
     return self
 end -- }}}
 
