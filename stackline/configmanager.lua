@@ -67,7 +67,7 @@ M.events = setmetatable({ -- {{{
         dynamicLuminosity = nil,
     },
     advanced = {
-        maxRefreshRate    = function() print('Needs implemented') end, 
+        maxRefreshRate    = function() print('Needs implemented') end,
     },
 }, defaultOnChangeEvt) -- }}}
 
@@ -102,7 +102,7 @@ M.schema = { -- {{{
         fzyFrameDetect    = { enabled = 'boolean', fuzzFactor = 'number' },
     },
     advanced = {
-        maxRefreshRate = 0.3, 
+        maxRefreshRate = 0.3,
 
     }
 } -- }}}
@@ -219,12 +219,22 @@ function M:set(path, val) -- {{{
        non-existent path segments will be set to an empty table ]]
 
     local _type, validator = self:getPathSchema(path) -- lookup type in schema
-    val = self.types[_type].coerce(val)               -- coerce val to correct type when possible
 
-    if not _type then
+    -- if type(val) ~= _type then
+    --     val = self.types[_type].coerce(val)        -- coerce val to correct type when possible
+    -- end
+
+    -- val = 'true'
+    log.d('\n\nval before coercion:', val)
+    val = u.toBool(val)
+    log.d('val after coercion:', val, '\n')
+
+    if _type == nil then
         self:autosuggest(path)
     else
         local isValid, err = validator(val)           -- validate val is appropriate type
+        log.d('\nval:', val)
+        log.d('val type:', type(val))
         if isValid then
             log.d('Setting', path, 'to', val)
             u.setfield(path, val, self.conf)
@@ -240,7 +250,6 @@ function M:set(path, val) -- {{{
 end -- }}}
 
 function M:toggle(key) -- {{{
-    log.d(key)
     local toggledVal = not self:get(key)
     log.d('Toggling', key, 'from ', self:get(key), 'to ', toggledVal)
     self:set(key, toggledVal)
@@ -254,6 +263,10 @@ function M:parseMsg(msg) -- {{{
     local _, path, val = table.unpack(msg:split(':'))
     path = path:gsub("_(.)", string.upper) -- convert snake_case to camelCase
     log.d('path parsed from ipc port', path)
+
+    if type(val) == 'string' then
+        val = val:gsub("%W", "") -- remove all whitespace
+    end
 
     -- TODO: resolve 'chicken & egg' problem: need type to fully parse, need to fully parse to get type w/o error
     -- local _type, validator = self:getPathSchema(path)
@@ -280,7 +293,7 @@ function M:handleMsg(msg) -- {{{
 
     if m.isToggle then
         log.d('isToggle')
-        local key = m.path 
+        local key = m.path
             :gsub('toggle', '')        -- strip leading 'toggle'
             :gsub("^%L", string.lower) -- lowercase 1st character
         self:toggle(key)

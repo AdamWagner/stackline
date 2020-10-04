@@ -1,5 +1,5 @@
 local log = hs.logger.new('utils')
-log.setLogLevel('debug')
+log.setLogLevel('info')
 log.i("Loading module")
 
 
@@ -221,6 +221,7 @@ end -- }}}
 
 function utils.setfield(f, v, t) -- {{{
     -- FROM: https://www.lua.org/pil/14.1.html
+    log.d(string.format('field: %s, val: %s', f, v))
     local t = t or _G -- start with the table of globals
     for w, d in string.gmatch(f, "([%w_]+)(.?)") do
         if d == "." then -- not last field?
@@ -279,30 +280,41 @@ function utils.boolToNum(value) -- {{{
 end -- }}}
 
 function utils.toBool(val) -- {{{
-    if type(val) == 'boolean' then return val end
-    log.d(val)
-    local TRUE = {
-        ['1'] = true,
-        ['t'] = true,
-        ['T'] = true,
-        ['true'] = true,
-        ['TRUE'] = true,
-        ['True'] = true,
-    };
-    local FALSE = {
-        ['0'] = false,
-        ['f'] = false,
-        ['F'] = false,
-        ['false'] = false,
-        ['FALSE'] = false,
-        ['False'] = false,
-    };
-    if TRUE[tostring(val)] == true then
-        return true;
-    elseif FALSE[tostring(Val)] == false then
-        return false;
-    else
-        return false, strformat('cannot convert %q to boolean', val);
+    -- Reference:
+    -- function toboolean( v )
+    --   local n = tonumber( v )
+    --   return n ~= nil and n ~= 0
+    -- end
+    local t = type(val)
+    if t == 'boolean' then
+        return val
+    elseif t == 'number' then
+        return val == 1 and true or false
+    elseif t == 'string' then
+        val = val:gsub("%W", "") -- remove all whitespace
+        local TRUE = {
+            ['1'] = true,
+            ['t'] = true,
+            ['T'] = true,
+            ['true'] = true,
+            ['TRUE'] = true,
+            ['True'] = true,
+        };
+        local FALSE = {
+            ['0'] = false,
+            ['f'] = false,
+            ['F'] = false,
+            ['false'] = false,
+            ['FALSE'] = false,
+            ['False'] = false,
+        };
+        if TRUE[val] == true then
+            return true;
+        elseif FALSE[val] == false then
+            return false;
+        else
+            return false, string.format('cannot convert %q to boolean', val);
+        end
     end
 end -- }}}
 
