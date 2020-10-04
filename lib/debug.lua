@@ -1,11 +1,7 @@
 local c = hs.console
 local u = require 'stackline.lib.utils'
 local json = require 'stackline.lib.json'
--- local json = hs.json
 
-
-
--- ———————————————————————————————————————————————————————————————————————————
 -- TIPS
 -- ———————————————————————————————————————————————————————————————————————————
 -- Interactive stackline state search:
@@ -14,9 +10,11 @@ local json = require 'stackline.lib.json'
 -- hs -c 'stackline' | jq
 -- hs -c 'stackline' | gron | rg 
 
-
 -- Console
 -- ———————————————————————————————————————————————————————————————————————————
+
+hs.console.consoleFont({name = 'Operator Mono', size = 12})
+
 local function dark() -- {{{
     local bg = '#242E38'
     local fg = '#A7BACC'
@@ -53,7 +51,6 @@ end -- }}}
 
 -- Introspect
 -- ———————————————————————————————————————————————————————————————————————————
-
 function getGlobals(onlyType) -- {{{
     for k, v in pairs(_G) do
         if onlyType == nil then
@@ -103,7 +100,6 @@ end -- }}}
 
 -- CLI repl
 -- ———————————————————————————————————————————————————————————————————————————
-
 local function getFuncParams(func) -- {{{
     local info, params = debug.getinfo(func, 'u'), {}
     for i = 1, info.nparams do
@@ -123,7 +119,6 @@ end -- }}}
 
 -- Processing
 -- ———————————————————————————————————————————————————————————————————————————
-
 --  -- test recurseTables {{{
 -- test = {
 --     name = 'adam',
@@ -183,11 +178,8 @@ procFunc = function(x) -- {{{
     end
 end -- }}}
 
--- print(recurseTables(test, procFunc))
-
 -- Repl
 -- ———————————————————————————————————————————————————————————————————————————
-
 local function removeUserdata(obj, d) -- {{{
     local depth = d or 0
 
