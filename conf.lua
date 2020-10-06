@@ -39,7 +39,7 @@ c.features.hsBugWorkaround            = true
 
 c.features.fzyFrameDetect             = {}
 c.features.fzyFrameDetect.enabled     = true
-c.features.fzyFrameDetect.fuzzFactor  = 15                  -- window frame dimensions will be rounded to nearest fuzzFactor
+c.features.fzyFrameDetect.fuzzFactor  = 30                  -- window frame dimensions will be rounded to nearest fuzzFactor
 
 c.features.winTitles                 = 'not_implemented'    -- false, true, 'when_switching', 'not_implemented'
 c.features.dynamicLuminosity         = 'not_implemented'    -- false, true, 'not_implemented'
