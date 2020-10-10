@@ -2,5 +2,6 @@ tmp-notes.txt
 stackline/sratch.md
 \[nvim-lua\]
 
-lib/enum.lua
 lib/figlet.lua
+
+luacov.stats.out
