@@ -85,7 +85,6 @@ M.schema = { -- {{{
         showIcons         = 'boolean',
         size              = 'number',
         radius            = 'number',
-        padding           = 'number',
         iconPadding       = 'number',
         pillThinness      = 'number',
 
@@ -147,8 +146,6 @@ function M:init(conf) -- {{{
 end -- }}}
 
 function M:validate(conf) -- {{{
-    u.pheader('config input')
-    u.p(conf)
     local c            = conf or self.conf
     local validate     = self.generateValidator(self.schema)
     local isValid, err = validate(c)
@@ -221,15 +218,6 @@ function M:set(path, val) -- {{{
        non-existent path segments will be set to an empty table ]]
 
     local _type, validator = self:getPathSchema(path) -- lookup type in schema
-
-    -- if type(val) ~= _type then
-    --     val = self.types[_type].coerce(val)        -- coerce val to correct type when possible
-    -- end
-
-    -- val = 'true'
-    log.d('\n\nval before coercion:', val)
-    val = u.toBool(val)
-    log.d('val after coercion:', val, '\n')
 
     if _type == nil then
         self:autosuggest(path)

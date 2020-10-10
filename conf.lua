@@ -16,34 +16,33 @@ c.paths.yabai                         = '/usr/local/bin/yabai'
 c.appearance.color                    = { white = 0.90 }
 c.appearance.alpha                    = 1
 c.appearance.dimmer                   = 2.5                 -- larger numbers increase contrast b/n focused & unfocused state
-c.appearance.iconDimmer               = 1.1                 -- custom dimmer for icon
-c.appearance.showIcons                = true
-c.appearance.size                     = 32
-c.appearance.radius                   = 3
-c.appearance.padding                  = 4
-c.appearance.iconPadding              = 4
-c.appearance.pillThinness             = 6
+c.appearance.iconDimmer               = 1.1                 -- Higher numbers dim inactive icons *less* than the non-icon indicators
+c.appearance.showIcons                = true                -- Window indicator style ('lozenge'-shaped when false)
+c.appearance.size                     = 32                  -- Size of window indicators (height when icons off)
+c.appearance.radius                   = 3                   -- Indicator roundness. Higher numbers → *less* roundness… I'm sorry
+c.appearance.iconPadding              = 4                   -- Space between icon & indicator edge. Higher numbers → smaller, more inset icons
+c.appearance.pillThinness             = 6                   -- Aspect ratio of pill-style icons (width = size / pillThinness)
 
-c.appearance.vertSpacing              = 1.2
+c.appearance.vertSpacing              = 1.2                 -- Amount of vertical space between indicators
 
-c.appearance.offset                   = {}
-c.appearance.offset.y                 = 2
-c.appearance.offset.x                 = 4
+c.appearance.offset                   = {}                  -- Offset controls position of stack indicators relative to the window
+c.appearance.offset.y                 = 2                   -- Distance from top of the window to render indicators
+c.appearance.offset.x                 = 4                   -- Distance away from the edge of the window to render indicators
 
-c.appearance.shouldFade               = true
-c.appearance.fadeDuration             = 0.2
+c.appearance.shouldFade               = true                -- Enable/disable fade animations
+c.appearance.fadeDuration             = 0.2                 -- Duration of fade animations (seconds) 
 
 -- Features
-c.features.clickToFocus               = true
-c.features.hsBugWorkaround            = true
+c.features.clickToFocus               = true                -- Click indicator to focus window. Mouse clicks are tracked when enabled
+c.features.hsBugWorkaround            = true                -- Workaround for https://github.com/Hammerspoon/hammerspoon/issues/2400
 
-c.features.fzyFrameDetect             = {}
-c.features.fzyFrameDetect.enabled     = true
-c.features.fzyFrameDetect.fuzzFactor  = 30                  -- window frame dimensions will be rounded to nearest fuzzFactor
+c.features.fzyFrameDetect             = {}                  -- Round window frame dimensions by fuzzFactor before identifying stacked windows
+c.features.fzyFrameDetect.enabled     = true                -- Enable/disable fuzzy frame detection
+c.features.fzyFrameDetect.fuzzFactor  = 30                  -- Window frame dimensions will be rounded to nearest fuzzFactor
 
-c.features.winTitles                 = 'not_implemented'    -- false, true, 'when_switching', 'not_implemented'
-c.features.dynamicLuminosity         = 'not_implemented'    -- false, true, 'not_implemented'
+c.features.winTitles                 = 'not_implemented'    -- Valid options: false, true, 'when_switching', 'not_implemented'
+c.features.dynamicLuminosity         = 'not_implemented'    -- Valid options: false, true, 'not_implemented'
 
-c.advanced.maxRefreshRate             = 0.3                 -- how aggressively to refresh stackline (higher = slower response time + less battery drain)
+c.advanced.maxRefreshRate             = 0.3                 -- How aggressively to refresh Stackline. Higher = slower response time + less battery drain
 
 return c

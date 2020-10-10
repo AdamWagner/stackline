@@ -25,6 +25,7 @@ function stackline:init(userConfig) -- {{{
         allowRoles = 'AXStandardWindow',
     }  -- }}}
 
+    local userConfig = userConfig or {}
     self.config:init( -- init config with default conf + user overrides
         table.merge(require 'stackline.conf', userConfig)
     )
