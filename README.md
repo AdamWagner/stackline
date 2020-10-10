@@ -12,6 +12,16 @@
 You can find all the info below and more in the [wiki](https://github.com/AdamWagner/stackline/wiki/Install-dependencies).
 See what's new in the [changelog](https://github.com/AdamWagner/stackline/wiki/Changelog).
 
+**Latest update**
+
+[📣 Update: improved configuration: please review docs for 💔️ breaking changes!](https://github.com/AdamWagner/stackline/issues/33)
+
+
+**Up next**
+
+[🛠️ In progress: Refactoring for testability → Unit tests](https://github.com/AdamWagner/stackline/issues/26)
+
+
 ## What is stackline & why would I want to use it?
 
 `stackline` adds simple, unobtrusive visual indicators to compliment `yabai`'s window stacking functionality.
