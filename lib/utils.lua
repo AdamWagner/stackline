@@ -42,20 +42,23 @@ function string:split(p) -- {{{
     return temp
 end -- }}}
 
-function table.merge(table1, ...) -- {{{
-    for _, table2 in ipairs({...}) do
-        if #table == 0 then
-            return table1
+function table.merge(t1, t2) -- {{{
+    u.pheader('t1')
+    u.p(t1)
+    u.pheader('t2')
+    u.p(t2)
+    for k,v in pairs(t2) do
+      if type(v) == "table" then
+        if type(t1[k] or false) == "table" then
+          table.merge(t1[k] or {}, t2[k] or {})
+        else
+          t1[k] = v
         end
-        for key, value in pairs(table2) do
-            if (type(key) == "number") then
-                table.insert(table1, value)
-            else
-                table1[key] = value
-            end
-        end
+      else
+        t1[k] = v
+      end
     end
-    return table1
+    return t1
 end -- }}}
 
 -- utils module ----------------------------------------------------------------

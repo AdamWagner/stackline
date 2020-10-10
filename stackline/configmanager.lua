@@ -147,6 +147,8 @@ function M:init(conf) -- {{{
 end -- }}}
 
 function M:validate(conf) -- {{{
+    u.pheader('config input')
+    u.p(conf)
     local c            = conf or self.conf
     local validate     = self.generateValidator(self.schema)
     local isValid, err = validate(c)
