@@ -222,12 +222,13 @@ function M:set(path, val) -- {{{
     if _type == nil then
         self:autosuggest(path)
     else
-        local isValid, err = validator(val)           -- validate val is appropriate type
-        log.d('\nval:', val)
-        log.d('val type:', type(val))
+        local typedVal = self.types[_type].coerce(val)
+        local isValid, err = validator(typedVal)           -- validate val is appropriate type
+        log.d('\nval:', typedVal)
+        log.d('val type:', type(typedVal))
         if isValid then
-            log.d('Setting', path, 'to', val)
-            u.setfield(path, val, self.conf)
+            log.d('Setting', path, 'to', typedVal)
+            u.setfield(path, typedVal, self.conf)
 
             local onChange = u.getfield(path, self.events, true)
             if type(onChange) == 'function' then onChange() end
