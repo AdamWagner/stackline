@@ -90,28 +90,28 @@ git clone https://github.com/AdamWagner/stackline.git ~/.hammerspoon/stackline
 # Make stackline run when hammerspoon launches
 cd ~/.hammerspoon
 echo 'stackline = require "stackline.stackline.stackline"' >> init.lua
+echo 'stackline:init()' >> init.lua
 ```
 
 Now your `~/.hammerspoon` directory should look like this:
 
 
-
-
 ```
 ├── init.lua
 └── stackline
+└── stackline
   ├── bin
   │   └── yabai-get-stack-idx
-  ├── lib
-  │   ├── self.lua
-  │   └── utils.lua
-  └── stackline
-      ├── config.lua
-      ├── query.lua
-      ├── stack.lua
-      ├── stackline.lua
-      ├── stackmanager.lua
-      └── window.lua
+  ├── conf.lua
+  ├── stackline
+  │   ├── configmanager.lua
+  │   ├── query.lua
+  │   ├── stack.lua
+  │   ├── stackline.lua
+  │   ├── stackmanager.lua
+  │   └── window.lua
+  └── lib
+      └── …
 ```
 
 
