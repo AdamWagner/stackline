@@ -57,8 +57,7 @@ function StackConfig:registerWatchers() -- {{{
     end)
     return self
 end -- }}}
-
--- TODO: integrate with StackConfig() module
+  
 local handleSignal = function(_, msgID, msg) -- {{{
     if msgID == 900 then
         return "version:2.0a"
