@@ -1,11 +1,10 @@
 local c = hs.console
 local u = require 'stackline.lib.utils'
 local json = require 'stackline.lib.json'
--- local json = hs.json
 
+-- local figlet = require 'stackline.lib.figlet'
+-- ...this tomfoolery only exists locally ;) 
 
-
--- ———————————————————————————————————————————————————————————————————————————
 -- TIPS
 -- ———————————————————————————————————————————————————————————————————————————
 -- Interactive stackline state search:
@@ -17,6 +16,8 @@ local json = require 'stackline.lib.json'
 
 -- Console
 -- ———————————————————————————————————————————————————————————————————————————
+hs.console.consoleFont({name = 'Operator Mono', size = 12})
+
 local function dark() -- {{{
     local bg = '#242E38'
     local fg = '#A7BACC'
@@ -50,10 +51,8 @@ local function toggleDark() -- {{{
         light()
     end
 end -- }}}
-
 -- Introspect
 -- ———————————————————————————————————————————————————————————————————————————
-
 function getGlobals(onlyType) -- {{{
     for k, v in pairs(_G) do
         if onlyType == nil then
@@ -103,7 +102,6 @@ end -- }}}
 
 -- CLI repl
 -- ———————————————————————————————————————————————————————————————————————————
-
 local function getFuncParams(func) -- {{{
     local info, params = debug.getinfo(func, 'u'), {}
     for i = 1, info.nparams do
@@ -123,7 +121,6 @@ end -- }}}
 
 -- Processing
 -- ———————————————————————————————————————————————————————————————————————————
-
 --  -- test recurseTables {{{
 -- test = {
 --     name = 'adam',
@@ -183,11 +180,8 @@ procFunc = function(x) -- {{{
     end
 end -- }}}
 
--- print(recurseTables(test, procFunc))
-
 -- Repl
 -- ———————————————————————————————————————————————————————————————————————————
-
 local function removeUserdata(obj, d) -- {{{
     local depth = d or 0
 
@@ -250,6 +244,16 @@ local function toJson(i) -- {{{
     return json:encode(input)
 end -- }}}
 
+local function inspectByDefault(activate)  -- {{{
+    if activate then
+        hs._consoleInputPreparser = function(s)
+            return 'hs.inspect(' .. s .. ')'
+        end
+    else
+        hs._consoleInputPreparser = nil
+    end
+end  -- }}}
+
 local function repl(activate) -- {{{
     if activate then
         hs._consoleInputPreparser = function(s)
@@ -265,6 +269,7 @@ return {
     toggleDark = toggleDark,
     light = light,
     dark = dark,
+    -- heading = figlet.show, (silly figlet file is local only)
 
     -- introspect
     getGlobals = getGlobals,
@@ -276,5 +281,6 @@ return {
     -- repl
     toJson = toJson,
     repl = repl,
+    inspectByDefault = inspectByDefault,
     getFnDesc = getFnDesc,
 }

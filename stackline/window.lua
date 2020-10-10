@@ -1,18 +1,19 @@
--- TODO: Click on indicator to activate target window (like tabs) https://github.com/AdamWagner/stackline/issues/19
 local u = require 'stackline.lib.utils'
 local Window = {}
 
 function Window:new(hsWin) -- {{{
+    local stackIdResult = self:makeStackId(hsWin)
     local ws = {
-        title = hsWin:title(), -- window title
-        app = hsWin:application():name(), -- app name (string)
-        id = hsWin:id(), -- window id (string) NOTE: the ID is the same as yabai! So we could interopt if we need to
-        frame = hsWin:frame(), -- x,y,w,h of window (table)
-        stackId = self:makeStackId(hsWin).stackId, -- "{{x}|{y}|{w}|{h}" e.g., "35|63|1185|741" (string)
-        topLeft = self:makeStackId(hsWin).topLeft, -- "{{x}|{y}" e.g., "35|63" (string)
-        _win = hsWin, -- hs.window object (table)
-        screen = hsWin:screen():id(),
-        indicator = nil, -- the canvas element (table)
+        title      = hsWin:title(),              -- window title
+        app        = hsWin:application():name(), -- app name (string)
+        id         = hsWin:id(),                 -- window id (string) NOTE: HS win.id == yabai win.id
+        frame      = hsWin:frame(),              -- x,y,w,h of window (table)
+        stackId    = stackIdResult.stackId,      -- "{{x}|{y}|{w}|{h}" e.g., "35|63|1185|741" (string)
+        topLeft    = stackIdResult.topLeft,      -- "{{x}|{y}" e.g., "35|63" (string)
+        stackIdFzy = stackIdResult.fzyFrame,     -- "{{x}|{y}" e.g., "35|63" (string)
+        _win       = hsWin,                      -- hs.window object (table)
+        screen     = hsWin:screen():id(),
+        indicator  = nil,                        -- the canvas element (table)
     }
     setmetatable(ws, self)
     self.__index = self
@@ -34,78 +35,21 @@ end -- }}}
 
 function Window:setupIndicator() -- {{{
     -- Config
-    self.showIcons = stackline.manager:getShowIconsState()
+    self.config = stackline.config:get('appearance')
+    local c = self.config
+    self.showIcons = c.showIcons
+
     self:isStackFocused()
-
-    -- TODO: move into stackConfig module (somehow… despite its lack of support for nested keys :/)
-    self.config = {
-        color = {white = 0.90},
-        alpha = 1,
-
-        dimmer = 2.5, -- larger numbers increase contrast b/n focused & unfocused states
-        iconDimmer = 1.1, -- custom dimmer for icons
-
-        size = 32,
-        radius = 3,
-        padding = 4,
-        iconPadding = 4,
-        pillThinness = 6,
-
-        vertSpacing = 1.2,
-        offset = {y = 2, x = 4},
-        -- example: overlapped with window + percent top offset
-        --  offset = { y = self.frame.h * 0.1, x = -(self.width / 2) }
-
-        shouldFade = true,
-        fadeDuration = 0.2,
-    }
-
-    local c = self.config -- alias config for convenience
 
     -- computed from config
     self.width = self.showIcons and c.size or (c.size / c.pillThinness)
-    self.iconRadius = self.width / 3
+    self.iconRadius = self.width / self.config.radius
 
     -- Set canvas to fill entire screen
-    local screenFrame = self._win:screen():frame()
-    self.canvas_frame = screenFrame
+    self.screen = self._win:screen()
+    self.frame = self.screen:absoluteToLocal(hs.geometry(self._win:frame()))
 
-    local screen = self._win:screen() -- or (?)
-    -- local screen = hs.screen.mainScreen()
-    self.frame = screen:absoluteToLocal(hs.geometry(self._win:frame()))
-
-    -- subtract screen x,y from window x,y
-    -- window frame must be relative to screen to support multi-monitor setups
-    -- for _, coord in pairs({'x', 'y'}) do
-    --     self.frame[coord] = self.frame[coord] - screenFrame[coord]
-    -- end
-    -- NOTE: Try suggestion to use screen:absoluteToLocal from https://github.com/AdamWagner/stackline/issues/22:
-    -- NOTE: 2020-08-25 Can't get ↑ screen:absoluteToLocal(…) approach to work
-    --  screen:absoluteToLocal() transforms from the absolute coordinate space used
-    --  by OSX/Hammerspoon to the screen's local coordinate space, where 0,0 is
-    --  at the screen's top left corner    
-    --  Example:
-    --    screen = self._win:screen() -- or (?)
-    --    screen = hs.screen.mainScreen()
-    --    self.frame = screen:absoluteToLocal(hs.geometry(self.canvas_frame))
-
-    -- Display indicators on 
-    --   left edge of windows on the left side of the screen, &
-    --   right edge of windows on the right side of the screen
-    self.side = self:getScreenSide()
-    local xval
-
-    -- DONE: Limit the stack left/right side to the screen boundary so it doesn't go off screen https://github.com/AdamWagner/stackline/issues/21
-    if self.side == 'right' then
-        xval = (self.frame.x + self.frame.w) + c.offset.x
-        if xval + self.width > screenFrame.w then
-            -- don't go beyond the right screen edge
-            xval = screenFrame.w - self.width
-        end
-    else
-        xval = self.frame.x - (self.width + c.offset.x)
-        xval = math.max(xval, 0) -- don't go beyond left screen edge
-    end
+    local xval = self:getIndicatorPosition()
 
     -- Store  canvas elements indexes to reference via :elementAttribute()
     -- https://www.hammerspoon.org/docs/hs.canvas.html#elementAttribute
@@ -144,7 +88,7 @@ function Window:drawIndicator(overrideOpts) -- {{{
 
     -- TODO: Should we really create a new canvas for each window? Or should
     -- there be one canvas per screen/space into which each window's indicator element is appended?
-    self.indicator = hs.canvas.new(self.canvas_frame)
+    self.indicator = hs.canvas.new(self.screenFrame)
 
     self.indicator:insertElement({
         type = "rectangle",
@@ -159,15 +103,6 @@ function Window:drawIndicator(overrideOpts) -- {{{
         -- trackMouseDown = true,
     }, self.rectIdx)
 
-    -- This unfortunately swallows all mouse clicks b/c the canvas covers the
-    -- whole screen. I haven't found a way to register callbacks for canvas
-    -- *elements* only. Setting windowLevel to minimum has no effect.
-
-    -- self.indicator:level(hs.canvas.windowLevels['_MinimumWindowLevelKey'])
-    -- self.indicator:mouseCallback(function(e)
-    --     print('mouse event', hs.inspect(e))
-    -- end)
-
     if self.showIcons then
         -- TODO [low priority]: Figure out how to prevent clipping when adding a subtle shadow
         -- to the icon to help distinguish icons with a near-white edge.Note
@@ -180,7 +115,7 @@ function Window:drawIndicator(overrideOpts) -- {{{
         }, self.iconIdx)
     end
 
-    self.indicator:clickActivating(false)
+    self.indicator:clickActivating(false) -- clicking on a canvas elment should NOT bring Hammerspoon wins to front
     self.indicator:show(fadeDuration)
 end -- }}}
 
@@ -198,6 +133,7 @@ function Window:redrawIndicator() -- {{{
     local onlyStackChange = stackFocusChange and not windowFocusChange
     local onlyWinChange = not stackFocusChange and windowFocusChange
 
+    -- TODO: Refactor to reduce complexity
     -- LOGIC: Redraw according to what changed.
     -- Supports indicating the *last-active* window in an unfocused stack.
     -- TODO: Fix bug causing stack to continue appearing focused when switching to a non-stacked window from the same app as the focused stack window. Another casualtiy of HS #2400 :< 
@@ -216,7 +152,8 @@ function Window:redrawIndicator() -- {{{
         -- changing window focus within a stack
         self.focus = isWindowFocused
 
-        if self.focus and stackline.config:get('enableTmpFixForHsBug') then
+        local enableTmpFix = stackline.config:get('features.hsBugWorkaround')
+        if self.focus and enableTmpFix then
             self:unfocusOtherAppWindows()
         end
 
@@ -250,29 +187,50 @@ function Window:redrawIndicator() -- {{{
 end -- }}}
 
 function Window:getScreenSide() -- {{{
+    -- Returns the side of the screen that the window is (mostly) on
+    -- Retval: "left" or "right"
     local thresh = 0.75
     local screenWidth = self._win:screen():fullFrame().w
 
-    local leftEdge = self.frame.x
+    local leftEdge  = self.frame.x
     local rightEdge = self.frame.x + self.frame.w
-
-    local percR = 1 - ((screenWidth - rightEdge) / screenWidth)
-    local percL = (screenWidth - leftEdge) / screenWidth
+    local percR     = 1 - ((screenWidth - rightEdge) / screenWidth)
+    local percL     = (screenWidth - leftEdge) / screenWidth
 
     local side = (percR > thresh and percL < thresh) and 'right' or 'left'
-
     return side
 
-    -- TODO [low-priority]: BUG: Right-side window incorrectly reports as a left-side window with
+    -- TODO [low-priority]: BUG: Right-side window incorrectly reports as a left-side window with {{{
     -- very large padding settings. Will need to consider coordinates from both
-    -- sides of a window. Impact is minimal with smaller threshold (<= 0.75).
+    -- sides of a window. Impact is minimal with smaller threshold (<= 0.75). }}}
 
-    -- TODO [very-low-priority]: find a way to use hs.window.filter.windowsTo{Dir} 
+    -- TODO [very-low-priority]: find a way to use hs.window.filter.windowsTo{Dir}  {{{
     -- to determine side instead of percLeft/Right
     --    https://www.hammerspoon.org/docs/hs.window.filter.html#windowsToWest
     --      stackline.wf:windowsToWest(self._win)
     --    https://www.hammerspoon.org/docs/hs.window.html#windowsToWest
-    --      self._win:windowsToSouth()
+    --      self._win:windowsToSouth() }}}
+
+end -- }}}
+
+function Window:getIndicatorPosition()  -- {{{ 
+    -- Display indicators on left edge of windows on the left side of the screen, 
+    -- & right edge of windows on the right side of the screen 
+    local xval 
+    local c = self.config 
+    self.screenFrame = self.screen:frame() 
+    self.side = self:getScreenSide() 
+
+    -- DONE: Limit stack left/right side to screen boundary to prevent drawing offscreen https://github.com/AdamWagner/stackline/issues/21 
+    if self.side == 'right' then xval = (self.frame.x + self.frame.w) + c.offset.x   -- position indicators on right edge 
+        if xval + self.width > self.screenFrame.w then           -- don't go beyond the right screen edge 
+            xval = self.screenFrame.w - self.width 
+        end 
+    else   -- side is 'left' 
+        xval = self.frame.x - (self.width + c.offset.x)     -- position indicators on left edge 
+        xval = math.max(xval, 0)                            -- don't go beyond left screen edge
+    end 
+    return xval
 end -- }}}
 
 function Window:getColorAttrs(isStackFocused, isWinFocused) -- {{{
@@ -358,13 +316,20 @@ end -- }}}
 
 function Window:makeStackId(hsWin) -- {{{
     local frame = hsWin:frame():floor()
+
     local x = frame.x
     local y = frame.y
     local w = frame.w
     local h = frame.h
+
+    local fuzzFactor = stackline.config:get('features.fzyFrameDetect.fuzzFactor')
+    local roundToFuzzFactor = u.partial(u.roundToNearest, fuzzFactor)
+    local ff = u.map({x, y, w, h}, roundToFuzzFactor)
+
     return {
         topLeft = table.concat({x, y}, '|'),
         stackId = table.concat({x, y, w, h}, '|'),
+        fzyFrame = table.concat(ff, '|'),
     }
 end -- }}}
 

@@ -1,57 +1,109 @@
 require("hs.ipc")
-print(hs.settings.bundleID)
+u = require 'stackline.lib.utils'
 
-local u = require 'stackline.lib.utils'
-local StackConfig = require 'stackline.stackline.config'
-local wf = hs.window.filter -- just an alias
+-- Aliases / shortcuts
+local wf    = hs.window.filter
+local timer = hs.timer.delayed
+local log   = hs.logger.new('stackline', 'info')
+local click = hs.eventtap.event.types['leftMouseDown'] -- fyi, print hs.eventtap.event.types to see all event types
 
-local stackline = {}
+log.i("Loading module")
 
-stackline.focusedScreen = nil
+stackline = {}
+stackline.config = require 'stackline.stackline.configManager'
+stackline.window = require 'stackline.stackline.window'
 
-stackline.wf = wf.new():setOverrideFilter{ -- {{{
-    visible = true, -- (i.e. not hidden and not minimized)
-    fullscreen = false,
-    currentSpace = true,
-    allowRoles = 'AXStandardWindow',
-} -- }}}
+function stackline:init(userConfig) -- {{{
+    log.i('starting stackline')
+
+    -- Default window filter controls what windows hs "sees"
+    -- Required before initialization
+    self.wf = wf.new():setOverrideFilter{  -- {{{
+        visible = true,   -- (i.e. not hidden and not minimized)
+        fullscreen = false,
+        currentSpace = true,
+        allowRoles = 'AXStandardWindow',
+    }  -- }}}
+
+    local userConfig = userConfig or {}
+    self.config:init( -- init config with default conf + user overrides
+        table.merge(require 'stackline.conf', userConfig)
+    )
+
+    -- init stackmanager, and run update right away
+    self.manager = require('stackline.stackline.stackmanager'):init()
+    self.manager:update()
 
 
-local click = hs.eventtap.event.types['leftMouseDown'] -- print hs.eventtap.event.types to see all event types
-stackline.clickTracker = hs.eventtap.new({click}, --  {{{
-function(e)
+    -- Reuseable fn that runs at most once every 0.3s
+    -- yabai is only queried if Hammerspoon query results are different than current state
+    local maxRefreshRate = self.config:get('advanced.maxRefreshRate')
+    self.queryWindowState = timer.new(maxRefreshRate, function()  -- {{{
+        self.manager:update()
+    end)  -- }}}
+
     -- Listen for left mouse click events
     -- if indicator containing the clickAt position can be found, focus that indicator's window
-    local clickAt = hs.geometry.point(e:location().x, e:location().y)
-    local clickedWin = stackline.manager:getClickedWindow(clickAt)
-    if clickedWin then
-        clickedWin._win:focus()
-        return true -- stops propogation
-    end
-end) -- }}}
+    self.clickTracker = hs.eventtap.new({click}, function(e)  -- {{{
+        local clickAt    = hs.geometry.point(e:location().x, e:location().y)
+        local clickedWin = self.manager:getClickedWindow(clickAt)
+        if clickedWin then
+            clickedWin._win:focus()
+            return true   -- stops propogation
+        end
+    end)  -- }}}
 
-stackline.refreshClickTracker = function() -- {{{
-    if stackline.clickTracker:isEnabled() then
-        stackline.clickTracker:stop()
-    end
-    stackline.clickTracker:start()
+    self.windowEvents = { -- {{{
+        wf.windowCreated,      -- window added
+        wf.windowUnhidden,
+        wf.windowUnminimized,
+
+        wf.windowFullscreened, -- window changed
+        wf.windowUnfullscreened,
+        wf.windowMoved,        -- NOTE: winMoved includes move AND resize evts
+
+        wf.windowDestroyed,    -- window removed
+        wf.windowHidden,
+        wf.windowMinimized,
+    } -- }}}
+
+    -- On each win evt above (or at most once every 0.3s)
+    -- query window state and check if refersh needed
+    self.wf:subscribe(
+        self.windowEvents, function(_win, _app, _evt) -- {{{
+            self.queryWindowState:start()
+        end 
+    ) -- }}}
+
+    -- On each win evt listed, simply *redraw* indicators
+    -- No need for heavyweight query + refresh
+    self.wf:subscribe({  -- {{{
+        wf.windowFocused,
+        wf.windowNotVisible,
+        wf.windowUnfocused,
+    }, self.redrawWinIndicator)  -- }}}
+
+    -- Activate clickToFocus if feature turned on
+    if self.config:get('features.clickToFocus') then  -- {{{
+        log.i('FEAT: ClickTracker starting')
+        self.clickTracker:start()
+    end  -- }}}
 end -- }}}
 
-function stackline.start(userPrefs) -- {{{
-    u.pheader('starting stackline')
-    local defaultUserPrefs = {showIcons = true, enableTmpFixForHsBug = true}
-    local prefs = userPrefs or defaultUserPrefs
-    stackline.config = StackConfig:new():setEach(prefs):registerWatchers()
-    stackline.manager = require('stackline.stackline.stackmanager'):new()
-    stackline.manager:update() -- always update window state on start
-    stackline.clickTracker:start()
-end -- }}}
+function stackline:refreshClickTracker() -- {{{
+    local turnedOn = self.config:get('features.clickToFocus')
 
-stackline.queryWindowState = hs.timer.delayed.new(0.30, function() -- {{{
-    -- 0.30s delay debounces querying via Hammerspoon & yabai
-    -- yabai is only queried if Hammerspoon query results are different than current state
-    stackline.manager:update()
-end) -- }}}
+    if self.clickTracker:isEnabled() then
+        self.clickTracker:stop() -- always stop if running
+    end
+    if turnedOn then -- only start if feature is enabled
+        log.d('features.clickToFocus is enabled!')
+        self.clickTracker:start()
+    else
+        log.d('features.clickToFocus is disabled')
+        self.clickTracker:stop() -- double-stop if disabled
+    end
+end -- }}}
 
 function stackline.redrawWinIndicator(hsWin, _app, _event) -- {{{
     -- Dedicated redraw method to *adjust* the existing canvas element is WAY
@@ -64,48 +116,11 @@ function stackline.redrawWinIndicator(hsWin, _app, _event) -- {{{
 
 end -- }}}
 
-stackline.windowEvents = { -- {{{
-    -- TODO: review how @alin32 structured window (and config!) events into
-    -- 'shouldRestack' and 'shouldClean' and apply those ideas here.
-
-    -- window added
-    wf.windowCreated,
-    wf.windowUnhidden,
-    wf.windowUnminimized,
-
-    -- window changed
-    wf.windowFullscreened,
-    wf.windowUnfullscreened,
-    wf.windowMoved, -- NOTE: includes move AND resize events
-
-    -- window removed
-    wf.windowDestroyed,
-    wf.windowHidden,
-    wf.windowMinimized,
-} -- }}}
-
-stackline.wf:subscribe(stackline.windowEvents, function() -- {{{
-    -- callback args: window, app, event
-    stackline.queryWindowState:start()
-end) -- }}}
-
-stackline.wf:subscribe(wf.windowFocused, stackline.redrawWinIndicator)
-
-local unfocused = {wf.windowNotVisible, wf.windowUnfocused}
-stackline.wf:subscribe(unfocused, stackline.redrawWinIndicator)
-
 hs.spaces.watcher.new(function() -- {{{
-    -- Added 2020-08-12 to fill the gap of hs._asm.undocumented.spaces
+    -- On space switch, query window state & refresh,
+    -- plus refresh click tracker
     stackline.queryWindowState:start()
-    stackline.refreshClickTracker()
+    stackline:refreshClickTracker()
 end):start() -- }}}
-
--- Delayed start (stackline module needs to be loaded globally before it can reference its own methods)
--- TODO: Add instructions to README.md to call stackline:start(userPrefs) from init.lua, and remove this.
-hs.timer.doUntil(function() -- {{{
-    return stackline.manager
-end, function()
-    stackline.start()
-end, 0.1) -- }}}
 
 return stackline

@@ -1,3 +1,10 @@
+local log = hs.logger.new('utils')
+log.setLogLevel('info')
+log.i("Loading module")
+
+
+-- TODO: consider adding fnutils extensions here: https://github.com/mikeyp/dotfiles/blob/master/hammerspoon/fntools.lua (compose, maybe, result, etc)
+-- Also https://github.com/muppetjones/hammerspoon_config/blob/master/util.lua
 -- OTHERS ----------------------------------------------------------------------
 -- https://github.com/luapower/glue/blob/master/glue.lua
 -- https://github.com/Desvelao/f/blob/master/f/table.lua (new in 2020)
@@ -5,7 +12,63 @@
 -- https://github.com/EvandroLG/Hash.lua (new - updated Aug 2020, 7 stars)
 -- https://github.com/Mudlet/Mudlet/tree/development/src/mudlet-lua/lua ← Very unusual / interesting lua utils
 --
+-- Extend builtins -------------------------------------------------------------
+function string:split(p) -- {{{
+    -- Splits the string [s] into substrings wherever pattern [p] occurs.
+    -- Returns: a table of substrings or, a table with the string as the only element
+    local p = p or '%s' -- split on space by default
+    local temp = {}
+    local index = 0
+    local last_index = self:len()
+
+    while true do
+        local i, e = self:find(p, index)
+
+        if i and e then
+            local next_index = e + 1
+            local word_bound = i - 1
+            table.insert(temp, self:sub(index, word_bound))
+            index = next_index
+        else
+            if index > 0 and index <= last_index then
+                table.insert(temp, self:sub(index, last_index))
+            elseif index == 0 then
+                temp = {self}
+            end
+            break
+        end
+    end
+
+    return temp
+end -- }}}
+
+function table.merge(t1, t2) -- {{{
+    u.pheader('t1')
+    u.p(t1)
+    u.pheader('t2')
+    u.p(t2)
+    for k,v in pairs(t2) do
+      if type(v) == "table" then
+        if type(t1[k] or false) == "table" then
+          table.merge(t1[k] or {}, t2[k] or {})
+        else
+          t1[k] = v
+        end
+      else
+        t1[k] = v
+      end
+    end
+    return t1
+end -- }}}
+
+-- utils module ----------------------------------------------------------------
 utils = {}
+
+function utils.keyBind(hyper, keyFuncTable) -- {{{
+    for key, fn in pairs(keyFuncTable) do
+        hs.hotkey.bind(hyper, key, fn)
+    end
+end -- }}}
 
 -- Alias hs.fnutils methods {{{
 utils.map = hs.fnutils.map
@@ -19,9 +82,6 @@ utils.any = hs.fnutils.some -- also rename 'some()' to 'any()'
 utils.concat = hs.fnutils.concat
 utils.copy = hs.fnutils.copy
 -- }}}
-
--- TODO: consider adding fnutils extensions here: https://github.com/mikeyp/dotfiles/blob/master/hammerspoon/fntools.lua (compose, maybe, result, etc)
--- Also https://github.com/muppetjones/hammerspoon_config/blob/master/util.lua
 
 -- FROM: https://github.com/rxi/lume/blob/master/lume.lua
 function utils.isarray(x) -- {{{
@@ -54,18 +114,10 @@ function utils.find(t, value) -- {{{
     local iter = getiter(t)
     result = nil
     for k, v in iter(t) do
-        print('value looking for')
-        print(value)
-        print('key matching against')
-        print(k)
-        print('are they equal?')
-        print(k == value)
         if k == value then
             result = v
         end
     end
-    -- utils.pheader('result')
-    print(result)
     return result
 end -- }}}
 -- END lume.lua
@@ -114,12 +166,108 @@ function utils.any(list, func) -- {{{
     end
     return false
 end -- }}}
+function utils.all(vs, fn) -- {{{
+    for _, v in pairs(vs) do
+        if not fn(v) then
+            return false
+        end
+    end
+    return true
+end
+utils.every = utils.all
+-- }}}
 -- end underscore.lua
 
-function utils.keyBind(hyper, keyFuncTable) -- {{{
-    for key, fn in pairs(keyFuncTable) do
-        hs.hotkey.bind(hyper, key, fn)
+local function f_max(a, b)  -- {{{
+    return a > b
+end  -- }}}
+local function f_min(a, b)  -- {{{
+    return a < b
+end  -- }}}
+
+function utils.identity(value) -- {{{
+    return value
+end -- }}}
+
+function utils.invoke(instance, name, ...) -- {{{
+    -- FIXME: This doesn't work, but it seems like it should
+    --        attempt to index a nil value (local 'instance')
+    return function(instance, ...)
+        if instance[name] then
+            instance[name](instance, ...)
+        end
     end
+end -- }}}
+utils.cb = utils.invoke -- shorter u.cb alias for u.invoke
+
+function utils.cb(fn) -- {{{
+    return function()
+        return fn
+    end
+end -- }}}
+
+function utils.extract(list, comp, transform, ...) -- {{{
+    -- from moses.lua
+    -- extracts value from a list
+    transform = transform or utils.identity
+    local _ans
+    for k, v in pairs(list) do
+        if not _ans then
+            _ans = transform(v, ...)
+        else
+            local val = transform(v, ...)
+            _ans = comp(_ans, val) and _ans or val
+        end
+    end
+    return _ans
+end -- }}}
+
+function utils.setfield(f, v, t) -- {{{
+    -- FROM: https://www.lua.org/pil/14.1.html
+    log.d(string.format('field: %s, val: %s', f, v))
+    local t = t or _G -- start with the table of globals
+    for w, d in string.gmatch(f, "([%w_]+)(.?)") do
+        if d == "." then -- not last field?
+            t[w] = t[w] or {} -- create table if absent
+            t = t[w] -- get the table
+        else -- last field
+            t[w] = v -- do the assignment
+        end
+    end
+end -- }}}
+
+function utils.getfield(f, t, isSafe) -- {{{
+    -- FROM: https://www.lua.org/pil/14.1.html
+    -- TODO: add 'tryGet()' — safe get that *doesn't* cause other errors during startup
+
+    local v = t or _G -- start with the table of globals
+    local res = nil
+    for w in string.gmatch(f, "[%w_]+") do
+
+        if type(v) ~= 'table' then
+            return v -- if v isn't table, return immediately
+        end
+
+        v = v[w]     -- lookup next val
+
+        if v ~= nil then
+            res = v  -- only update safe result if v not null
+        end
+
+        log.d('utils.getfield — key "word"',w)
+        log.d('utils.getfield — "v" is:', v)
+        log.d('utils.getfield — "res" is:', res)
+    end
+    if isSafe then          -- return the last non-nil value found
+        if v ~= nil then return v
+        else return res end
+    else return v           -- return the last value found regardless
+    end
+end -- }}}
+
+function utils.max(t, transform) -- {{{
+    -- from moses.lua
+    return utils.extract(t, f_max, transform)
 end -- }}}
 
 utils.length = function(t) -- {{{
@@ -130,14 +278,45 @@ utils.length = function(t) -- {{{
     return count
 end -- }}}
 
-utils.indexOf = function(t, object) -- {{{
-    if type(t) ~= "table" then
-        error("table expected, got " .. type(t), 2)
-    end
+function utils.boolToNum(value) -- {{{
+    return value == true and 1 or value == false and 0
+end -- }}}
 
-    for i, v in pairs(t) do
-        if object == v then
-            return i
+function utils.toBool(val) -- {{{
+    -- Reference:
+    -- function toboolean( v )
+    --   local n = tonumber( v )
+    --   return n ~= nil and n ~= 0
+    -- end
+    local t = type(val)
+    if t == 'boolean' then
+        return val
+    elseif t == 'number' then
+        return val == 1 and true or false
+    elseif t == 'string' then
+        val = val:gsub("%W", "") -- remove all whitespace
+        local TRUE = {
+            ['1'] = true,
+            ['t'] = true,
+            ['T'] = true,
+            ['true'] = true,
+            ['TRUE'] = true,
+            ['True'] = true,
+        };
+        local FALSE = {
+            ['0'] = false,
+            ['f'] = false,
+            ['F'] = false,
+            ['false'] = false,
+            ['FALSE'] = false,
+            ['False'] = false,
+        };
+        if TRUE[val] == true then
+            return true;
+        elseif FALSE[val] == false then
+            return false;
+        else
+            return false, string.format('cannot convert %q to boolean', val);
         end
     end
 end -- }}}
@@ -204,57 +383,14 @@ function utils.isEqual(a, b) -- {{{
 
 end -- }}}
 
-local function filter_row(row, key_constraints) -- {{{
-    -- Check if a row matches the specified key constraints.
-    -- @param row The row to check
-    -- @param key_constraints The key constraints to apply
-    -- @return A boolean result
-
-    -- Loop through all constraints
-    for k, v in pairs(key_constraints) do
-        if v and not row[k] then
-            -- The row is missing the key entirely,
-            -- definitely not a match
-            return false
-        end
-
-        -- Wrap the key and constraint values in arrays,
-        -- if they're not arrays already (so we can loop through them)
-        local actual_values = type(row[k]) == "table" and row[k] or {row[k]}
-        local required_values = type(v) == "table" and v or {v}
-
-        -- Loop through the values we *need* to find
-        for i = 1, #required_values do
-            local found
-            -- Loop through the values actually present
-            for j = 1, #actual_values do
-                if actual_values[j] == required_values[i] then
-                    -- This object has the required value somewhere in the key,
-                    -- no need to look any farther
-                    found = true
-                    break
-                end
-            end
-
-            if not found then
-                return false
-            end
-        end
+function utils.greaterThan(n) -- {{{
+    return function(t)
+        return #t > n
     end
-
-    return true
 end -- }}}
 
-function utils.pick(input, key_values) -- {{{
-    -- Filter an array, returning entries matching `key_values`.
-    -- @param input The array to process
-    -- @param key_values A table of keys mapped to their viable values
-    -- @return An array of matches
-    local result = {}
-    utils.each(key_values, function(k)
-        result[k] = input[k]
-    end)
-    return result
+function utils.roundToNearest(roundTo, numToRound) -- {{{
+    return numToRound - numToRound % roundTo
 end -- }}}
 
 function utils.p(data, howDeep) -- {{{
@@ -304,6 +440,17 @@ function utils.groupBy(t, f) -- {{{
         table.insert(res[g], v)
     end
     return res
+end -- }}}
+
+function utils.zip(a, b) -- {{{
+    local rv = {}
+    local idx = 1
+    local len = math.min(#a, #b)
+    while idx <= len do
+        rv[idx] = {a[idx], b[idx]}
+        idx = idx + 1
+    end
+    return rv
 end -- }}}
 
 function utils.copyShallow(orig) -- {{{
@@ -373,14 +520,6 @@ function utils.equal(a, b) -- {{{
     return true
 end -- }}}
 
-function utils.Set(list) -- {{{
-    local set = {}
-    for _, l in ipairs(list) do
-        set[l] = true
-    end
-    return set
-end -- }}}
-
 function utils.partial(f, ...) -- {{{
     -- FROM: https://www.reddit.com/r/lua/comments/fh2go5/a_partialcurry_implementation_of_mine_hope_you/
     -- WHEN: 2020-08-08
@@ -398,66 +537,105 @@ function utils.partial(f, ...) -- {{{
     end
 end -- }}}
 
-function utils.greaterThan(n) -- {{{
-    return function(t)
-        return #t > n
+function utils.levenshteinDistance(str1, str2) -- {{{
+    local str1, str2 = str1:lower(), str2:lower()
+    local len1, len2 = #str1, #str2
+    local char1, char2, distance = {}, {}, {}
+    str1:gsub('.', function(c)
+        table.insert(char1, c)
+    end)
+    str2:gsub('.', function(c)
+        table.insert(char2, c)
+    end)
+    for i = 0, len1 do
+        distance[i] = {}
     end
-end -- }}}
-
-function utils.getFields(t, fields) -- {{{
-    -- FROM: https://stackoverflow.com/questions/41417971/a-better-way-to-assign-multiple-return-values-to-table-keys-in-lua
-    -- WHEN: 2020-08-09
-    -- USAGE:
-    --      local bnot, band, bor = get_fields(require("bit"), {"bnot", "band", "bor"})
-    local values = {}
-    for k, field in ipairs(fields) do
-        values[k] = t[field]
+    for i = 0, len1 do
+        distance[i][0] = i
     end
-    return (table.unpack or unpack)(values, 1, #fields)
-end -- }}}
-
-function utils.setFields(tab, fields, ...) -- {{{
-    -- USAGE:
-    --      image.size = set_fields({}, {"width", "height"}, image.data:getDimensions())
-    --     --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  ---
-    -- USAGE EXAMPLE #2:      {{{
-    --      Swap the values on-the-fly!
-
-    --      local function get_weekdays()
-    --         return "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"
-    --      end
-
-    --          -- we want to save returned values in different order
-    --      local weekdays = set_fields({}, {7,1,2,3,4,5,6}, get_weekdays())
-    --          -- now weekdays contains {"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"}
-    --   --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  ---
-    -- USAGE EXAMPLE #3:     
-    --      local function get_coords_x_y_z()
-    --         return 111, 222, 333      -- x, y, z of the point
-    --      end
-    --          -- we want to get the projection of the point on the ground plane local projection = {y = 0}
-    --          -- projection.y will be preserved, projection.x and projection.z will be modified
-
-    --      set_fields(projection, {"x", "", "z"}, get_coords_x_y_z())
-
-    --          -- now projection contains {x = 111, y = 0, z = 333}
-    --   --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  ---
-    -- Usage example #4:
-    --          -- If require("some_module") returns a module with plenty of functions
-    --          -- inside, but you need only a few of them:
-    --      local bnot, band, bor = get_fields(require("bit"), {"bnot", "band", "bor"})
-    --   --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  ---
-    -- }}}
-
-    -- fields is an array of field names
-    -- (use empty string to skip value at corresponging position)
-    local values = {...}
-    for k, field in ipairs(fields) do
-        if field ~= "" then
-            tab[field] = values[k]
+    for i = 0, len2 do
+        distance[0][i] = i
+    end
+    for i = 1, len1 do
+        for j = 1, len2 do
+            distance[i][j] = math.min(distance[i - 1][j] + 1,
+                distance[i][j - 1] + 1, distance[i - 1][j - 1] +
+                    (char1[i] == char2[j] and 0 or 1))
         end
     end
-    return tab
+    return distance[len1][len2] / #str2 -- note
+end -- }}}
+
+function flattenDict(tbl) -- {{{
+    --[[ Flattens key,val table,
+     preserving *only the final keys*
+     FROM: https://github.com/AlexWesterman/GravitationalRacing/blob/master/src/lua/scenario/gravitationalRacing/utils/tableComprehension.lua
+ ]]
+    if type(tbl) ~= "table" then
+        return {tbl}
+    end
+
+    local flattenedtbl = {}
+    for k1, element in pairs(tbl) do
+        for k2, value in pairs(flattenDict(element)) do
+            -- If flattenDict is called on a value, k2 will be 1 ie. a number
+            if type(k2) ~= "number" then
+                -- Value is now a value and not a table (if it was previously)
+                flattenedtbl[k2] = value
+            else
+                flattenedtbl[k1] = value
+            end
+        end
+    end
+    return flattenedtbl
+end -- }}}
+
+local function isFinite(n) -- {{{
+    local INF_POS = math.huge
+    local INF_NEG = -INF_POS
+    return type(n) == 'number' and (n < INF_POS and n > INF_NEG)
+end -- }}}
+local function encode(key, val) -- {{{
+    -- default do-nothing
+    return key, val
+end -- }}}
+local function setAsTable(tbl, key, val) -- {{{
+    tbl[key] = val
+end -- }}}
+
+local function _flatten(tbl, maxdepth, encoder, depth, prefix, res, circular, -- {{{
+    setter)
+    local k, v = next(tbl)
+    while k do
+        if type(v) ~= 'table' then
+            setter(res, encoder(prefix .. k, v))
+        else
+            local ref = tostring(v)
+            -- set value except circular referenced value
+            if not circular[ref] then
+                if maxdepth > 0 and depth >= maxdepth then
+                    setter(res, prefix .. k, v)
+                else
+                    circular[ref] = true
+                    _flatten(v, maxdepth, encoder, depth + 1,
+                        prefix .. k .. '.', res, circular, setter)
+                    circular[ref] = nil
+                end
+            end
+        end
+        k, v = next(tbl, k)
+    end
+    return res
+end -- }}}
+
+function utils.flatten(tbl, maxdepth, encoder, setter) -- {{{
+    -- FROM: https://github.com/mah0x211/lua-table-flatten/blob/master/flatten.lua
+    local encoder = encode
+    local maxdepth = 0
+    local setter = setAsTable
+    return _flatten(tbl, maxdepth, encoder, 1, '', {}, {[tostring(tbl)] = true},
+        setter)
 end -- }}}
 
 return utils
+
