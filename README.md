@@ -1,7 +1,7 @@
 <!-- vim: set tw=0 :-->
 ![stackline-logo](https://user-images.githubusercontent.com/1683979/90966915-1f9b1400-e48d-11ea-8cbb-0ceea6fcfc39.png)
 <p>
-  <img alt="Version" src="https://img.shields.io/badge/version-0.1.55-blue.svg?cacheSeconds=2592000" />
+  <img alt="Version" src="https://img.shields.io/badge/version-0.1.60-blue.svg?cacheSeconds=2592000" />
   <a href="#" target="_blank">
     <img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-yellow.svg" />
   </a>
