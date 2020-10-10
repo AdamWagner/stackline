@@ -99,7 +99,6 @@ Now your `~/.hammerspoon` directory should look like this:
 ```
 ├── init.lua
 └── stackline
-└── stackline
   ├── bin
   │   └── yabai-get-stack-idx
   ├── conf.lua
