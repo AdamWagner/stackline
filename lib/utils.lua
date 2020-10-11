@@ -43,10 +43,6 @@ function string:split(p) -- {{{
 end -- }}}
 
 function table.merge(t1, t2) -- {{{
-    u.pheader('t1')
-    u.p(t1)
-    u.pheader('t2')
-    u.p(t2)
     for k,v in pairs(t2) do
       if type(v) == "table" then
         if type(t1[k] or false) == "table" then
