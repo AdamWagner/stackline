@@ -6,7 +6,7 @@ local Query = {}
 function Query:getWinStackIdxs(onSuccess) -- {{{
     -- TODO: Consider coroutine (allows HS to do other work while waiting for yabai)
     --       https://github.com/koekeishiya/yabai/issues/502#issuecomment-633378939
-    hs.task.new("/bin/sh", function(_code, stdout, _stderr)
+    hs.task.new(c.paths.getStackIdxs, function(_code, stdout, _stderr)
         -- call out to yabai to get stack-indexes
         local ok, json = pcall(hs.json.decode, stdout)
         if ok then
@@ -14,7 +14,7 @@ function Query:getWinStackIdxs(onSuccess) -- {{{
         else -- try again
             hs.timer.doAfter(1, function() self:getWinStackIdxs() end)
         end
-    end, {c.paths.getStackIdxs}):start()
+    end):start()
 end -- }}}
 
 function getStackedWinIds(byStack)  -- {{{
