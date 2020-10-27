@@ -150,8 +150,7 @@ Did the terminal window expand to cover the area previously occupied by Safari? 
 If the icons are a bit too heavy for you, you can toggle minimalist mode by turning the icons off:
 
 ```sh
- echo ":toggle_icons:0" | hs -m stackline-config
- # …use ":toggle_icons:1" to toggle icons back on
+ echo ":toggle_appearance.show_icons:" | hs -m stackline-config
 ```
 
 
