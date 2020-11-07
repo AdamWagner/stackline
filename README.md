@@ -175,6 +175,8 @@ All are welcome (actually, _please_ help us, 🤣️)! Feel free to dive in by o
 
 [@johnallen3d](https://github.com/johnallen3d) for being one the first folks to install stackline, and for identifying several mistakes & gaps in the setup instructions. 
 
+[@pete-may](https://github.com/pete-may) for saving folks from frustration by fixing an out-of-date command in the readme ([#48](https://github.com/AdamWagner/stackline/pull/48))
+
 [@AdamWagner](https://github.com/AdamWagner) wrote the initial proof-of-concept (POC) for stackline.
 
 ### …on the shoulders of giants
