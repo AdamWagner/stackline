@@ -1,4 +1,5 @@
 local u = require 'stackline.lib.utils'
+local async = require 'stackline.lib.async'
 local c = stackline.config:get()
 
 local Query = {}
