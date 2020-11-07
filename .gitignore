@@ -5,3 +5,6 @@ stackline/sratch.md
 lib/figlet.lua
 
 luacov.stats.out
+lib/bin
+lib/lib
+stubs

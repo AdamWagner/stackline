@@ -386,9 +386,9 @@ local OBJDEF = {
 --   
 --      T = JSON:decode('{  "small":12345, "big":12345678901234567890123456789, "precise":9876.67890123456789012345  }')
 --
---      print("small:   ",  type(T.small),    T.small)
---      print("big:     ",  type(T.big),      T.big)
---      print("precise: ",  type(T.precise),  T.precise)
+--      log.d("small:   ",  type(T.small),    T.small)
+--      log.d("big:     ",  type(T.big),      T.big)
+--      log.d("precise: ",  type(T.precise),  T.precise)
 --   
 --   produces
 --   
@@ -417,9 +417,9 @@ local OBJDEF = {
 --      
 --      T = JSON:decode('{  "small":12345, "big":12345678901234567890123456789, "precise":9876.67890123456789012345  }')
 --
---      print("small:   ",  type(T.small),    T.small)
---      print("big:     ",  type(T.big),      T.big)
---      print("precise: ",  type(T.precise),  T.precise)
+--      log.d("small:   ",  type(T.small),    T.small)
+--      log.d("big:     ",  type(T.big),      T.big)
+--      log.d("precise: ",  type(T.precise),  T.precise)
 --   
 --   This now produces:
 --   
@@ -462,7 +462,7 @@ local OBJDEF = {
 --         precise   = JSON:asNumber("123456789123456789.123456789123456789")
 --      }
 --
---      print(JSON:encode_pretty(T))
+--      log.d(JSON:encode_pretty(T))
 --
 --   This produces:
 --
@@ -492,9 +492,9 @@ local OBJDEF = {
 --      
 --      T = JSON:decode('{  "small":12345, "big":12345678901234567890123456789, "precise":9876.67890123456789012345  }')
 --
---      print("small:   ",  type(T.small),    T.small)
---      print("big:     ",  type(T.big),      T.big)
---      print("precise: ",  type(T.precise),  T.precise)
+--      log.d("small:   ",  type(T.small),    T.small)
+--      log.d("big:     ",  type(T.big),      T.big)
+--      log.d("precise: ",  type(T.precise),  T.precise)
 --
 --   This produces:
 --
@@ -510,7 +510,7 @@ local OBJDEF = {
 --      JSON.decodeNumbersAsObjects = true
 --   this stringification is simple and unintelligent: the JSON number simply becomes a Lua string, and that's the end of it.
 --   If the string is then converted back to JSON, it's still a string. After running the code above, adding
---      print(JSON:encode(T))
+--      log.d(JSON:encode(T))
 --   produces
 --      {"big":"12345678901234567890123456789","precise":9876.6789012346,"small":12345}
 --   which is unlikely to be desired.
@@ -533,9 +533,9 @@ local OBJDEF = {
 --
 --      T = JSON:decode('{  "small":12345, "big":12345678901234567890123456789, "precise":9876.67890123456789012345  }')
 --      
---      print("small:   ",  type(T.small),    T.small)
---      print("big:     ",  type(T.big),      T.big)
---      print("precise: ",  type(T.precise),  T.precise)
+--      log.d("small:   ",  type(T.small),    T.small)
+--      log.d("big:     ",  type(T.big),      T.big)
+--      log.d("precise: ",  type(T.precise),  T.precise)
 --
 --  produces:
 --

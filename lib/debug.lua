@@ -1,3 +1,6 @@
+package.path = '/Users/adamwagner/.luarocks/share/lua/5.4/?.lua;' .. package.path
+
+mm = require 'mm'
 local c = hs.console
 local u = require 'stackline.lib.utils'
 local json = require 'stackline.lib.json'
@@ -59,9 +62,9 @@ end -- }}}
 function getGlobals(onlyType) -- {{{
     for k, v in pairs(_G) do
         if onlyType == nil then
-            print(k, v)
+            log.d(k, v)
         elseif type(v) == onlyType then
-            print(k, v)
+            log.d(k, v)
         end
     end
 end -- }}}

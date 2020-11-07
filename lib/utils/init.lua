@@ -1,17 +1,125 @@
-local log = hs.logger.new('utils')
-log.setLogLevel('info')
-log.i("Loading module")
+-- local logger = require 'hs.logger'
+-- local log = logger.new('utils')
+local log =  { i = function(m) print(m) end, d = function(m) print(m) end, }
 
+-- log.setLogLevel(0)
+-- log.i("Loading utils")
 
--- TODO: consider adding fnutils extensions here: https://github.com/mikeyp/dotfiles/blob/master/hammerspoon/fntools.lua (compose, maybe, result, etc)
--- Also https://github.com/muppetjones/hammerspoon_config/blob/master/util.lua
--- OTHERS ----------------------------------------------------------------------
--- https://github.com/luapower/glue/blob/master/glue.lua
--- https://github.com/Desvelao/f/blob/master/f/table.lua (new in 2020)
--- https://github.com/moriyalb/lamda (based on ramda, updated May 2020, 27 stars)
--- https://github.com/EvandroLG/Hash.lua (new - updated Aug 2020, 7 stars)
--- https://github.com/Mudlet/Mudlet/tree/development/src/mudlet-lua/lua ← Very unusual / interesting lua utils
+-- log = {}
+-- log.i = function() end
+-- log.d = function() end
+-- log.e = function() end
+
+-- sh cmd to unique list of methods used
+-- g 'u\.\w+' -o | g -v '^$' | sort -u
 --
+-- As of 2020-10-16:
+--     u.any
+--     u.cb
+--     u.copy
+--     u.each
+--     u.equal
+--     u.extend
+--     u.filter
+--     u.flatten
+--     u.getfield
+--     u.greaterThan
+--     u.groupBy
+--     u.identity
+--     u.keys
+--     u.length
+--     u.levenshteinDistance
+--     u.map
+--     u.partial
+--     u.roundToNearest
+--     u.setfield
+--     u.toBool
+--     u.values
+--     u.zip
+
+
+  -- NOTES {{{
+   --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  ---
+
+  -- TODO: Figure out what's actually needed. This is ONLY so that hs.fnutils will load in busted unit tests
+  -- package.path = "/usr/local/lib/lua/5.3/?.lua;/Users/adamwagner/.hammerspoon/?.lua;/Users/adamwagner/.hammerspoon/?/init.lua;/Users/adamwagner/.hammerspoon/Spoons/?.spoon/init.lua;/usr/local/share/lua/5.4/?.lua;/usr/local/share/lua/5.4/?/init.lua;/usr/local/lib/lua/5.4/?.lua;/usr/local/lib/lua/5.4/?/init.lua;./?.lua;./?/init.lua;/Applications/Hammerspoon.app/Contents/Resources/extensions/?.lua;/Applications/Hammerspoon.app/Contents/Resources/extensions/?/init.lua;/Users/adamwagner/.luarocks/share/lua/5.4/?.lua;/Users/adamwagner/.luarocks/share/lua/5.4/?/init.lua" ..package.path
+  -- package.cpath = "/usr/local/lib/lua/5.3/?.so;/Users/adamwagner/.hammerspoon/?.so;/usr/local/lib/lua/5.4/?.so;/usr/local/lib/lua/5.4/loadall.so;./?.so;/Applications/Hammerspoon.app/Contents/Resources/extensions/?.so;/Users/adamwagner/.luarocks/lib/lua/5.4/?.so" .. package.cpath
+  -- package.path = '/usr/local/lib/lua/5.3/?.lua;' ..package.path
+  -- package.cpath = '/usr/local/lib/lua/5.3/?.so;' ..package.cpath
+
+  -- TODO: actually use these, they're good!
+    -- https://evandrolg.github.io/Hash.lua/
+    -- https://evandrolg.github.io/array.lua/#min
+    -- https://evandrolg.github.io/str/ [NOT WORKING DUE TO 5.4 issues]
+
+    -- Hash = require 'Hash'
+    -- array = require 'array'
+    -- str = require 'str' (alt: https://github.com/DeBos99/lua-strutils/blob/master/strutils.lua)
+
+  -- Yet more table/hash utils to add to ↑
+  --    OOP-style method calling on tbl: 
+  --        https://github.com/yaflow-droid/lua-table/blob/master/table.lua
+  --        https://github.com/LinaTsukusu-CCOC/table-util/blob/master/table-util.lua
+  --
+  --    Really unusual style..
+  --        https://github.com/LateralLines/table-manipulation-util
+
+  --    https://github.com/aillieo/tableext
+  --    https://github.com/Stroketon/tableDumper
+  --    https://github.com/dyre/lua-tableutils
+
+  -- Safe table key lookup!!
+  --    https://github.com/Penguinum/tablepath/blob/master/tablepath.lua
+
+  -- Get by string path / dot (262 lines)
+  --    https://github.com/Tieske/accessor.lua
+  --
+  -- Collections classes (enum, struct, flags, etc)
+  --    https://github.com/sorcerykid/collections DOESN"T WORK
+  --    https://github.com/imliam/Lua-Collections
+  --
+  -- Crazy sophisticated classes & colletcion objects (dict, ect)
+  --    https://github.com/arj-mat/lua-dictionary
+  --    https://github.com/arj-mat/lua-defs
+  --
+  --
+  -- RANDOM UTIL LIBS
+  --    https://github.com/EvandroLG/array.lua
+  --    https://github.com/EvandroLG/Hash.lua
+  --    https://github.com/EvandroLG/str
+  --
+  --    https://github.com/SandKing123/lua_util/blob/master/liblua/lua_util.lua
+
+  --    Weird metamethod boilerplate 
+  --    https://github.com/sumneko/utility/blob/master/dummy.lua
+  --
+  --
+  --  GOLDEN
+  --    "Zero-dependency lua util functions"
+  --    https://github.com/aiq/luazdf
+  --    https://luazdf.aiq.dk/ <- cool docs site
+  --    https://www.reddit.com/r/LuaZDF/
+  --
+  --    This is a similar collection called "batteries"
+  --    https://github.com/1bardesign/batteries
+  --
+  --
+  -- Dependency-checker:
+  --    https://github.com/snsvrno/tabletools-lua/blob/master/init.lua
+
+
+
+  -- TODO: consider adding fnutils extensions here: https://github.com/mikeyp/dotfiles/blob/master/hammerspoon/fntools.lua (compose, maybe, result, etc)
+  -- Also https://github.com/muppetjones/hammerspoon_config/blob/master/util.lua
+  -- OTHERS   --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --
+  -- https://github.com/luapower/glue/blob/master/glue.lua
+  -- https://github.com/Desvelao/f/blob/master/f/table.lua (new in 2020)
+  -- https://github.com/moriyalb/lamda (based on ramda, updated May 2020, 27 stars)
+  -- https://github.com/EvandroLG/Hash.lua (new - updated Aug 2020, 7 stars)
+  -- https://github.com/Mudlet/Mudlet/tree/development/src/mudlet-lua/lua ← Very unusual / interesting lua utils
+  -- }}}
+
+
 -- Extend builtins -------------------------------------------------------------
 function string:split(p) -- {{{
     -- Splits the string [s] into substrings wherever pattern [p] occurs.
@@ -43,6 +151,8 @@ function string:split(p) -- {{{
 end -- }}}
 
 function table.merge(t1, t2) -- {{{
+    t1 = t1 or {}
+    t2 = t2 or {}
     for k,v in pairs(t2) do
       if type(v) == "table" then
         if type(t1[k] or false) == "table" then
@@ -57,26 +167,78 @@ function table.merge(t1, t2) -- {{{
     return t1
 end -- }}}
 
+function table.Merge(Mergee, Merger, IsMergerOverwriter)  -- {{{
+  IsMergerOverwriter = true
+    local Merged = {}
+
+    for MergeeKey, MergeeValue in pairs(Mergee) do
+        Merged[MergeeKey] = MergeeValue
+    end
+
+    for MergerKey, MergerValue in pairs(Merger) do
+        local MergeeValue = Mergee[MergerKey]
+
+        if type(MergeeValue) == "table" and type(MergerValue) == "table" then
+            Merged[MergerKey] = table.Merge(MergeeValue, MergerValue, IsMergerOverwriter)
+        elseif Merged[MergerKey] or IsMergerOverwriter then
+            Merged[MergerKey] = MergerValue
+        end
+    end
+
+    return Merged
+end  -- }}}
+
+
 -- utils module ----------------------------------------------------------------
 utils = {}
 
-function utils.keyBind(hyper, keyFuncTable) -- {{{
-    for key, fn in pairs(keyFuncTable) do
-        hs.hotkey.bind(hyper, key, fn)
-    end
-end -- }}}
+-- TODO: remove hs from utils
+-- function utils.keyBind(hyper, keyFuncTable) -- {{{
+--     for key, fn in pairs(keyFuncTable) do
+--         hs.hotkey.bind(hyper, key, fn)
+--     end
+-- end -- }}}
+
+-- TODO: This is ONLY for unit tests to pass :/
+local fnutils = require 'hs.fnutils'
 
 -- Alias hs.fnutils methods {{{
-utils.map = hs.fnutils.map
-utils.filter = hs.fnutils.filter
-utils.reduce = hs.fnutils.reduce
-utils.partial = hs.fnutils.partial
-utils.each = hs.fnutils.each
-utils.contains = hs.fnutils.contains
-utils.some = hs.fnutils.some
-utils.any = hs.fnutils.some -- also rename 'some()' to 'any()'
-utils.concat = hs.fnutils.concat
-utils.copy = hs.fnutils.copy
+utils.map = fnutils.map
+utils.imap = fnutils.imap
+utils.mapCat = fnutils.mapCat
+utils.filter = fnutils.filter
+utils.reduce = fnutils.reduce
+utils.partial = fnutils.partial
+utils.each = fnutils.each
+utils.some = fnutils.some
+utils.any = fnutils.some -- also rename 'some()' to 'any()'
+utils.concat = fnutils.concat
+utils.copy = fnutils.copy
+utils.contains = fnutils.contains
+
+-- alternate: table.contains
+function table.contains(table, value, ci, trim)  -- {{{
+  if ci then
+    value = string.lower(value)
+  end
+  if trim then
+    value = string.gsub(value, "%s+", "")
+  end
+  for k, v in pairs(table) do
+    if ci then
+      v = string.lower(v)
+    end
+    if trim then
+      v = string.gsub(v, "%s+", "")
+    end
+    if value == v then
+      return k
+    end
+  end
+  return false
+end  -- }}}
+
+
 -- }}}
 
 -- FROM: https://github.com/rxi/lume/blob/master/lume.lua
@@ -234,6 +396,7 @@ end -- }}}
 
 function utils.getfield(f, t, isSafe) -- {{{
     -- FROM: https://www.lua.org/pil/14.1.html
+    -- ALTERNATE: https://github.com/nsimplex/wicker
     -- TODO: add 'tryGet()' — safe get that *doesn't* cause other errors during startup
 
     local v = t or _G -- start with the table of globals
@@ -250,9 +413,9 @@ function utils.getfield(f, t, isSafe) -- {{{
             res = v  -- only update safe result if v not null
         end
 
-        log.d('utils.getfield — key "word"',w)
-        log.d('utils.getfield — "v" is:', v)
-        log.d('utils.getfield — "res" is:', res)
+        -- log.d('utils.getfield — key "word"',w)
+        -- log.d('utils.getfield — "v" is:', v)
+        -- log.d('utils.getfield — "res" is:', res)
     end
     if isSafe then          -- return the last non-nil value found
         if v ~= nil then return v
@@ -390,24 +553,28 @@ function utils.roundToNearest(roundTo, numToRound) -- {{{
 end -- }}}
 
 function utils.p(data, howDeep) -- {{{
+    -- TODO clean up require (ONLY FOR TESTS!)
+    local inspect = require 'hs.inspect'
     -- local logger = hs.logger.new('inspect', 'debug')
     local depth = howDeep or 3
     if type(data) == 'table' then
+        -- log.i(hs.inspect(data, {depth = depth}))
         print(hs.inspect(data, {depth = depth}))
         -- logger.df(hs.inspect(data, {depth = depth}))
     else
+        -- log.i(hs.inspect(data, {depth = depth}))
         print(hs.inspect(data, {depth = depth}))
         -- logger.df(hs.inspect(data, {depth = depth}))
     end
 end -- }}}
 
 function utils.look(obj) -- {{{
-    print(hs.inspect(obj, {depth = 2, metatables = true}))
+    log.d(hs.inspect(obj, {depth = 2, metatables = true}))
 end -- }}}
 
 function utils.pdivider(str) -- {{{
     str = string.upper(str) or ""
-    print("=========", str, "==========")
+    log.d("=========", str, "==========")
 end -- }}}
 
 function utils.pheader(str) -- {{{
@@ -632,6 +799,29 @@ function utils.flatten(tbl, maxdepth, encoder, setter) -- {{{
     return _flatten(tbl, maxdepth, encoder, 1, '', {}, {[tostring(tbl)] = true},
         setter)
 end -- }}}
+
+function utils.sleep(s)  -- {{{
+  local ntime = os.clock() + s/10
+  repeat until os.clock() > ntime
+end  -- }}}
+
+function utils.uniqueHash(data)  -- {{{
+    -- Sort data keys for consistent hashes
+  u.each(data, function(v) 
+    if type(v) == 'table' then 
+      table.sort(v, function(a,b) 
+        if type(v)=='table' then return true end
+        return a < b
+      end)
+    end
+  end) 
+
+    -- …and build unique hash based on stack summary
+  local result = hs.hash.MD5(hs.inspect(data))
+  return result
+end  -- }}}
+
+utils.dict = require 'stackline.lib.utils.dict'
 
 return utils
 

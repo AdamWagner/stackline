@@ -1,0 +1,38 @@
+-- vim:set ft=lua:
+-- Custom output handler
+-- /usr/local/Cellar/luarocks/3.4.0/share/lua/5.3/busted/outputHandlers/stackline.lua
+
+-- LOLOL, *WAY* better custom output handler, bc I understand the important things in life ;P
+-- /usr/local/Cellar/luarocks/3.4.0/share/lua/5.3/busted/outputHandlers/detail.lua
+
+-- GH issue about firing custom events in tests that update output
+  -- https://github.com/Olivine-Labs/busted/issues/406
+
+return {
+  _all = {
+    coverage = false,
+    ROOT = {"tests"},
+    pattern = 'test',
+    ['defer-print'] = false,
+    ['keep-going'] = true,
+    ['suppress-pending'] = false,
+
+    output = './tests/helpers/stackline-output-formatter.lua',
+    helper = 'tests.helpers',
+  },
+  default = { verbose = false },
+  mock = {
+    tags = "mock",
+    verbose = false
+  },
+  modules = {
+    tags = "modules",
+    ['defer-print'] = false,
+    verbose = false,
+  },
+  main = {
+    tags = "main",
+    ['defer-print'] = true,
+    verbose = false,
+  },
+}
