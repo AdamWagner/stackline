@@ -2,9 +2,6 @@ local c = hs.console
 local u = require 'stackline.lib.utils'
 local json = require 'stackline.lib.json'
 
--- local figlet = require 'stackline.lib.figlet'
--- ...this tomfoolery only exists locally ;) 
-
 -- TIPS
 -- ———————————————————————————————————————————————————————————————————————————
 -- Interactive stackline state search:

@@ -1,4 +1,3 @@
--- https://github.com/erento/lua-schema-validation
 local log = hs.logger.new('sline.conf')
 log.setLogLevel('info')
 log.i("Loading module")
