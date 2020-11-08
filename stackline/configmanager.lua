@@ -169,10 +169,10 @@ function M:validate(conf) -- {{{
 end -- }}}
 
 function M:autosuggest(path) -- {{{
-    local dist = u.partial(u.levenshteinDistance, path) -- lev.d fn that can be mapped over list of candidates
     local scores = u.zip(
             u.map(self.autosuggestions, dist),          -- list of scores {0.2024, 0.182, 0.991, …}
             self.autosuggestions                        -- list of strings
+            u.map(self.autosuggestions, function(str) return path:distance(str) end), -- list of scores {0.2024, 0.182, 0.991, …}
         )
     local function asc(a, b)
         return a[1] < b[1]
