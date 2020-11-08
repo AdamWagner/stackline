@@ -13,7 +13,7 @@ function M.prepareFrame(f)
     frame[key] = v
   end
   return frame
-end  
+end
 
 
 function isGeometryObject(v)
@@ -25,7 +25,7 @@ end
 
 
 
-function M.process(data)  
+function M.process(data)
   -- If key is 'frame' or 'fullFrame' wrap value in geometry(...). Recursive.
   -- 'opts' arg specifies which checks should be made, which is needed to avoid infinite loop.
 
@@ -33,13 +33,13 @@ function M.process(data)
 
   for k, v in pairs(data) do
 
-    if (k=='frame' or k=='fullFrame') and not isGeometryObject(v) then 
+    if (k=='frame' or k=='fullFrame') and not isGeometryObject(v) then
         obj[k] = geometry(M.prepareFrame(v))
 
-    -- elseif k=='app' and not data[k].name then 
+    -- elseif k=='app' and not data[k].name then
     --   obj.application = { name = v }
 
-    -- elseif k=='screen' and not data[k].frame then 
+    -- elseif k=='screen' and not data[k].frame then
     --   print('k IS SCREEN!')
     --   if data[k] then
     --     obj.screen = hs.screen:new(data[k])
@@ -65,10 +65,10 @@ function M.process(data)
   --     frame = geometry(obj.frame),
   --     screen = hs.screen:new(),
   --   }, true)
-  -- end 
+  -- end
 
   return obj
 
-end  
+end
 
 return M

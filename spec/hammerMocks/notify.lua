@@ -1,5 +1,3 @@
-local log = helpers.logSetup('mock_notify')
-
 local notify = {}
 
 -- hs.notify.new(nil, {

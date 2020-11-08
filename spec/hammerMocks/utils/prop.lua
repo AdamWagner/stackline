@@ -1,5 +1,5 @@
 --[[
-Hammerspoon often makes object fields callable. 
+Hammerspoon often makes object fields callable.
 E.g.,
   hs.window:screen():frame()
 ↑ :frame() rather than .frame because frame *itself* has methods
@@ -9,7 +9,7 @@ E.g.,
 └─────────┘
 returns value when called as a function
 
-This avoids need for writing tons of "module.field()" getter functions 
+This avoids need for writing tons of "module.field()" getter functions
 that simply return the field value hidden internally.
 
 Real example from mock-hs.lua:
@@ -20,7 +20,7 @@ function screen:new(o)
     o.fullFrame = prop(o.fullFrame or self.__defaults.frame)
     …
 end
-]] 
+]]
 
 local function printTable(value)
   if type(value)=='table' then
@@ -38,8 +38,8 @@ end
 
 local function prop(v)
     local o = { value = v }
-    mt = { 
-        __call = function() 
+    mt = {
+        __call = function()
             return o.value
         end,
         __tostring = function()
@@ -62,11 +62,11 @@ local function wrap(o)
 
       if getmetatable(v)==nil then
         -- recursively wrap
-        obj[k] = prop(wrap(v)) 
-      else  
+        obj[k] = prop(wrap(v))
+      else
         -- `v` has metamethods, so don't recursively wrap
         -- it's probably a hammerspoon instance (geometry)
-        obj[k] = prop(v) 
+        obj[k] = prop(v)
       end
 
     else
@@ -76,7 +76,7 @@ local function wrap(o)
   return obj
 end
 
-return { 
+return {
   new = prop,
   wrap = wrap,
 }

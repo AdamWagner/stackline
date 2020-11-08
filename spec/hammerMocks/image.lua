@@ -1,9 +1,6 @@
-local MockBase = require 'stackline.tests.mockHammerspoon.utils.mockbase'
-
--- Stackline uses:
+-- STACKLINE REFERENCES:
 -- hs.image.imageFromAppBundle
 
--- local Image = MockBase({})
 local Image = {}
 
 function Image:iconForFileType()

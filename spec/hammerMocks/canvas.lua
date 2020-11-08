@@ -1,11 +1,11 @@
-local prop = require 'stackline.tests.mockHammerspoon.utils.prop'
-local MockBase = require 'stackline.tests.mockHammerspoon.utils.mockbase'
+local prop = require 'stackline.spec.hammerMocks.utils.prop'
+local MockBase = require 'stackline.spec.hammerMocks.utils.mockbase'
 
 -- local log = hs.logger.new('hsmock.canvas')
 -- log.setLogLevel('info')
 -- log.i("Loading'hsmock.canvas")
 
--- Stackline uses:
+-- STACKLINE REFERENCES
 -- hs.canvas
 -- hs.canvas.new
 
@@ -53,17 +53,6 @@ local default = {
 }
 
 local canvas = MockBase:new(default)
-
-
--- function Win:new(o) 
---   local o = o or self.__defaults
--- 	-- win = MockBase:new(o)
---   local win = prop.wrap(o)
---   setmetatable(win, self)
---   self.__index = self
---   return win
--- end    
-
 
 function canvas.new(o)
     local o = o or {}

@@ -1,13 +1,13 @@
 -- INSTRUCTIONS
 --  1. Open Hammerspoon console
 --  2. Paste in console:
---      capture = require 'stackline.tests.fixtures.capture'
---  3. Execute 
+--      capture = require 'stackline.spec.fixtures.capture'
+--  3. Execute
 --      'capture.screenState()'
 --      'capture.managerIngest()'
 --  4. A new file with the requested data be created in stackline/tests/fixtures/data/{filename}.lua
 
--- REFERENCE: 
+-- REFERENCE:
 --  /Applications/Hammerspoon.app/Contents/Resources/extensions/
 local converter = require 'stackline.lib.save'
 
@@ -20,7 +20,7 @@ numberWordMap = setmetatable({ -- {{{
   "eleven", "twelve", "thirteen", "fourteen", "fifteen",
   "sixteen", "seventeen", "eighteen", "nineteen", "twenty",
 }, {
-  __index = function(t, k) -- special case for zero & anything more than 20
+  __index = function(_, k) -- special case for zero & anything more than 20
     return k == 0 and 'zero' or 'more than twenty'
   end,
 }) -- }}}
@@ -114,12 +114,12 @@ local function stackMapper(stack) -- {{{
 end -- }}}
 
 function handleScreen(w)  -- {{{
-  local hasWin = w._win 
-  local hasScreen = hasWin and w._win.screen 
+  local hasWin = w._win
+  local hasScreen = hasWin and w._win.screen
   if not hasScreen then return nil end
 
   local screen = { id =  w._win:screen():id(), frame = w._win:screen():frame() }
-  return screen 
+  return screen
 end  -- }}}
 
 function plainWindowMapper(w)  -- {{{
@@ -219,7 +219,7 @@ local function save_manager_ingest(windowGroups, appWindows, shouldClean)  -- {{
     return args
 end  -- }}}
 
-return { 
+return {
   screenState = save_state_to_fixture,
   managerIngest = save_manager_ingest,
 }

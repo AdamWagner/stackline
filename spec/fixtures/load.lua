@@ -5,14 +5,14 @@ package.path = package.path .. '/Users/adamwagner/.hammerspoon/stackline/?.lua;'
 package.path = package.path .. '/Users/adamwagner/.hammerspoon/stackline/?/init.lua;'
 package.path = package.path .. '/Applications/Hammerspoon.app/Contents/Resources/extensions/?/init.lua;'
 
-local fixtureUtils = require 'stackline.tests.fixtures.utils'
+local fixtureUtils = require 'stackline.spec.fixtures.utils'
 
-return function(fixture)  -- {{{
+return function(fixture)
     -- get specified fixture data (or default), process, and return
   fixture = fixture or 'two_stacks_six_windows'
-  local data = require('tests.fixtures.data.' .. fixture)
+  local data = require('spec.fixtures.data.' .. fixture)
   local result =  fixtureUtils.process(data)
   return result
-end  -- }}}
+end
 
 

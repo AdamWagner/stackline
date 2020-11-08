@@ -1,5 +1,3 @@
-local log = helpers.logSetup('mock_spaces')
-
 local spaces = {}
 spaces.watcher = {}
 
@@ -15,7 +13,7 @@ function spaces.watcher.new()
 end
 
 function spaces:start()
-  log.d('starting spaces watcher')
+  -- print('starting spaces watcher')
 end
 
 return spaces

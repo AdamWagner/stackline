@@ -1,14 +1,10 @@
-local prop = require 'tests.mockHammerspoon.utils.prop'
+local prop = require 'spec.hammerMocks.utils.prop'
 local sleep = require 'stackline.lib.utils'.sleep
 
 
-local json = require 'tests.mockHammerspoon.json'
+local json = require 'spec.hammerMocks.json'
 
--- local log = hs.logger.new('hsmock.task')
--- log.setLogLevel('info')
--- log.i("Loading'hsmock.task")
-
--- Stackline use:
+-- STACKLINE REFERENCES:
 -- hs.task.new
 
 local task = {}
@@ -16,9 +12,9 @@ local task = {}
 task.__defaults = {}
 task.__defaults.launchPath = '/bin/sh'
 task.__defaults.callbackFn = function(code, stdOut, stdErr)
-  log.d('code', code)
-  log.d('stdOut', stdOut)
-  log.d('stdErr', stdErr)
+  print('code', code)
+  print('stdOut', stdOut)
+  print('stdErr', stdErr)
 end
 
 task.__defaults.launchPath =
