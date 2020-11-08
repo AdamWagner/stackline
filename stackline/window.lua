@@ -339,6 +339,17 @@ function Window:deleteIndicator() -- {{{
     end
 end -- }}}
 
+function Window:notSelfSameScreen(w) -- {{{
+    return (w.id ~= self.id) and (w.screen == self.screen)
+end  -- }}}
+
+function Window:setOtherAppWindows(byApp) -- {{{
+    local function filter(w)
+        return self:notSelfSameScreen(w)
+    end
+    self.otherAppWindows = u.filter(byApp[self.app], filter)
+end -- }}}
+
 function Window:unfocusOtherAppWindows() -- {{{
     u.each(self.otherAppWindows, function(w)
         w:redrawIndicator()
