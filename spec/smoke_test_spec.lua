@@ -10,8 +10,8 @@ describe('#main', function()
     hs.window.filter:set(state.screen.windows)
     hs.task:set(state.stackIndexes)
 
-    stackline = require 'stackline.stackline.stackline'
-    stackline.config = require 'stackline.stackline.configManager'
+    stackline = require 'stackline.stackline'
+    stackline.config = require 'stackline.configManager'
   end)
 
   it('stackline:init()', function()
