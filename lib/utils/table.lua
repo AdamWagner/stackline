@@ -47,3 +47,52 @@ function table.merge(t1, t2)
     end
     return t1
 end
+
+
+function table.slice(obj, start, finish)
+    if (#obj == 0) or (start == finish) then return {} end
+    local _finish = finish or (#obj + 1)
+
+    local output = {}
+    for i = (start or 1), (_finish - 1) do
+      table.insert(output, obj[i])
+    end
+
+    return output
+end
+
+function table.reduce(obj, callback, memo)
+    local initialIndex = 1
+    local _memo = memo
+
+    if _memo == nil then
+      initialIndex = 2
+      _memo = obj[1]
+    end
+
+    for i=initialIndex, #obj do
+      _memo = callback(_memo, obj[i], i)
+    end
+
+    return _memo
+end
+
+function table.groupBy(obj, by)
+    function reducer(accumulator, current)
+      local result
+      if type(by) == 'function' then
+          result = by(current)
+      elseif type(by) == 'string'  then
+          result = current[by]
+      end
+
+      if not accumulator[result] then
+        accumulator[result] = {}
+      end
+
+      table.insert(accumulator[result], current)
+      return accumulator
+    end
+
+    return table.reduce(obj, reducer, {})
+end

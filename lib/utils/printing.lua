@@ -1,5 +1,6 @@
+local M = {}
 
-function utils.p(data, howDeep)
+function M.p(data, howDeep)
     -- local logger = hs.logger.new('inspect', 'debug')
     local depth = howDeep or 3
     if type(data) == 'table' then
@@ -11,18 +12,20 @@ function utils.p(data, howDeep)
     end
 end
 
-function utils.look(obj)
+function M.look(obj)
     print(hs.inspect(obj, {depth = 2, metatables = true}))
 end
 
-function utils.pdivider(str) -- {{{
+function M.pdivider(str) -- {{{
     str = string.upper(str) or ""
     print("=========", str, "==========")
 end -- }}}
 
-function utils.pheader(str)
+function M.pheader(str)
     print('\n\n\n')
     print("========================================")
     print(string.upper(str), '==========')
     print("========================================")
 end
+
+return M

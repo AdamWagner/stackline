@@ -1,4 +1,3 @@
-
 function string:split(p)
     -- Splits the string [s] into substrings wherever pattern [p] occurs.
     -- Returns: a table of substrings or, a table with the string as the only element
@@ -31,6 +30,7 @@ end
 function string:distance(str2)
     local this, other = self:lower(), str2:lower()
     local len1, len2 = #this, #other
+
     local char1, char2, distance = {}, {}, {}
 
     this:gsub('.', function(c)
@@ -54,4 +54,12 @@ function string:distance(str2)
         end
     end
     return distance[len1][len2] / #other
+end
+
+function string:ensureEndsWith(char)
+  -- ensure path ends with slash ("/")
+  local lastChar = self:sub(#self)
+  if lastChar ~= char then
+    self = self .. char
+  end
 end

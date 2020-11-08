@@ -1,18 +1,14 @@
+local M = {}
 
-local fnutils
-if hs then
-    fnutils = hs.fnutils
-else
-    fnutils = require 'hs.fnutils'
-end
-
+local fnutils = hs and hs.fnutils or require 'hs.fnutils'
 fnutils.any = fnutils.some
+
 for k,v in pairs(fnutils) do
-    utils[k] = v
+    M[k] = v
 end
 
 -- collection building blocks
-function utils.iter(list_or_iter)
+function M.iter(list_or_iter)
     if type(list_or_iter) == "function" then
         return list_or_iter
     end
@@ -24,10 +20,10 @@ function utils.iter(list_or_iter)
     end)
 end
 
-function utils.extract(list, comp, transform, ...)
+function M.extract(list, comp, transform, ...)
     -- from moses.lua
     -- extracts value from a list
-    transform = transform or utils.identity
+    transform = transform or M.identity
     local _ans
     for _, v in pairs(list) do
         if not _ans then
@@ -41,7 +37,8 @@ function utils.extract(list, comp, transform, ...)
 end
 
 local getiter = function(x)
-    if utils.isarray(x) then
+
+    if u.isarray(x) then
         return ipairs
     elseif type(x) == "table" then
         return pairs
@@ -50,7 +47,7 @@ local getiter = function(x)
 end
 
 -- Compute
-utils.len = function(t)
+function M.len(t)
     local count = 0
     for _ in pairs(t) do
         count = count + 1
@@ -59,7 +56,7 @@ utils.len = function(t)
 end
 
 -- get / set
-function utils.setfield(f, v, t)
+function M.setfield(f, v, t)
     t = t or _G -- start with the table of globals
     for w, d in string.gmatch(f, "([%w_]+)(.?)") do
         if d == "." then -- not last field?
@@ -71,7 +68,7 @@ function utils.setfield(f, v, t)
     end
 end
 
-function utils.getfield(f, t, isSafe)
+function M.getfield(f, t, isSafe)
     local v = t or _G -- start with the table of globals
     local res = nil
 
@@ -90,7 +87,11 @@ function utils.getfield(f, t, isSafe)
 end
 
 -- Find
-function utils.keys(t)
+function M.keys(t)
+
+    -- print('printing M')
+    -- u.p(_G.utils)
+
     local rtn = {}
     local iter = getiter(t)
     for k in iter(t) do
@@ -99,7 +100,7 @@ function utils.keys(t)
     return rtn
 end
 
-function utils.values(t)
+function M.values(t)
     local values = {}
     for _, v in pairs(t) do
         values[#values + 1] = v
@@ -107,7 +108,7 @@ function utils.values(t)
     return values
 end
 
-function utils.find(t, value)
+function M.find(t, value)
     local iter = getiter(t)
     result = nil
     for k, v in iter(t) do
@@ -118,8 +119,8 @@ function utils.find(t, value)
     return result
 end
 
-function utils.include(list, value)
-    for i in utils.iter(list) do
+function M.include(list, value)
+    for i in M.iter(list) do
         if i == value then
             return true
         end
@@ -128,8 +129,8 @@ function utils.include(list, value)
 end
 
 -- Filtering
-function utils.any(list, func)
-    for i in utils.iter(list) do
+function M.any(list, func)
+    for i in M.iter(list) do
         if func(i) then
             return true
         end
@@ -137,7 +138,7 @@ function utils.any(list, func)
     return false
 end
 
-function utils.all(vs, fn)
+function M.all(vs, fn)
     for _, v in pairs(vs) do
         if not fn(v) then
             return false
@@ -145,32 +146,11 @@ function utils.all(vs, fn)
     end
     return true
 end
-utils.every = utils.all
+M.every = M.all
 
 
 -- Transform
-function utils.groupBy(t, f)
-    -- FROM: https://github.com/pyrodogg/AdventOfCode/blob/master/2019/lua/util.lua#L149
-    local res = {}
-    for _, v in pairs(t) do
-        local g
-        if type(f) == 'function' then
-            g = f(v)
-        elseif type(f) == 'string' and v[f] ~= nil then
-            g = v[f]
-        else
-            error('Invalid group parameter [' .. f .. ']')
-        end
-
-        if res[g] == nil then
-            res[g] = {}
-        end
-        table.insert(res[g], v)
-    end
-    return res
-end
-
-function utils.zip(a, b)
+function M.zip(a, b)
     local rv = {}
     local idx = 1
     local len = math.min(#a, #b)
@@ -181,14 +161,14 @@ function utils.zip(a, b)
     return rv
 end
 
-function utils.extend(destination, source)
+function M.extend(destination, source)
     for k, v in pairs(source) do
         destination[k] = v
     end
     return destination
 end
 
-function utils.invert(t)
+function M.invert(t)
     local rtn = {}
     for k, v in pairs(t) do
         rtn[v] = k
@@ -196,3 +176,4 @@ function utils.invert(t)
     return rtn
 end
 
+return M

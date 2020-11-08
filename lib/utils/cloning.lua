@@ -1,5 +1,6 @@
+local M = {}
 
-function utils.copyShallow(orig)
+function M.copyShallow(orig)
     local orig_type = type(orig)
     local copy
     if orig_type == 'table' then
@@ -13,7 +14,7 @@ function utils.copyShallow(orig)
     return copy
 end
 
-function utils.copyDeep(obj, seen)
+function M.copyDeep(obj, seen)
     -- from https://gist.githubusercontent.com/tylerneylon/81333721109155b2d244/raw/5d610d32f493939e56efa6bebbcd2018873fb38c/copy.lua
     -- The issue here is that the following code will call itself
     -- indefinitely and ultimately cause a stack overflow:
@@ -46,8 +47,9 @@ function utils.copyDeep(obj, seen)
     local res = {}
     s[obj] = res
     for k, v in pairs(obj) do
-        res[utils.copyDeep(k, s)] = utils.copyDeep(v, s)
+        res[M.copyDeep(k, s)] = M.copyDeep(v, s)
     end
     return setmetatable(res, getmetatable(obj))
 end
 
+return M

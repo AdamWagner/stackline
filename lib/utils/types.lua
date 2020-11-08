@@ -1,14 +1,16 @@
-function utils.boolToNum(value)
+local M = {}
+
+function M.boolToNum(value)
     return value == true and 1 or value == false and 0
 end
 
-function utils.isarray(x)
+function M.isarray(x)
     return type(x) == "table" and x[1] ~= nil
 end
 
-function utils.toBool(val)
+function M.toBool(val)
     -- Reference:
-    -- function u.toBool( v )
+    -- function toBool( v )
     --   local n = tonumber( v )
     --   return n ~= nil and n ~= 0
     -- end
@@ -45,4 +47,4 @@ function utils.toBool(val)
     end
 end
 
-
+return M

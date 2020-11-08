@@ -1,9 +1,6 @@
+local M = {}
 
-function utils.max(t, transform)
-    return utils.extract(t, f_max, transform)
-end
-
-function utils.equal(a, b)
+function M.equal(a, b)
     if #a ~= #b then return false end
     for i, _ in ipairs(a) do
         if b[i] ~= a[i] then
@@ -14,13 +11,13 @@ function utils.equal(a, b)
     return true
 end
 
-function utils.greaterThan(n)
+function M.greaterThan(n)
     return function(t)
         return #t > n
     end
 end
 
-function utils.isEqual(a, b)
+function M.isEqual(a, b)
     --[[
     This function takes 2 values as input and returns true if they are equal
     and false if not. a and b can numbers, strings, booleans, tables and nil.
@@ -54,4 +51,4 @@ function utils.isEqual(a, b)
 
 end
 
-
+return M

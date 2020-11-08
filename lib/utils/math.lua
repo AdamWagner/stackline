@@ -1,8 +1,11 @@
+local M = {}
 
-function utils.identity(value)
+function M.identity(value)
     return value
 end
 
-function utils.roundToNearest(roundTo, numToRound)
+function M.roundToNearest(roundTo, numToRound)
     return numToRound - numToRound % roundTo
 end
+
+return M

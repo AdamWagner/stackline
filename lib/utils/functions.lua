@@ -1,5 +1,6 @@
+local M = {}
 
-function utils.invoke(instance, name, ...)
+function M.invoke(instance, name, ...)
     -- FIXME: This doesn't work, but it seems like it should
     --        attempt to index a nil value (local 'instance')
     return function(instance, ...)
@@ -9,15 +10,15 @@ function utils.invoke(instance, name, ...)
     end
 end
 
-utils.cb = utils.invoke -- shorter u.cb alias for u.invoke
+M.cb = M.invoke -- shorter u.cb alias for u.invoke
 
-function utils.cb(fn)
+function M.cb(fn)
     return function()
         return fn
     end
 end
 
-function utils.partial(f, ...)
+function M.partial(f, ...)
     local unpack = unpack or table.unpack
     local a = {...}
     local a_len = select("#", ...)
@@ -31,3 +32,5 @@ function utils.partial(f, ...)
         return f(unpack(a, 1, a_len + tmp_len))
     end
 end
+
+return M
