@@ -1,9 +1,9 @@
-local prop = require 'tests.mockHammerspoon.utils.prop'
-local MockBase = require 'stackline.tests.mockHammerspoon.utils.mockbase'
+local prop = require 'spec.hammerMocks.utils.prop'
+local MockBase = require 'stackline.spec.hammerMocks.utils.mockbase'
 
 local geometry = require 'hs.geometry' -- real hs.geometry
-local screen = require 'tests.mockHammerspoon.screen' -- other mocked hs modules
-local application = require 'tests.mockHammerspoon.application'
+local screen = require 'spec.hammerMocks.screen' -- other mocked hs modules
+-- local application = require 'spec.hammerMocks.application'
 
 local u = require 'stackline.lib.utils'
 
@@ -17,7 +17,7 @@ local u = require 'stackline.lib.utils'
 local winDefault = {
   frame = geometry({h = 1062.0, w = 957.0, x = 45.0, y = 38.0}),
   id = 11111,
-  title = "window.lua (~/Programming/Projects/stackline/tests.mockHammerspoon) ((1) of 11) - NVIM",
+  title = "window.lua (~/Programming/Projects/stackline/spec.hammerMocks) ((1) of 11) - NVIM",
   application = {name = 'kitty'},
   screen = screen:new(),
   isFocused = false,
@@ -74,13 +74,13 @@ function window.filter:setOverrideFilter(tbl)
 end
 
 function window.filter:getWindows()
-  return u.map(self._windows, function(w) 
+  return u.map(self._windows, function(w)
     return window:new(w)
   end)
 end
 
 function window.filter:subscribe(event, fn)
-  -- if single event or fn provided, wrap in table 
+  -- if single event or fn provided, wrap in table
   -- so we can loop over it later
   func = type(fn) == 'function' and {fn} or fn
   event = type(event) == 'string' and {event} or event
@@ -89,11 +89,11 @@ function window.filter:subscribe(event, fn)
     error('event must be a string, a list of strings, or a map', 2)
   end
 
-  -- associate all provided events with fns 
+  -- associate all provided events with fns
   -- that will be run when events are fired
-  for i, e in pairs(event) do
+  for _, e in pairs(event) do
     self.events[e] = self.events[e] or {} -- e.g., self.events = { windowCreated = {} }
-    for i, f in pairs(func) do
+    for _, f in pairs(func) do
       table.insert(self.events[e], f)     -- e.g., self.events = { windowCreated = { <function 1> } }
     end
   end
@@ -124,6 +124,6 @@ window.filter.windowsChanged = 'windowsChanged'
 -- }}}
 
 
--- window.filter = window.filter or require "tests.mockHammerspoon.window.filter"
+-- window.filter = window.filter or require "spec.hammerMocks.window.filter"
 
 return window

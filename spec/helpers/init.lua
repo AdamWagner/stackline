@@ -6,21 +6,23 @@ package.path = package.path .. '/Users/adamwagner/.hammerspoon/stackline/?/init.
 package.path = package.path .. '/Applications/Hammerspoon.app/Contents/Resources/extensions/?/init.lua;'
 
 require 'spec.helpers.assertions'
--- luacheck: ignore
 assert, match, spy = require 'luassert', require 'luassert.match', require 'luassert.spy'
 
 local function reloadMock() -- {{{
   hs = nil
   _G.hs = nil
   for k, _ in pairs(package.loaded) do
-    local hsmock = k:match('mockHammerspoon')
+    local hsmock = k:match('hammerMocks')
     if hsmock then
       package.loaded[k] = nil
     end
   end
 
   _G['u'] = require 'stackline.lib.utils' -- load utils globally
-  return require 'spec.mockHammerspoon' -- return hammerspon mocks
+  local hammer = require 'spec.hammerMocks' -- return hammerspon mocks
+  _G['hammer'] = hammer
+  _G['hs'] = hammer
+  return hammer
 end -- }}}
 
 local function methodSpy(obj, methodName, args) -- {{{

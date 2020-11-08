@@ -1,3 +1,6 @@
+package.path = '/Users/adamwagner/.luarocks/share/lua/5.4/?.lua;' .. package.path
+
+mm = require 'mm'
 local c = hs.console
 local u = require 'stackline.lib.utils'
 local json = require 'stackline.lib.json'
@@ -8,44 +11,47 @@ local json = require 'stackline.lib.json'
 -- TODO: fast way to restart (or auto-restart with hammerspoon)
 -- hs -c 'stackline' | jid
 -- hs -c 'stackline' | jq
--- hs -c 'stackline' | gron | rg 
-
+-- hs -c 'stackline' | gron | rg
 
 -- Console
+-- See for more inspo:
+-- https://github.com/hendri54/hammerspoon/blob/master/hsLH.lua
+-- https://github.com/irliao/dotfiles/blob/master/hammerspoon/console.lua
 -- ———————————————————————————————————————————————————————————————————————————
 hs.console.consoleFont({name = 'Operator Mono', size = 12})
 
-local function dark() -- {{{
-    local bg = '#242E38'
-    local fg = '#A7BACC'
-    c.windowBackgroundColor {hex = bg}
-    c.outputBackgroundColor {hex = bg}
-    c.inputBackgroundColor {hex = bg}
+local function size(n)  -- {{{
+    hs.console.consoleFont({size = n, name = 'Operator Mono'})
+end  -- }}}
 
-    c.consoleCommandColor {hex = fg}
-    c.consolePrintColor {hex = fg}
-    c.consoleResultColor {hex = fg}
+local function colorize(bg, fg)  -- {{{
+    c.windowBackgroundColor({hex = bg})
+    c.outputBackgroundColor({hex = bg})
+    c.inputBackgroundColor({hex = bg})
+
+    c.consoleCommandColor({hex = fg})
+    c.consolePrintColor({hex = fg})
+    c.consoleResultColor({hex = fg})
     c.alpha(1)
+end  -- }}}
+
+local dark = '#1b232d'
+local light = '#A7BACC'
+
+local function darkTheme() -- {{{
+    colorize(dark, light)
 end -- }}}
-local function light() -- {{{
-    c.windowBackgroundColor {white = 1}
-    c.outputBackgroundColor {white = 1}
-    c.inputBackgroundColor {white = 1}
-
-    c.consoleCommandColor {white = 0}
-    c.consolePrintColor {white = 0}
-    c.consoleResultColor {white = 0}
-    c.alpha(1)
+local function lightTheme() -- {{{
+    colorize(light, dark)
 end -- }}}
 
 local function toggleDark() -- {{{
-    local current = c.darkMode()
-    c.darkMode(not current)
+    c.darkMode(not c.darkMode())
 
     if c.darkMode() then
-        dark()
+        darkTheme()
     else
-        light()
+        lightTheme()
     end
 end -- }}}
 -- Introspect
@@ -116,67 +122,6 @@ local function getFnDesc(func) -- {{{
     return 'function@' .. addr .. '(' .. table.concat(params, ', ') .. ')'
 end -- }}}
 
--- Processing
--- ———————————————————————————————————————————————————————————————————————————
---  -- test recurseTables {{{
--- test = {
---     name = 'adam',
---     moments = {1, 2, 3, 4},
---     friends = {
---         {name = 'amy', age = 22},
---         {name = 'carlos', age = 32},
---         {name = 'mom', age = 62},
---     },
---     age = 33,
--- }
--- test.self = test
--- }}}
-
-local function recurseTables(tbl, fn, _d) -- {{{
-    -- provide nested "tbl" and "fn" to apply 
-    -- to parent tbl & child tables, recursively
-    local depth = _d or 0
-    if type(tbl) ~= 'table' then
-        return tbl
-    else
-        local copy = u.copyShallow(tbl)
-        local processed = fn(copy)
-        for k, v in pairs(processed) do
-            if type(k) == 'table' then
-                if depth > 3 then
-                    return tostring(k)
-                end
-                processed[tostring(k)] = recurseTables(fn(k), fn, depth + 1)
-            elseif type(v) == 'table' then
-                if depth > 3 then
-                    return tostring(k)
-                end
-                processed[tostring(k)] = recurseTables(fn(v), fn, depth + 1)
-            end
-        end
-        return processed
-    end
-end -- }}}
-
-procFunc = function(x) -- {{{
-    print('calling proc func')
-    local input = u.copyShallow(x)
-    local remove = {age = true, self = true, friends = true}
-    if type(input) ~= 'table' then
-        print('input is not table')
-        return x
-    else
-        for k, v in pairs(input) do
-            print('for k,v in input')
-            print(k)
-            if remove[k] then
-                input[k] = nil
-            end
-        end
-        return input
-    end
-end -- }}}
-
 -- Repl
 -- ———————————————————————————————————————————————————————————————————————————
 local function removeUserdata(obj, d) -- {{{
@@ -184,9 +129,7 @@ local function removeUserdata(obj, d) -- {{{
 
     if type(obj) == 'function' then
         return tostring(obj)
-    end
-
-    if type(obj) ~= 'table' then
+    elseif type(obj) ~= 'table' then
         return obj
     end
 
@@ -203,25 +146,23 @@ local function removeUserdata(obj, d) -- {{{
             _obj[tostring(i)] = getFnDesc(v)
 
         elseif type(v) == 'table' then
-            v = u.copyShallow(v)
             v = pruneWindow(v)
+            v = u.copyShallow(v)
             v.__index = nil
-            if depth > 5 then
-                return tostring(v)
-            end
+
+            if depth > 5 then return tostring(v) end
+
             if not (type(i) == 'string' or type(i) == 'number') then
                 _obj[tostring(i)] = removeUserdata(v, depth + 1)
             else
                 _obj[i] = removeUserdata(v, depth + 1)
             end
 
+        -- if the KEY is a table tho… just stringify it
         elseif type(i) == 'table' then
             i = u.copyShallow(i)
             i.__index = nil
-            if depth > 2 then
-                return tostring(i)
-            end
-            -- _obj[tostring(i)] = removeUserdata(i, depth + 1)
+
             _obj[tostring(i)] = tostring(i)
 
         elseif type(i) == 'function' then
@@ -241,15 +182,29 @@ local function toJson(i) -- {{{
     return json:encode(input)
 end -- }}}
 
-local function inspectByDefault(activate)  -- {{{
+function shouldInspect(input)  -- {{{
+    local skipIfContains = {'%s', 'help', 'test()'}
+    for _, v in pairs(skipIfContains) do
+        if input:find(v) then return false end
+    end
+    return true
+end  -- }}}
+
+local function inspectByDefault(activate) -- {{{
     if activate then
         hs._consoleInputPreparser = function(s)
-            return 'hs.inspect(' .. s .. ')'
+            -- TODO: don't count equals signs in parens
+
+            if shouldInspect(s) then
+                return 'hs.inspect(' .. s .. ')'
+            else
+                return s
+            end
         end
     else
         hs._consoleInputPreparser = nil
     end
-end  -- }}}
+end -- }}}
 
 local function repl(activate) -- {{{
     if activate then
@@ -264,16 +219,13 @@ end -- }}}
 return {
     -- console
     toggleDark = toggleDark,
-    light = light,
-    dark = dark,
-    -- heading = figlet.show, (silly figlet file is local only)
+    light = lightTheme,
+    dark = darkTheme,
+    size = size,
 
     -- introspect
     getGlobals = getGlobals,
     pruneWindow = pruneWindow,
-
-    -- process
-    recurseTables = recurseTables,
 
     -- repl
     toJson = toJson,

@@ -1,4 +1,4 @@
-local prop = require 'tests.mockHammerspoon.utils.prop'
+local prop = require 'spec.hammerMocks.utils.prop'
 
 --[[ NOTES {{{
 __eq           = <function 1>,
@@ -42,21 +42,20 @@ unhide         = <function 33>,
 visibleWindows = <function 34>
 ]]  -- }}}
 
-application = {}  
+application = {}
 
-application.__data = {  
+application.__data = {
   bundleIDs = setmetatable({
     ['kitty'] = "net.kovidgoyal.kitty",
     ['Google Chrome'] = "com.google.Chrome",
     ['Finder'] = "com.apple.finder",
   }, {__index = 'com.default.bundleid'})
-}  
+}
 application.__defaults = {}
 application.__defaults.name = 'kitty'
 
-
 function application:new(o)
-    local o = o or {}
+    o = o or {}
     setmetatable(o, self)
     self.__index = self
     o.name      = o.name or self.__defaults.name

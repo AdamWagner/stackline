@@ -1,16 +1,11 @@
+-- NOTE:
+-- 90 Line log module with color output & file-writing
+-- https://github.com/rxi/log.lua/blob/master/log.lua
 
--- NOTE: 
---90 Line log module with color output & file-writing
---https://github.com/rxi/log.lua/blob/master/log.lua
-
--- Stackline use:
+-- STACKLINE REFERENCES:
 -- hs.logger.new(level)
 --    log.setLogLevel('info')
 --    log.i(msg), etc
-
--- local log = hs.logger.new('hsmock.logger')
--- log.setLogLevel('info')
--- log.i("Loading'hsmock.logger")
 
 local logger = {}
 
@@ -38,11 +33,11 @@ end
 function logger.new(name, level)
   local l = {
     level = level,
-    e = function(v) if logger.level >= 1 then log.d(name, v) end end,
-    w = function(v) if logger.level >= 2 then log.d(name, v) end end,
-    i = function(v) if logger.level >= 3 then log.d(name, v) end end,
-    d = function(v) if logger.level >= 4 then log.d(name, v) end end,
-    v = function(v) if logger.level >= 5 then log.d(name, v) end end,
+    e = function(v) if logger.level >= 1 then print(name, v) end end,
+    w = function(v) if logger.level >= 2 then print(name, v) end end,
+    i = function(v) if logger.level >= 3 then print(name, v) end end,
+    d = function(v) if logger.level >= 4 then print(name, v) end end,
+    v = function(v) if logger.level >= 5 then print(name, v) end end,
     setLogLevel = function() end,
     getLogLevel = function() end,
   }

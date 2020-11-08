@@ -97,7 +97,7 @@ return {
         isMinimized = false,
         isStandard = true,
         isVisible = true,
-        title = "~/Programming/Projects/stackline/tests.mockHammerspoon/window — fish",
+        title = "~/Programming/Projects/stackline/spec.hammerMocks/window — fish",
       },
       {
         application = {name = "kitty"},

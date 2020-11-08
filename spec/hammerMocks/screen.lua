@@ -1,10 +1,7 @@
-local log = helpers.logSetup('mock_screen')
-
-local MockBase = require 'stackline.tests.mockHammerspoon.utils.mockbase'
-local prop = require 'tests.mockHammerspoon.utils.prop'
+local prop = require 'spec.hammerMocks.utils.prop'
 local geometry = require 'hs.geometry' -- real hs.geometry
 
--- Stackline uses:
+-- STACKLINE REFERENCES:
 -- screen
 
 local screen = {}
