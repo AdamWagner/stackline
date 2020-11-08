@@ -1,9 +1,8 @@
 -- stackline-test-formatter.lua
 -- Modified from: https://github.com/aperezdc/lua-matrix/blob/2946b558101a22dd0770a2548f938ada86475256/spec/detailUtfTerm.lua
 --
--- OTHERS: 
+-- OTHERS:
 --  https://github.com/drmplanet/kdlenv/blob/master/koreader/base/spec/unit/verbose_print.lua
-
 
 -- FROM penlight.lua -----------------------------------------------------------
 local sep, other_sep, seps
@@ -59,7 +58,7 @@ return function(options)
   end  -- }}}
 
   local function normWidth(text, padding)  -- {{{
-    local padding = padding or 0
+    padding = padding or 0
     local remain = width - padding
     local len = #text
 
@@ -97,7 +96,7 @@ return function(options)
       local rule = '┌'
       for i = 1, width - 3 do
         rule = rule .. '─'
-      end 
+      end
       rule = rule .. '┐'
         -- '─'
       io.write(colors.black(rule))

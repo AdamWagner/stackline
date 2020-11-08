@@ -9,7 +9,7 @@
 
 -- REFERENCE:
 --  /Applications/Hammerspoon.app/Contents/Resources/extensions/
-local converter = require 'stackline.lib.save'
+local converter = require 'lib.save'
 
 local fixtureDataPath = os.getenv('HOME') ..  '/.hammerspoon/stackline/tests/fixtures/data'
 local yabaiScriptPath = os.getenv('HOME') ..  '/.hammerspoon/stackline/bin/yabai-get-stack-idx'
@@ -52,35 +52,6 @@ local function windowMapper(w) -- {{{
     isMinimized = w:isMinimized(),
     isStandard = w:isStandard(),
     isVisible = w:isVisible(),
-  }
-end -- }}}
-
-local function stackMapper(stack) -- {{{
-  return {
-    id = stack.id,
-    windows = u.map(stack.windows, function(w)
-      return {
-        app = w.app,
-        title = w.title,
-
-        frame = w.frame.table,
-        focus = w.focus,
-        screenFrame = w.screenFrame.table,
-
-        stackIdx = w.stackIdx,
-
-        iconRadius = w.iconRadius,
-        icon_rect = w.icon_rect,
-        indicator_rect = w.indicator_rect,
-        width = w.width,
-
-        stackFocus = w.stackFocus,
-        stackId = w.stackId,
-        stackIdFzy = w.stackIdFzy,
-
-        stack = {id = w.stack.id, numWindows = #w.stack.windows},
-      }
-    end),
   }
 end -- }}}
 

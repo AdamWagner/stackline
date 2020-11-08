@@ -30,7 +30,6 @@ return {
     },
   },
 
-
   screen = {
     frame = { -- hs.geometry.rect(0.0,0.0,1792.0,1120.0)
       h = 1120.0,
