@@ -152,9 +152,9 @@ function M:validate(conf) -- {{{
     if isValid then
         log.i('✓ Conf validated successfully')
         self.conf = conf
-        self.autosuggestions = u.keys(u.flatten(self.conf))
+        self.autosuggestions = u.keys(table.flatten(self.conf))
     else
-        local invalidKeys = table.concat(u.keys(u.flatten(err)), ", ")
+        local invalidKeys = table.concat(u.keys(table.flatten(err)), ", ")
         hs.notify.new(nil, {
             title           = 'Invalid stackline config!',
             subTitle        =  'invalid keys:' .. invalidKeys,
@@ -165,7 +165,7 @@ function M:validate(conf) -- {{{
         log.e('Invalid stackline config:\n', hs.inspect(err))
     end
 
-    return valid, err
+    return isValid, err
 end -- }}}
 
 function M:autosuggest(path) -- {{{
