@@ -152,9 +152,9 @@ function M:validate(conf) -- {{{
     if isValid then
         log.i('✓ Conf validated successfully')
         self.conf = conf
-        self.autosuggestions = u.keys(u.flatten(self.conf))
+        self.autosuggestions = u.keys(table.flatten(self.conf))
     else
-        local invalidKeys = table.concat(u.keys(u.flatten(err)), ", ")
+        local invalidKeys = table.concat(u.keys(table.flatten(err)), ", ")
         hs.notify.new(nil, {
             title           = 'Invalid stackline config!',
             subTitle        =  'invalid keys:' .. invalidKeys,
@@ -165,14 +165,13 @@ function M:validate(conf) -- {{{
         log.e('Invalid stackline config:\n', hs.inspect(err))
     end
 
-    return valid, err
+    return isValid, err
 end -- }}}
 
 function M:autosuggest(path) -- {{{
-    local dist = u.partial(u.levenshteinDistance, path) -- lev.d fn that can be mapped over list of candidates
     local scores = u.zip(
-            u.map(self.autosuggestions, dist),          -- list of scores {0.2024, 0.182, 0.991, …}
-            self.autosuggestions                        -- list of strings
+            u.map(self.autosuggestions, function(str) return path:distance(str) end), -- list of scores {0.2024, 0.182, 0.991, …}
+            self.autosuggestions -- list of strings
         )
     local function asc(a, b)
         return a[1] < b[1]

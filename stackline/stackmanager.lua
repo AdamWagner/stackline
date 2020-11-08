@@ -11,7 +11,8 @@ function Stackmanager:init() -- {{{
 end -- }}}
 
 function Stackmanager:update() -- {{{
-    Query.run(stackline.wf:getWindows())
+    local ws = stackline.wf:getWindows()
+    Query.run(ws)
     return self
 end -- }}}
 
@@ -24,13 +25,8 @@ function Stackmanager:ingest(windowGroups, appWindows, shouldClean) -- {{{
     for stackId, groupedWindows in pairs(windowGroups) do
         local stack = Stack:new(groupedWindows) -- instantiate new instance of Stack()
         stack.id = stackId
-        u.each(stack.windows, function(win)
-            -- win.otherAppWindows needed to workaround Hammerspoon issue #2400
-            win.otherAppWindows = u.filter(appWindows[win.app], function(w)
-                -- exclude self and other app windows from other others
-                return (w.id ~= win.id) and (w.screen == win.screen)
-            end)
-            -- TODO: fix error with nil stack field (??): window.lua:32: attempt to index a nil value (field 'stack')
+        stack:eachWin(function(win)
+            win:setOtherAppWindows(appWindows)
             win.stack = stack -- enables calling stack methods from window
         end)
         table.insert(self.tabStacks, stack)
