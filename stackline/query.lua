@@ -4,19 +4,6 @@ local c = stackline.config:get()
 
 local Query = {}
 
-function Query:getWinStackIdxs(onSuccess) -- {{{
-    -- TODO: Consider coroutine (allows HS to do other work while waiting for yabai)
-    --       https://github.com/koekeishiya/yabai/issues/502#issuecomment-633378939
-    hs.task.new("/bin/sh", function(_code, stdout, _stderr)
-        -- call out to yabai to get stack-indexes
-        local ok, json = pcall(hs.json.decode, stdout)
-        if ok then
-            onSuccess(json)
-        else -- try again
-            hs.timer.doAfter(1, function() self:getWinStackIdxs() end)
-        end
-    end, {c.paths.getStackIdxs}):start()
-end -- }}}
 
 function getStackedWinIds(byStack)  -- {{{
     stackedWinIds = {}
@@ -69,6 +56,14 @@ function Query:removeGroupedWin(win) -- {{{
             return w.id ~= win.id
         end)
     end)
+function Query.getStackedWinIds(byStack) -- {{{
+  local stackedWinIds = {}
+  for _, group in pairs(byStack) do
+    for _, win in pairs(group) do
+      stackedWinIds[win.id] = true
+    end
+  end
+  return stackedWinIds
 end -- }}}
 
 function Query:mergeWinStackIdxs() -- {{{
