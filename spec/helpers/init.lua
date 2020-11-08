@@ -1,10 +1,4 @@
-package.path = package.path .. '/usr/local/lib/lua/5.3/?.lua;'
-package.path = package.path .. '/Users/adamwagner/.hammerspoon/?.lua;'
-package.path = package.path .. '/Users/adamwagner/.hammerspoon/?/init.lua;'
-package.path = package.path .. '/Users/adamwagner/.hammerspoon/stackline/?.lua;'
-package.path = package.path .. '/Users/adamwagner/.hammerspoon/stackline/?/init.lua;'
-package.path = package.path .. '/Applications/Hammerspoon.app/Contents/Resources/extensions/?/init.lua;'
-
+require 'lib.updatePackagePath'
 require 'spec.helpers.assertions'
 assert, match, spy = require 'luassert', require 'luassert.match', require 'luassert.spy'
 
@@ -18,7 +12,10 @@ local function reloadMock() -- {{{
     end
   end
 
-  _G['u'] = require 'stackline.lib.utils' -- load utils globally
+  if not _G['u'] then
+    _G['u'] = require 'lib.utils' -- load utils globally
+  end
+
   local hammer = require 'spec.hammerMocks' -- return hammerspon mocks
   _G['hammer'] = hammer
   _G['hs'] = hammer

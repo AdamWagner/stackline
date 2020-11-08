@@ -1,11 +1,4 @@
-package.path = package.path .. '/usr/local/lib/lua/5.3/?.lua;'
-package.path = package.path .. '/Users/adamwagner/.hammerspoon/?.lua;'
-package.path = package.path .. '/Users/adamwagner/.hammerspoon/?/init.lua;'
-package.path = package.path .. '/Users/adamwagner/.hammerspoon/stackline/?.lua;'
-package.path = package.path .. '/Users/adamwagner/.hammerspoon/stackline/?/init.lua;'
-package.path = package.path .. '/Applications/Hammerspoon.app/Contents/Resources/extensions/?/init.lua;'
-
-local fixtureUtils = require 'stackline.spec.fixtures.utils'
+local fixtureUtils = require 'spec.fixtures.utils'
 
 return function(fixture)
     -- get specified fixture data (or default), process, and return
