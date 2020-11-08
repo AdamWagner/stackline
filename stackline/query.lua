@@ -2,15 +2,14 @@ local u = require 'stackline.lib.utils'
 local async = require 'stackline.lib.async'
 local c = stackline.config:get()
 
-local function groupByStack(windows)  -- {{{
-    -- Group by raw stackId (frame dims) or *fzy* frame dims?
-  local groupKey = c.features.fzyFrameDetect.enabled and 'stackIdFzy' or 'stackId'
+local Query = {}
 
-    -- stacks have > 1 window, so ignore 'groups' of 1
-  return u.filter(u.groupBy(windows, groupKey), u.greaterThan(1))
+function Query.groupByStack(windows)  -- {{{
+  local groupKey = c.features.fzyFrameDetect.enabled and 'stackIdFzy' or 'stackId' -- Group by raw stackId (frame dims) or *fzy* frame dims?
+  return u.filter(u.groupBy(windows, groupKey), u.greaterThan(1))                  -- stacks have > 1 window, so ignore 'groups' of 1
 end  -- }}}
 
-local function groupByApp(byStack, windows)  -- {{{
+function Query.groupByApp(byStack, windows)  -- {{{
     -- TODO: Remove when https://github.com/Hammerspoon/hammerspoon/issues/2400 closed
   if u.len(byStack) > 0 then
     local stackedWinIds = Query.getStackedWinIds(byStack)
@@ -20,9 +19,7 @@ local function groupByApp(byStack, windows)  -- {{{
 
     return u.groupBy(stackedWins, 'app')   -- app names are keys in group
   end
-end  -- }}}
-
-local Query = {}
+end -- }}}
 
 function Query.getWinStackIdxs() -- {{{
   local r = async()
@@ -50,8 +47,8 @@ function Query.groupWindows(ws) -- {{{
     return stackline.window:new(w)
   end)
 
-  local byStack = groupByStack(windows)
-  local byApp = groupByApp(byStack, windows)
+  local byStack = Query.groupByStack(windows)
+  local byApp = Query.groupByApp(byStack, windows)
 
   return byStack, byApp
 end -- }}}
