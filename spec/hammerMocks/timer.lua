@@ -1,4 +1,4 @@
-local sleep = require 'stackline.lib.utils'.sleep
+local sleep = require 'lib.utils'.sleep
 
 -- See
 -- https://github.com/vocksel/Timer

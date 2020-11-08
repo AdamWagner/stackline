@@ -1,5 +1,4 @@
-local prop = require 'stackline.spec.hammerMocks.utils.prop'
-
+local prop = require 'hammerMocks.utils.prop'
 
 local MockBase = {}
 

@@ -1,4 +1,4 @@
-local e = require 'stackline.lib.event'()
+local e = require 'lib.event'()
 
 -- STACKLINE REFERENCES:
 -- hs.eventtap.event.types

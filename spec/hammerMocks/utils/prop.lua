@@ -47,7 +47,6 @@ local function prop(v)
         end,
     }
     setmetatable(o, mt)
-    o.__index = self
     return o
 end
 

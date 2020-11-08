@@ -1,5 +1,5 @@
-local prop = require 'stackline.spec.hammerMocks.utils.prop'
-local MockBase = require 'stackline.spec.hammerMocks.utils.mockbase'
+local prop = require 'hammerMocks.utils.prop'
+local MockBase = require 'hammerMocks.utils.mockbase'
 
 -- local log = hs.logger.new('hsmock.canvas')
 -- log.setLogLevel('info')
@@ -22,10 +22,8 @@ local MockBase = require 'stackline.spec.hammerMocks.utils.mockbase'
            -- image = hs.image
            -- frame = hs.geometry.rect
            -- imageAlpha = {}
-       -- }, 
+       -- },
        -- iconIdx
-    
-    
     :elementAttribute(idx, key)
     :frame() -> hs.geometry.rect
     :alpha()
@@ -55,7 +53,7 @@ local default = {
 local canvas = MockBase:new(default)
 
 function canvas.new(o)
-    local o = o or {}
+    o = o or {}
     setmetatable(o, canvas)
     canvas.__index = canvas
     return o

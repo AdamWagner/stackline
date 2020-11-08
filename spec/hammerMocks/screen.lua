@@ -1,4 +1,4 @@
-local prop = require 'spec.hammerMocks.utils.prop'
+local prop = require 'hammerMocks.utils.prop'
 local geometry = require 'hs.geometry' -- real hs.geometry
 
 -- STACKLINE REFERENCES:

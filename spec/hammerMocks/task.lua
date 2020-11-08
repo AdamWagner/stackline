@@ -1,8 +1,8 @@
-local prop = require 'spec.hammerMocks.utils.prop'
-local sleep = require 'stackline.lib.utils'.sleep
+local prop = require 'hammerMocks.utils.prop'
+local sleep = require 'lib.utils'.sleep
 
 
-local json = require 'spec.hammerMocks.json'
+local json = require 'hammerMocks.json'
 
 -- STACKLINE REFERENCES:
 -- hs.task.new

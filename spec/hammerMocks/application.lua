@@ -1,4 +1,4 @@
-local prop = require 'spec.hammerMocks.utils.prop'
+local prop = require 'hammerMocks.utils.prop'
 
 --[[ NOTES {{{
 __eq           = <function 1>,

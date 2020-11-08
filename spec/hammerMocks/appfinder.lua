@@ -3,7 +3,7 @@
 --    appBundle = hs.appfinder.appFromName(self.app):bundleID()
 --    return hs.image.imageFromAppBundle(appBundle)
 
-local application = require 'stackline.spec.hammerMocks.application'
+local application = require 'hammerMocks.application'
 
 local appfinder = {}
 
