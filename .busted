@@ -1,0 +1,29 @@
+-- vim:set ft=lua:
+
+return {
+  _all = {
+    coverage = false,
+    ROOT = {"spec"},
+    ['defer-print'] = false,
+    ['keep-going'] = true,
+    ['suppress-pending'] = false,
+
+    output = './spec/helpers/stackline-output-formatter.lua',
+    helper = 'spec.helpers',
+  },
+  default = { verbose = false },
+  mock = {
+    tags = "mock",
+    verbose = false
+  },
+  modules = {
+    tags = "modules",
+    ['defer-print'] = false,
+    verbose = false,
+  },
+  main = {
+    tags = "main",
+    ['defer-print'] = true,
+    verbose = false,
+  },
+}
