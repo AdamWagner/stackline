@@ -13,11 +13,8 @@ local function appendPath(path, opts)
 
   local suffixes = { '?.lua', '?/init.lua', }
   for _,suffix in pairs(suffixes) do
-    print('suffix:', suffix)
     p = path .. suffix
-    print('path:', p)
     p = p:ensureEndsWith(';')
-    print('path after end check:', p)
     package.path = p .. package.path
   end
 end

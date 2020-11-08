@@ -2,46 +2,32 @@ local log = hs.logger.new('sline.conf')
 log.setLogLevel('info')
 log.i("Loading module")
 
-local M = {}
-
--- Validators & type lookup
 local v = require 'stackline.lib.valid'
 local o = v.optional
-local is_color = v.is_table { -- {{{
+
+local is_color = v.is_table {
     white = o(v.is_number()),
     red   = o(v.is_number()),
     green = o(v.is_number()),
     blue  = o(v.is_number()),
     alpha = o(v.is_number()),
-} -- }}}
-local function unknownTypeValidator(v) -- {{{
-    log.i("Not validating: ", schemaType)
+}
+
+local function unknownTypeValidator(v)
+    log.i("Not validating: ", v)
     return true
-end -- }}}
+end
+
+local M = {}
 
 M.types = { -- {{{
-    ['string'] = {
-        validator = v.is_string,
-        coerce = tostring,
-    },
-    ['number'] = {
-        validator = v.is_number,
-        coerce = tonumber,
-    },
-    ['table'] = {
-        validator = v.is_table,
-        coerce = u.identity,
-    },
-    ['boolean'] = {
-        validator = v.is_boolean,
-        coerce = u.toBool,
-    },
-    ['color'] = {
-        validator = u.cb(is_color),
-        coerce = u.identity,
-    },
+    ['string']    = { validator = v.is_string, coerce = tostring },
+    ['number']    = { validator = v.is_number, coerce = tonumber },
+    ['table']     = { validator = v.is_table, coerce = u.identity },
+    ['boolean']   = { validator = v.is_boolean, coerce = u.toBool },
+    ['color']     = { validator = u.cb(is_color), coerce = u.identity },
     ['winTitles'] = {
-        validator = u.cb(v.in_list { true, false, 'when_switching', 'not_implemented', }),
+        validator = u.cb(v.in_list {true, false, 'when_switching', 'not_implemented'}),
         coerce = u.identity,
     },
     ['dynamicLuminosity'] = {
@@ -53,10 +39,11 @@ M.types = { -- {{{
 local defaultOnChangeEvt = {    -- {{{
     __index = function() stackline.queryWindowState:start() end
 }  -- }}}
-
 M.events = setmetatable({ -- {{{
     appearance = {
-        onChange = function() stackline.manager:resetAllIndicators() end,
+        onChange = function()
+            stackline.manager:resetAllIndicators()
+        end,
     },
     features = {
         clickToFocus      = function() return stackline:refreshClickTracker() end,
@@ -71,38 +58,31 @@ M.events = setmetatable({ -- {{{
 }, defaultOnChangeEvt) -- }}}
 
 M.schema = { -- {{{
-    paths = {
-      getStackIdxs        = 'string',
-      jq                  = 'string',
-      yabai               = 'string'
-    },
+    paths = {getStackIdxs = 'string', jq = 'string', yabai = 'string'},
     appearance = {
-        color             = 'color',
-        alpha             = 'number',
-        dimmer            = 'number',
-        iconDimmer        = 'number',
-        showIcons         = 'boolean',
-        size              = 'number',
-        radius            = 'number',
-        iconPadding       = 'number',
-        pillThinness      = 'number',
+        color        = 'color',
+        alpha        = 'number',
+        dimmer       = 'number',
+        iconDimmer   = 'number',
+        showIcons    = 'boolean',
+        size         = 'number',
+        radius       = 'number',
+        iconPadding  = 'number',
+        pillThinness = 'number',
 
-        vertSpacing       = 'number',
-        offset            = {x='number', y='number'},
-        shouldFade        = 'boolean',
-        fadeDuration      = 'number',
+        vertSpacing  = 'number',
+        offset       = { x = 'number', y = 'number' },
+        shouldFade   = 'boolean',
+        fadeDuration = 'number',
     },
     features = {
         clickToFocus      = 'boolean',
         hsBugWorkaround   = 'boolean',
         winTitles         = 'winTitles',
         dynamicLuminosity = 'dynamicLuminosity',
-        fzyFrameDetect    = { enabled = 'boolean', fuzzFactor = 'number' },
+        fzyFrameDetect    = {enabled = 'boolean', fuzzFactor = 'number'},
     },
-    advanced = {
-        maxRefreshRate = 0.3,
-
-    }
+    advanced = {maxRefreshRate = 0.3},
 } -- }}}
 
 function M:getPathSchema(path) -- {{{
@@ -117,13 +97,13 @@ end -- }}}
 function M.generateValidator(schemaType) -- {{{
     if type(schemaType) == 'table' then
         local children = u.map(schemaType, M.generateValidator)
-        log.d('validator children:\n', hs.inspect(children))
+        -- log.d('validator children:\n', hs.inspect(children))
         return v.is_table(children)
     else
-        log.i('schemaType:', schemaType)
-        return
-            M.types[schemaType] and M.types[schemaType].validator() -- returns a fn to be called with value to validate
-            or unknownTypeValidator -- unknown types are assumed-valid
+        -- log.i('schemaType:', schemaType)
+        return M.types[schemaType]
+                and M.types[schemaType].validator() -- returns a fn to be called with value to validate
+                or unknownTypeValidator -- unknown types are assumed-valid
     end
 end -- }}}
 
@@ -149,6 +129,7 @@ function M:validate(conf) -- {{{
     local validate     = self.generateValidator(self.schema)
     local isValid, err = validate(c)
 
+
     if isValid then
         log.i('✓ Conf validated successfully')
         self.conf = conf
@@ -157,13 +138,14 @@ function M:validate(conf) -- {{{
         local invalidKeys = table.concat(u.keys(table.flatten(err)), ", ")
         hs.notify.new(nil, {
             title           = 'Invalid stackline config!',
-            subTitle        =  'invalid keys:' .. invalidKeys,
+            subTitle        = 'invalid keys:' .. invalidKeys,
             informativeText = 'Please refer to the default conf file.',
             withdrawAfter   = 10
         }):send()
 
         log.e('Invalid stackline config:\n', hs.inspect(err))
     end
+
 
     return isValid, err
 end -- }}}
@@ -205,8 +187,10 @@ function M:get(path) -- {{{
 
     local ok, val = pcall(u.getfield, path, self.conf)
 
-    if ok then return val
-    else self:autosuggest(path)
+    if ok then
+        return val
+    else
+        self:autosuggest(path)
     end
 end -- }}}
 
@@ -222,16 +206,15 @@ function M:set(path, val) -- {{{
     else
         local typedVal = self.types[_type].coerce(val)
         local isValid, err = validator(typedVal)           -- validate val is appropriate type
-        log.d('\nval:', typedVal)
-        log.d('val type:', type(typedVal))
+        -- log.d('\nval:', typedVal)
+        -- log.d('val type:', type(typedVal))
         if isValid then
-            log.d('Setting', path, 'to', typedVal)
+            -- log.d('Setting', path, 'to', typedVal)
             u.setfield(path, typedVal, self.conf)
-
             local onChange = u.getfield(path, self.events, true)
             if type(onChange) == 'function' then onChange() end
         else
-            log.e(hs.inspect(err))
+            -- log.e(hs.inspect(err))
         end
         return self, val
     end
@@ -240,7 +223,7 @@ end -- }}}
 
 function M:toggle(key) -- {{{
     local toggledVal = not self:get(key)
-    log.d('Toggling', key, 'from ', self:get(key), 'to ', toggledVal)
+    -- log.d('Toggling', key, 'from ', self:get(key), 'to ', toggledVal)
     self:set(key, toggledVal)
     return self
 end -- }}}
@@ -258,8 +241,7 @@ function M:parseMsg(msg) -- {{{
     end
 
     -- TODO: resolve 'chicken & egg' problem: need type to fully parse, need to fully parse to get type w/o error
-    -- local _type, validator = self:getPathSchema(path)
-
+    local _type, validator = self:getPathSchema(path)
     local parsedMsg = {
         path      = path,
         val       = val,
@@ -271,7 +253,6 @@ function M:parseMsg(msg) -- {{{
     }
 
     log.d('Parsed msg:\n', hs.inspect(parsedMsg))
-
     return parsedMsg
 end -- }}}
 
@@ -306,6 +287,5 @@ function M:handleMsg(msg) -- {{{
 
     return "ok"
 end -- }}}
-
 
 return M

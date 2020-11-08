@@ -1,4 +1,4 @@
-require 'stackline.lib.updatePackagePath'
+require 'lib.updatePackagePath'
 
 -- Extend builtins
 require 'lib.utils.string'

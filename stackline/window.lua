@@ -22,11 +22,9 @@ end -- }}}
 
 function Window:isFocused() -- {{{
     local focusedWin = hs.window.focusedWindow()
-    if focusedWin == nil then
-        return false
-    end
-    local isFocused = self.id == focusedWin:id()
-    return isFocused
+    return focusedWin
+        and focusedWin:id() == self.id
+        or false
 end -- }}}
 
 function Window:isStackFocused() -- {{{
@@ -34,15 +32,16 @@ function Window:isStackFocused() -- {{{
 end -- }}}
 
 function Window:setupIndicator() -- {{{
-    -- Config
     self.config = stackline.config:get('appearance')
     local c = self.config
     self.showIcons = c.showIcons
 
     self:isStackFocused()
 
-    -- computed from config
-    self.width = self.showIcons and c.size or (c.size / c.pillThinness)
+    self.width = self.showIcons
+                    and c.size
+                    or (c.size / c.pillThinness)
+
     self.iconRadius = self.width / self.config.radius
 
     -- Set canvas to fill entire screen
@@ -53,14 +52,13 @@ function Window:setupIndicator() -- {{{
 
     -- Store  canvas elements indexes to reference via :elementAttribute()
     -- https://www.hammerspoon.org/docs/hs.canvas.html#elementAttribute
-    self.rectIdx = 1
-    self.iconIdx = 2
+    self.rectIdx, self.iconIdx = 1, 2
 
     -- NOTE: self.stackIdx comes from yabai. Window is stacked if stackIdx > 0
     self.indicator_rect = {
         x = xval,
         y = self.frame.y + c.offset.y +
-            ((self.stackIdx - 1) * c.size * c.vertSpacing),
+            (self.stackIdx - 1) * c.size * c.vertSpacing,
         w = self.width,
         h = c.size,
     }
@@ -183,7 +181,7 @@ function Window:redrawIndicator() -- {{{
     if self.showIcons then
         icon.imageAlpha = colorAttrs.img
     end
-    rect.shadow = self:getShadowAttrs(f)
+    rect.shadow = self:getShadowAttrs()
 end -- }}}
 
 function Window:getScreenSide() -- {{{
