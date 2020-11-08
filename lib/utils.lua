@@ -270,7 +270,7 @@ function utils.max(t, transform) -- {{{
     return utils.extract(t, f_max, transform)
 end -- }}}
 
-utils.length = function(t) -- {{{
+utils.len = function(t) -- {{{
     local count = 0
     for _ in pairs(t) do
         count = count + 1

@@ -11,12 +11,12 @@ function Stackmanager:init() -- {{{
 end -- }}}
 
 function Stackmanager:update() -- {{{
-    Query:windowsCurrentSpace() -- calls Stack:ingest when ready
+    Query.run(stackline.wf:getWindows())
     return self
 end -- }}}
 
 function Stackmanager:ingest(windowGroups, appWindows, shouldClean) -- {{{
-    local stacksCount = u.length(windowGroups)
+    local stacksCount = u.len(windowGroups)
     if shouldClean or (stacksCount == 0) then
         self:cleanup()
     end
