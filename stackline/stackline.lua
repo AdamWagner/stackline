@@ -1,4 +1,3 @@
-require("hs.ipc")
 u = require 'stackline.lib.utils'
 
 -- Aliases / shortcuts
@@ -25,7 +24,7 @@ function stackline:init(userConfig) -- {{{
         allowRoles = 'AXStandardWindow',
     }  -- }}}
 
-    local userConfig = userConfig or {}
+    userConfig = userConfig or {}
     self.config:init( -- init config with default conf + user overrides
         table.merge(require 'stackline.conf', userConfig)
     )
@@ -69,10 +68,10 @@ function stackline:init(userConfig) -- {{{
 
     -- On each win evt above (or at most once every 0.3s)
     -- query window state and check if refersh needed
-    self.wf:subscribe(
-        self.windowEvents, function(_win, _app, _evt) -- {{{
+    self.wf:subscribe( -- {{{
+        self.windowEvents, function(_win, _app, _evt)
             self.queryWindowState:start()
-        end 
+        end
     ) -- }}}
 
     -- On each win evt listed, simply *redraw* indicators
