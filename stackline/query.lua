@@ -6,7 +6,7 @@ local Query = {}
 
 function Query.groupByStack(windows)  -- {{{
   local groupKey = c.features.fzyFrameDetect.enabled and 'stackIdFzy' or 'stackId' -- Group by raw stackId (frame dims) or *fzy* frame dims?
-  return u.filter(u.groupBy(windows, groupKey), u.greaterThan(1))                  -- stacks have > 1 window, so ignore 'groups' of 1
+  return u.filter(table.groupBy(windows, groupKey), u.greaterThan(1))                  -- stacks have > 1 window, so ignore 'groups' of 1
 end  -- }}}
 
 function Query.groupByApp(byStack, windows)  -- {{{
@@ -17,7 +17,7 @@ function Query.groupByApp(byStack, windows)  -- {{{
       return stackedWinIds[w.id]   -- true if win id is in stackedWinIds
     end)
 
-    return u.groupBy(stackedWins, 'app')   -- app names are keys in group
+    return table.groupBy(stackedWins, 'app')   -- app names are keys in group
   end
 end -- }}}
 

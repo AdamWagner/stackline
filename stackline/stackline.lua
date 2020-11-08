@@ -1,16 +1,15 @@
-u = require 'stackline.lib.utils'
+u = require 'utils'
 
--- Aliases / shortcuts
 local wf    = hs.window.filter
 local timer = hs.timer.delayed
-local log   = hs.logger.new('stackline', 'info')
 local click = hs.eventtap.event.types['leftMouseDown'] -- fyi, print hs.eventtap.event.types to see all event types
+local log   = hs.logger.new('stackline', 'info')
 
 log.i("Loading module")
 
 stackline = {}
-stackline.config = require 'stackline.stackline.configManager'
-stackline.window = require 'stackline.stackline.window'
+stackline.config = require 'stackline.configManager'
+stackline.window = require 'stackline.window'
 
 function stackline:init(userConfig) -- {{{
     log.i('starting stackline')
@@ -26,11 +25,11 @@ function stackline:init(userConfig) -- {{{
 
     userConfig = userConfig or {}
     self.config:init( -- init config with default conf + user overrides
-        table.merge(require 'stackline.conf', userConfig)
+        table.merge(require 'conf', userConfig)
     )
 
-    -- init stackmanager, and run update right away
-    self.manager = require('stackline.stackline.stackmanager'):init()
+    -- init stackmanager, then run update
+    self.manager = require 'stackline.stackmanager':init()
     self.manager:update()
 
 
