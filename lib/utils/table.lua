@@ -48,6 +48,25 @@ function table.merge(t1, t2)
     return t1
 end
 
+function table.extend(fromTable, toTable)
+    if not fromTable or not toTable then error("table can't be nil") end
+
+    function _extend(fT, tT)
+        for k, v in pairs(fT) do
+            if type(fT[k]) == "table" and type(tT[k]) == "table" then
+                tT[k] = _extend(fT[k], tT[k])
+            elseif type(fT[k]) == "table" then
+                tT[k] = _extend(fT[k], {})
+            else
+                tT[k] = v
+            end
+        end
+        return tT
+    end
+
+    return _extend(fromTable, toTable)
+end
+
 
 function table.slice(obj, start, finish)
     if (#obj == 0) or (start == finish) then return {} end

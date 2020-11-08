@@ -22,7 +22,7 @@ function Stack:getHs() -- {{{
 end -- }}}
 
 function Stack:frame() -- {{{
-   -- All stacked windows have the same dimensions, 
+   -- All stacked windows have the same dimensions,
    -- so the 1st Hs window's frame is ~= to the stack's frame
    -- TODO: Incorrect when the 1st window has min-size < stack width. See ./query.lua:104
    return self.windows[1]._win:frame()
@@ -49,28 +49,32 @@ end -- }}}
 
 function Stack:resetAllIndicators() -- {{{
    self:eachWin(function(win)
-       win:setupIndicator()
-       win:drawIndicator()
+       win.indicator = require'stackline.indicator'
+         :new(win)
+         :init()
+         :draw()
    end)
 end -- }}}
 
 function Stack:redrawAllIndicators(opts) -- {{{
+   -- TODO: eliminate need for opts.except arg that
+   -- enables redrawing all indicators *except* one window.
    self:eachWin(function(win)
        if win.id ~= opts.except then
-           win:redrawIndicator()
+           win.indicator:redraw()
        end
    end)
 end -- }}}
 
 function Stack:deleteAllIndicators() -- {{{
    self:eachWin(function(win)
-       win:deleteIndicator()
+       win.indicator:delete()
    end)
 end -- }}}
 
 function Stack:getWindowByPoint(point) -- {{{
    local foundWin = u.filter(self.windows, function(w)
-       local indicatorEls = w.indicator:canvasElements()
+       local indicatorEls = w.indicator.canvas:canvasElements()
        local wFrame = hs.geometry.rect(indicatorEls[1].frame)
        return point:inside(wFrame)
    end)
