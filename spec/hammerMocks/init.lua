@@ -2,11 +2,14 @@ return {
     -- constants
     configdir = os.getenv('HOME') .. '/.hammerspoon',
 
-    -- geometry, in, and fnutils *can* be required directly!
+    -- geometry, inspect, fnutils, and watchable *can* be required directly!
     -- they neither directly nor indirectly depend on 'internal.so' files
     geometry = require 'hs.geometry',
     inspect = require 'hs.inspect',
     fnutils = require 'hs.fnutils',
+    watchable = require 'hs.watchable',
+    -- others that work, if needed:
+    -- hs.utf8, hs.tangent
 
     -- The rest are custom mocks
     appfinder = require 'hammerMocks.appfinder',
