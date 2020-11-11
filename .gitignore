@@ -4,4 +4,4 @@ stackline/sratch.md
 
 lib/figlet.lua
 
-luacov.stats.out
+luacov.*
