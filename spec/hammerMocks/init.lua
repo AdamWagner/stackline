@@ -12,7 +12,6 @@ return {
     inspect = require 'hs.inspect',
     fnutils = require 'hs.fnutils',
     watchable = require 'hs.watchable',
-    tangent = require 'hs.tangent',
     utf8 = require 'hs.utf8',
 
     -- The rest are custom mocks
@@ -23,7 +22,7 @@ return {
     eventtap = require 'hammerMocks.eventtap',
     image = require 'hammerMocks.image',
     ipc = { localPort = function() end },
-    json = require 'hammerMocks.json', -- luarocks module. NOT == stackline.lib.json (which is dkjson… such a mess)
+    json = require 'lib.json', -- https://github.com/rxi/json.lua
     logger = require 'hammerMocks.logger',
     notify = require 'hammerMocks.notify',
     screen = require 'hammerMocks.screen',
