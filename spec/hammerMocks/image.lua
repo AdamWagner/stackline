@@ -1,5 +1,6 @@
 -- STACKLINE REFERENCES:
--- hs.image.imageFromAppBundle
+--    hs.image.imageFromAppBundle
+-- -----------------------------------------------------------------------------
 
 local Image = {}
 

@@ -1,15 +1,19 @@
+-- ———————————————————————————————————————————————————————————————————————————
+-- Mock Hammerspoon module
+-- ———————————————————————————————————————————————————————————————————————————
+
 return {
     -- constants
     configdir = os.getenv('HOME') .. '/.hammerspoon',
 
-    -- geometry, inspect, fnutils, and watchable *can* be required directly!
-    -- they neither directly nor indirectly depend on 'internal.so' files
+    -- These real hs modules do NOT depend on 'internal.so' files, so *can* be required directly!
+    -- NOTE: package.path must include '/Applications/Hammerspoon.app/Contents/Resources/extensions/'
     geometry = require 'hs.geometry',
     inspect = require 'hs.inspect',
     fnutils = require 'hs.fnutils',
     watchable = require 'hs.watchable',
-    -- others that work, if needed:
-    -- hs.utf8, hs.tangent
+    tangent = require 'hs.tangent',
+    utf8 = require 'hs.utf8',
 
     -- The rest are custom mocks
     appfinder = require 'hammerMocks.appfinder',

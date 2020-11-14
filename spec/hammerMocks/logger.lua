@@ -1,12 +1,16 @@
--- NOTE:
--- 90 Line log module with color output & file-writing
--- https://github.com/rxi/log.lua/blob/master/log.lua
-
 -- STACKLINE REFERENCES:
 -- hs.logger.new(level)
 --    log.setLogLevel('info')
 --    log.i(msg), etc
+-- -----------------------------------------------------------------------------
 
+-- NOTE:
+-- 90 Line log module with color output & file-writing
+-- https://github.com/rxi/log.lua/blob/master/log.lua
+
+-- ———————————————————————————————————————————————————————————————————————————
+-- hs.logger mock
+-- ———————————————————————————————————————————————————————————————————————————
 local logger = {}
 
 logger.levels = {

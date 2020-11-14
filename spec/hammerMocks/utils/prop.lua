@@ -1,18 +1,16 @@
 --[[
+prop:new(val) returns value when key called as a function.
+prop:wrap(tbl) wraps all table values
+
 Hammerspoon often makes object fields callable.
 E.g.,
   hs.window:screen():frame()
 ↑ :frame() rather than .frame because frame *itself* has methods
 
-┌─────────┐
-│ prop()  │
-└─────────┘
-returns value when called as a function
+The prop util avoids need for writing tons of "module.field()"
+getter functions that simply return the field value hidden internally.
 
-This avoids need for writing tons of "module.field()" getter functions
-that simply return the field value hidden internally.
-
-Real example from mock-hs.lua:
+Example use: -------------------------------------------------------------------
 function screen:new(o)
     …
     o.id        = prop(o.id or self.__defaults.id)
@@ -20,12 +18,12 @@ function screen:new(o)
     o.fullFrame = prop(o.fullFrame or self.__defaults.frame)
     …
 end
-]]
+-- ]]
 
-local function printTable(value)
-  if type(value)=='table' then
+local function printTable(value)  -- {{{
+  if type(value) == 'table' then
     local mt = getmetatable(value)
-    if mt and type(mt.__tostring)=='function' then
+    if mt and type(mt.__tostring) == 'function' then
       return tostring(value)
     else
       local keys = u.keys(value)
@@ -34,53 +32,47 @@ local function printTable(value)
   else
     return tostring(value)
   end
-end
+end  -- }}}
 
-local function prop(v)
-    local o = { value = v }
-    mt = {
-        __call = function()
-            return o.value
-        end,
-        __tostring = function()
-          return printTable(o.value)
-        end,
-    }
-    setmetatable(o, mt)
-    return o
-end
+local function prop(v)  -- {{{
+  local o = {value = v}
+  mt = {
+    __call = function()
+      return o.value
+    end,
+    __tostring = function()
+      return printTable(o.value)
+    end,
+  }
+  setmetatable(o, mt)
+  return o
+end  -- }}}
 
-local function wrap(o)
+local function wrap(o)  -- {{{
   local obj = {}
-  for k,v in pairs(o or {}) do
+  for k, v in pairs(o or {}) do
 
-    if type(v)=='string' or type(v)=='number' then
+    if type(v) == 'string' or type(v) == 'number' then   -- wrap
       obj[k] = prop(v)
 
-    elseif type(v)=='table'  then
+        -- TODO: why is this nested within the "is string / number" condition above?
+        -- TODO: may need to get more sophisticated about identifying real hs modules if start utilizing metatables in stackline modules
 
-      if getmetatable(v)==nil then
-        -- recursively wrap
+    elseif type(v) == 'table' then   -- recursively wrap if no metatable (real hs modules will have non-nil metatable)
+
+      if getmetatable(v) == nil then
         obj[k] = prop(wrap(v))
       else
-        -- `v` has metamethods, so don't recursively wrap
-        -- it's probably a hammerspoon instance (geometry)
         obj[k] = prop(v)
       end
 
-    else
+    else   -- so do nothing (value is not string, number, or table)
       obj[k] = v
     end
+
   end
   return obj
-end
+end  -- }}}
 
-return {
-  new = prop,
-  wrap = wrap,
-}
-
-
-
-
+return {new = prop, wrap = wrap}
 

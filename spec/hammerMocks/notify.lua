@@ -1,11 +1,17 @@
-local notify = {}
-
+-- STACKLINE REFERENCES:
 -- hs.notify.new(nil, {
 --     title           = 'Invalid stackline config!',
 --     subTitle        =  'invalid keys:' .. invalidKeys,
 --     informativeText = 'Please refer to the default conf file.',
 --     withdrawAfter   = 10
 -- }):send()
+-- -----------------------------------------------------------------------------
+
+
+-- ———————————————————————————————————————————————————————————————————————————
+-- hs.notify mock
+-- ———————————————————————————————————————————————————————————————————————————
+local notify = {}
 
 function notify.new(fn, attributes)
   local o = {fn = fn, attributes = attributes}

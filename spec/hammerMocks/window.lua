@@ -1,19 +1,24 @@
+-- STACKLINE REFERENCES:
+--    hs.window
+--    hs.window.filter
+--    hs.window.filter.new
+--    hs.window.focusedwindow
+-- -----------------------------------------------------------------------------
+local u = require 'lib.utils'
+
+-- mock utils
 local prop = require 'hammerMocks.utils.prop'
 local MockBase = require 'hammerMocks.utils.mockbase'
 
-local geometry = require 'hs.geometry' -- real hs.geometry
-local screen = require 'hammerMocks.screen' -- other mocked hs modules
--- local application = require 'hammerMocks.application'
+-- real hs modules
+local geometry = require 'hs.geometry'
 
-local u = require 'lib.utils'
+-- mocked hs modules
+local screen = require 'hammerMocks.screen'
+local application = require 'hammerMocks.application'
 
-
--- Stackline uses: -------------------------------------------------------------
--- hs.window
--- hs.window.filter
--- hs.window.filter.new
--- hs.window.focusedwindow
-
+-- Default new window values
+-- ———————————————————————————————————————————————————————————————
 local winDefault = {
   frame = geometry({h = 1062.0, w = 957.0, x = 45.0, y = 38.0}),
   id = 11111,
@@ -23,6 +28,9 @@ local winDefault = {
   isFocused = false,
 }
 
+-- ———————————————————————————————————————————————————————————————————————————
+-- hs.window mock
+-- ———————————————————————————————————————————————————————————————————————————
 local window = MockBase:new(winDefault) -- gives window __defaults & __{get,set}Defaults()
 
 function window:new(o)
@@ -37,8 +45,6 @@ function window:screen()
 end
 
 function window.focusedWindow()
-  -- return 'TODO'
-  -- return window.filter:getWindows()[2]
   return u.filter(window.filter:getWindows(), function(w)
     return w.isFocused
   end)[1]
@@ -46,8 +52,8 @@ end
 
 -- ———————————————————————————————————————————————————————————————————————————
 -- window.filter
+-- TODO: add default list of windows (prob. from basic fixture)
 -- ———————————————————————————————————————————————————————————————————————————
-
 window.filter = {}
 
 function window.filter:set(ws)
@@ -74,9 +80,10 @@ function window.filter:setOverrideFilter(tbl)
 end
 
 function window.filter:getWindows()
-  return u.map(self._windows, function(w)
-    return window:new(w)
-  end)
+  return u.map(self._windows, u.invoke(window, 'new'))
+  -- return u.map(self._windows, function(w)
+  --   return window:new(w)
+  -- end)
 end
 
 function window.filter:subscribe(event, fn)
@@ -94,7 +101,7 @@ function window.filter:subscribe(event, fn)
   for _, e in pairs(event) do
     self.events[e] = self.events[e] or {} -- e.g., self.events = { windowCreated = {} }
     for _, f in pairs(func) do
-      table.insert(self.events[e], f)     -- e.g., self.events = { windowCreated = { <function 1> } }
+      table.insert(self.events[e], f) -- e.g., self.events = { windowCreated = { <function 1> } }
     end
   end
 end
@@ -122,8 +129,5 @@ window.filter.windowUnminimized = 'windowUnminimized'
 window.filter.windowVisible = 'windowVisible'
 window.filter.windowsChanged = 'windowsChanged'
 -- }}}
-
-
--- window.filter = window.filter or require "hammerMocks.window.filter"
 
 return window

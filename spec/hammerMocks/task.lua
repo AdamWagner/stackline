@@ -1,12 +1,18 @@
+-- STACKLINE REFERENCES:
+--    hs.task.new
+-- -----------------------------------------------------------------------------
+local sleep = require'lib.utils'.sleep
+
+-- mock utils
 local prop = require 'hammerMocks.utils.prop'
-local sleep = require 'lib.utils'.sleep
 
-
+-- mocked hs modules
 local json = require 'hammerMocks.json'
 
--- STACKLINE REFERENCES:
--- hs.task.new
 
+-- ———————————————————————————————————————————————————————————————————————————
+-- hs.task mock
+-- ———————————————————————————————————————————————————————————————————————————
 local task = {}
 
 task.__defaults = {}
@@ -17,8 +23,7 @@ task.__defaults.callbackFn = function(code, stdOut, stdErr)
   print('stdErr', stdErr)
 end
 
-task.__defaults.launchPath =
-    "/Users/adamwagner/.hammerspoon/stackline/bin/yabai-get-stack-idx"
+task.__defaults.launchPath = "/Users/adamwagner/.hammerspoon/stackline/bin/yabai-get-stack-idx"
 
 function task:__setDefaults(o)
   self.__defaults = table.merge(self.defaults, o)

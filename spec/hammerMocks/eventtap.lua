@@ -1,8 +1,12 @@
-local e = require 'lib.event'()
-
 -- STACKLINE REFERENCES:
--- hs.eventtap.event.types
--- hs.eventtap.new
+--    hs.eventtap.event.types
+--    hs.eventtap.new
+-- -----------------------------------------------------------------------------
+
+-- ———————————————————————————————————————————————————————————————————————————
+-- hs.eventtap mock
+-- ———————————————————————————————————————————————————————————————————————————
+local e = require 'lib.event'()
 
 eventtap = {
   event = {

@@ -10,8 +10,6 @@ function M.invoke(instance, name, ...)
     end
 end
 
-M.cb = M.invoke -- shorter u.cb alias for u.invoke
-
 function M.cb(fn)
     return function()
         return fn
