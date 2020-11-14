@@ -23,7 +23,10 @@ end -- }}}
 
 function Query.getWinStackIdxs() -- {{{
   local r = async()
-  hs.task.new(c.paths.getStackIdxs, r.resolve):start()
+  -- hs.task.new(c.paths.getStackIdxs, r.resolve):start()
+  hs.task.new(c.paths.getStackIdxs, function(code, out, err)
+    r.resolve(out)
+  end):start()
   return r:wait()
 end -- }}}
 
@@ -89,8 +92,7 @@ function Query.run(ws) -- {{{
 
   if shouldRefresh then
     async(function()
-      local _, stackIndexes = Query.getWinStackIdxs() -- async shell call to yabai
-      local ok, winStackIndexes = pcall(hs.json.decode, stackIndexes)
+      local ok, winStackIndexes = pcall(hs.json.decode, Query.getWinStackIdxs())
       if ok then
         byStack = Query.mergeWinStackIdxs(byStack, winStackIndexes)
         stackline.manager:ingest(byStack, byApp, extantStackExists) -- hand over to the Stack module

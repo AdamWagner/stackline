@@ -1,197 +1,94 @@
--- INSTRUCTIONS
+-- INSTRUCTIONS: CAPTURE LIVE STATE → FIXTURE DATA
 --  1. Open Hammerspoon console
 --  2. Paste in console:
---      capture = require 'stackline.spec.fixtures.capture'
 --  3. Execute
+--      capture = require 'stackline.spec.fixtures.capture'
 --      'capture.screenState()'
 --      'capture.managerIngest()'
 --  4. A new file with the requested data be created in stackline/tests/fixtures/data/{filename}.lua
+-- -----------------------------------------------------------------------------
+--
+-- general utils
+local async = require 'stackline.lib.async'
 
--- REFERENCE:
---  /Applications/Hammerspoon.app/Contents/Resources/extensions/
-local converter = require 'lib.save'
+-- fixture capture helpers
+local mappers = require 'spec.fixtures.mappers'
+local converter = require 'spec.fixtures.file-writer'
 
-local fixtureDataPath = os.getenv('HOME') ..  '/.hammerspoon/stackline/tests/fixtures/data'
-local yabaiScriptPath = os.getenv('HOME') ..  '/.hammerspoon/stackline/bin/yabai-get-stack-idx'
+-- stackline modules
+local Query = require 'stackline.stackline.query'
 
-numberWordMap = setmetatable({ -- {{{
-  "one", "two", "three", "four", "five",
-  "six", "seven", "eight", "nine", "ten",
-  "eleven", "twelve", "thirteen", "fourteen", "fifteen",
-  "sixteen", "seventeen", "eighteen", "nineteen", "twenty",
-}, {
-  __index = function(_, k) -- special case for zero & anything more than 20
-    return k == 0 and 'zero' or 'more than twenty'
-  end,
-}) -- }}}
+-- Constants
+local HS_PATH = os.getenv('HOME') .. '/.hammerspoon'
+local FIXTURE_DATA_PATH = HS_PATH .. '/stackline/spec/fixtures/data'
+local YABAI_SCRIPT_PATH = HS_PATH .. '/stackline/bin/yabai-get-stack-idx'
 
-local state = {}
+-- ———————————————————————————————————————————————————————————————————————————
+-- Capture state → fixture data
+-- ———————————————————————————————————————————————————————————————————————————
+local function makeFilename(data) -- {{{
+  local countWindows = u.numberWordMap[u.reduce(data.numWindows, function(a, b) return a + b end)]
+  local countStacks = u.numberWordMap[data.numStacks]
 
--- return empty table if state.key doesn't exist
-setmetatable(state, {
-  __index = function()
-    return {}
-  end,
-})
-
-local function windowMapper(w) -- {{{
-  return {
-    id = w:id(),
-    title = w:title(),
-    application = {name = w:application():name()},
-    frame = w:frame().table,
-
-    -- NOT a native hs.window instance method!
-    isFocused = hs.window.focusedWindow():id() == w:id(),
-
-    -- I don't *think* these are used by stackline, but seems reasonable that
-    -- they might be, so capturing them here
-    isApplication = w:isApplication(),
-    isFullScreen = w:isFullScreen(),
-    isMaximizable = w:isMaximizable(),
-    isMinimized = w:isMinimized(),
-    isStandard = w:isStandard(),
-    isVisible = w:isVisible(),
-  }
+  return string.format('%s_S__%s_W_%s', countStacks, countWindows, u.uniqueHash(data))
 end -- }}}
 
-local function stackMapper(stack) -- {{{
-  return {
-    id = stack.id,
-    windows = u.map(stack.windows, function(w)
-      return {
-        app = w.app,
-        title = w.title,
+local function get_screen_state(stackIdxs) -- {{{
+  local state = {}
 
-        frame = w.frame.table,
-        focus = w.focus,
-        screenFrame = w.screenFrame.table,
-
-        stackIdx = w.stackIdx,
-
-        iconRadius = w.iconRadius,
-        icon_rect = w.icon_rect,
-        indicator_rect = w.indicator_rect,
-        width = w.width,
-
-        stackFocus = w.stackFocus,
-        stackId = w.stackId,
-        stackIdFzy = w.stackIdFzy,
-
-        stack = {id = w.stack.id, numWindows = #w.stack.windows},
-      }
-    end),
-  }
-end -- }}}
-
-function handleScreen(w)  -- {{{
-  local hasWin = w._win
-  local hasScreen = hasWin and w._win.screen
-  if not hasScreen then return nil end
-
-  local screen = { id =  w._win:screen():id(), frame = w._win:screen():frame() }
-  return screen
-end  -- }}}
-
-function plainWindowMapper(w)  -- {{{
-  return {
-    _win = {},
-    id = w.id,
-    app = w.app,
-    title = w.title,
-
-    frame = w.frame,
-    screen = handleScreen(w),
-
-    stackId = w.stackId,
-    stackIdFzy = w.stackIdFzy,
-    stackIdx = w.stackIdx,
-    topLeft = w.topLeft,
-  }
-end  -- }}}
-
-local function groupMapper(group)   -- {{{
-  return u.map(group, plainWindowMapper)
-end  -- }}}
-
-function appMapper(appWindows)  -- {{{
-  local obj = {}
-  for app,group in pairs(appWindows) do
-    print("app")
-    u.p(app)
-    obj[app] = u.map(group, plainWindowMapper)
-  end
-  return obj
-end  -- }}}
-
-local function randomFilename() -- {{{
-  local t = {}
-  for i = 1, 10 do
-    table.insert(t, string.char(math.random(97, 122)))
-  end
-  return string.format("%s_%s", table.concat(t), os.time())
-end -- }}}
-
-local function makeFilename(data)  -- {{{
-  local countWindows = numberWordMap[u.reduce(data.numWindows, function(a, b) return a + b end)]
-  local countStacks = numberWordMap[data.numStacks]
-
-  return string.format('%s_stacks_%s_windows_%s', countStacks, countWindows, u.uniqueHash(data))
-end  -- }}}
-
-local function cache_state(stackIdxs) -- {{{
-  local screen = hs.screen.mainScreen()
-  local ws = stackline.wf:getWindows()
-
-  state.stackIndexes = stackIdxs or nil
-
-  state.screen = {
-    id = screen:id(),
-    name = screen:name(),
-    frame = screen:frame().table,
-    fullFrame = screen:fullFrame().table,
-    windows = u.map(ws, windowMapper),
-  }
-
+  state.screen = mappers.screen(hs.screen.mainScreen())
   state.config = stackline.config:get()
-  state.stackline = u.map(stackline.manager:get(), stackMapper)
+  state.stackline = u.map(stackline.manager:get(), mappers.stack)
+  state.stackIndexes = stackIdxs or nil
+  state.summary = stackline.manager:getSummary()
+  state.summary.topLeft = nil -- duplicative ofdimensions'. Convenient in app, but extra weight here b/c of unique hash
 
-  local summary = stackline.manager:getSummary()
-  summary.topLeft = nil -- duplicative ofdimensions'. Convenient in app, but extra weight here b/c of unique hash
-  state.summary = summary
-
-  local filepath = string.format('%s/screen_state/%s.lua', fixtureDataPath, makeFilename(summary))
-
-  converter.convertTable(state, filepath)
   return state
 end -- }}}
 
-local function save_state_to_fixture()  -- {{{
-  return hs.task.new(yabaiScriptPath, function(_, stdout, _)
-    local result = hs.json.decode(stdout)
-    return cache_state(result)
-  end):start():waitUntilExit()
-end  -- }}}
+local function screen_state_fixture() -- {{{
+  async(function()
+    -- build state
+    local winStackIndexes = hs.json.decode(Query.getWinStackIdxs())
+    local state = get_screen_state(winStackIndexes)
 
-local function save_manager_ingest(windowGroups, appWindows, shouldClean)  -- {{{
-  -- u.pheader('window groups')
-  -- u.p(windowGroups)
-  print('-----------------\n\n\n')
-  u.p(appWindows)
-    local args = {
-        windowGroups = u.map(windowGroups, groupMapper),
-        appWindows = appMapper(appWindows),
-        shouldClean = shouldClean,
-    }
-    -- u.p(args)
-    local filename = string.format('%s_groups_%s_appwindows_%s', u.length(windowGroups), u.length(appWindows), u.uniqueHash(args))
-    local filepath = string.format('%s/manager_ingest/%s.lua', fixtureDataPath, filename)
-    converter.convertTable(args, filepath)
-    return args
-end  -- }}}
+    -- make dynamic fixture filepath
+    local filename = makeFilename(state.summary) -- make filename using stackline summary
+    local filepath = string.format('%s/screen_state/%s.lua', FIXTURE_DATA_PATH, filename)
+
+    -- write to file
+    converter.convertTable(state, filepath)
+  end)
+end -- }}}
 
 return {
-  screenState = save_state_to_fixture,
-  managerIngest = save_manager_ingest,
+  screenState = screen_state_fixture,
+  -- managerIngest = save_manager_ingest,
 }
+
+-- TODO: Remove if remains unsued after 2020-11-14 -----------------------------
+-- local function save_manager_ingest(windowGroups, appWindows, shouldClean) -- {{{
+--   u.pheader('window groups')
+--   u.p(windowGroups)
+
+--   print('-----------------\n\n\n')
+--   u.pheader('app windows')
+--   u.p(appWindows)
+
+--   print('-----------------\n\n\n')
+--   u.pheader('shouldClean')
+--   u.p(shouldClean)
+
+--   local args = {
+--     windowGroups = u.map(windowGroups, mappers.group),
+--     appWindows = u.map(appWindows, mappers.app),
+--     shouldClean = shouldClean,
+--   }
+--   u.p(args)
+--   local filename = string.format('%s_groups_%s_appwindows_%s', u.length(windowGroups),
+--       u.length(appWindows), u.uniqueHash(args))
+--   local filepath = string.format('%s/manager_ingest/%s.lua', FIXTURE_DATA_PATH, filename)
+--   converter.convertTable(args, filepath)
+--   return args
+-- end -- }}}
 
