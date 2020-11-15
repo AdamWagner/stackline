@@ -4,8 +4,27 @@ function M.boolToNum(value)
     return value == true and 1 or value == false and 0
 end
 
+function M.isnumber(x)
+    return type(x) == "number"
+end
+
+function M.istable(x)
+    return type(x) == "table"
+end
+
 function M.isarray(x)
     return type(x) == "table" and x[1] ~= nil
+end
+
+
+function M.isSortable(tbl)
+    -- to avoid "attempt to compare two table values"
+    local all, none = require 'lib.utils'.all, require 'lib.utils'.none
+    local keys, values = require 'lib.utils'.keys, require 'lib.utils'.values
+    return type(tbl) == "table"
+        and tbl[1] ~= nil
+        and all(keys(tbl), M.isnumber)
+        and none(values(tbl), M.istable)
 end
 
 function M.toBool(val)

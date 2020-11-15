@@ -14,5 +14,6 @@ table.merge(utils, require 'lib.utils.collections')
 table.merge(utils, require 'lib.utils.printing')
 table.merge(utils, require 'lib.utils.functions')
 table.merge(utils, require 'lib.utils.comparison')
+table.merge(utils, require 'lib.utils.cloning')
 
 return utils

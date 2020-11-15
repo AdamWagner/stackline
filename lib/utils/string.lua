@@ -1,4 +1,4 @@
-function string:split(p)
+function string:split(p)  -- {{{
     -- Splits the string [s] into substrings wherever pattern [p] occurs.
     -- Returns: a table of substrings or, a table with the string as the only element
     p = p or '%s' -- split on space by default
@@ -25,9 +25,17 @@ function string:split(p)
     end
 
     return temp
-end
+end  -- }}}
 
-function string:distance(str2)
+function string:trim(char)  -- {{{
+  char = char or '%p%c%s'
+    -- select text *between* start & end pattern matching char
+    -- (or punctuation & whitespace by default)
+  local pattern = string.format("^[%s]*(.-)[%s]*$", char, char)
+  return self:match(pattern)
+end  -- }}}
+
+function string:distance(str2)  -- {{{
     local this, other = self:lower(), str2:lower()
     local len1, len2 = #this, #other
 
@@ -54,12 +62,12 @@ function string:distance(str2)
         end
     end
     return distance[len1][len2] / #other
-end
+end  -- }}}
 
-function string:ensureEndsWith(char)
-  -- ensure path ends with slash ("/")
+function string:ensureEndsWith(char)  -- {{{
+    -- ensure path ends with slash ("/")
   local lastChar = self:sub(#self)
   if lastChar ~= char then
     self = self .. char
   end
-end
+end  -- }}}
