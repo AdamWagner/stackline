@@ -37,11 +37,11 @@ end
 function logger.new(name, level)
   local l = {
     level = level,
-    e = function(v) if logger.level >= 1 then print(name, v) end end,
-    w = function(v) if logger.level >= 2 then print(name, v) end end,
-    i = function(v) if logger.level >= 3 then print(name, v) end end,
-    d = function(v) if logger.level >= 4 then print(name, v) end end,
-    v = function(v) if logger.level >= 5 then print(name, v) end end,
+    e = function(...) if logger.level >= 1 then print(name, ...) end end,
+    w = function(...) if logger.level >= 2 then print(name, ...) end end,
+    i = function(...) if logger.level >= 3 then print(name, ...) end end,
+    d = function(...) if logger.level >= 4 then print(name, ...) end end,
+    v = function(...) if logger.level >= 5 then print(name, ...) end end,
     setLogLevel = function() end,
     getLogLevel = function() end,
   }
