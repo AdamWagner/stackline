@@ -31,6 +31,7 @@ local function methodSpy(obj, methodName, args) -- {{{
 end -- }}}
 
 _G.helpers = {
+  scenario = require 'spec.helpers.scenario',
   reloadMock = reloadMock,
   methodSpy = methodSpy,
 }
