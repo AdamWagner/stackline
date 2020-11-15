@@ -170,6 +170,7 @@ function M:autosuggest(path) -- {{{
         withdrawAfter = 10
     }):send()
 
+    return result1, result2
 end -- }}}
 
 function M:getOrSet(path, val) -- {{{
