@@ -34,25 +34,18 @@ end -- }}}
 
 local M = {}
 
-function M.window(w) -- {{{
+function M.screen(screen)  -- {{{
   return {
-    id = w:id(),
-    title = w:title(),
-    application = {name = w:application():name()},
-    frame = w:frame().table,
-
-    -- NOT a native hs.window instance method!
-    isFocused = hs.window.focusedWindow():id() == w:id(),
-
-    -- I don't *think* these are used by stackline, but seems reasonable that
-    -- they might be, so capturing them here
-    isApplication = w:isApplication(),
-    isFullScreen = w:isFullScreen(),
-    isMaximizable = w:isMaximizable(),
-    isMinimized = w:isMinimized(),
-    isStandard = w:isStandard(),
-    isVisible = w:isVisible(),
+    id = screen:id(),
+    name = screen:name(),
+    frame = screen:frame().table,
+    fullFrame = screen:fullFrame().table,
+    windows = u.map(stackline.wf:getWindows(), M.window),
   }
+end  -- }}}
+
+function M.group(group) -- {{{
+  return u.map(group, plainWindowMapper)
 end -- }}}
 
 function M.stack(stack) -- {{{
@@ -84,10 +77,6 @@ function M.stack(stack) -- {{{
   }
 end -- }}}
 
-function M.group(group) -- {{{
-  return u.map(group, plainWindowMapper)
-end -- }}}
-
 function M.app(appWindows) -- {{{
   local obj = {}
   for app, group in pairs(appWindows) do
@@ -98,14 +87,25 @@ function M.app(appWindows) -- {{{
   return obj
 end -- }}}
 
-function M.screen(screen)
+function M.window(w) -- {{{
   return {
-    id = screen:id(),
-    name = screen:name(),
-    frame = screen:frame().table,
-    fullFrame = screen:fullFrame().table,
-    windows = u.map(stackline.wf:getWindows(), M.window),
+    id = w:id(),
+    title = w:title(),
+    application = {name = w:application():name()},
+    frame = w:frame().table,
+
+    -- NOT a native hs.window instance method!
+    isFocused = hs.window.focusedWindow():id() == w:id(),
+
+    -- I don't *think* these are used by stackline, but seems reasonable that
+    -- they might be, so capturing them here
+    isApplication = w:isApplication(),
+    isFullScreen = w:isFullScreen(),
+    isMaximizable = w:isMaximizable(),
+    isMinimized = w:isMinimized(),
+    isStandard = w:isStandard(),
+    isVisible = w:isVisible(),
   }
-end
+end -- }}}
 
 return M

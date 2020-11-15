@@ -43,6 +43,12 @@ local function get_screen_state(stackIdxs) -- {{{
   state.summary = stackline.manager:getSummary()
   state.summary.topLeft = nil -- duplicative ofdimensions'. Convenient in app, but extra weight here b/c of unique hash
 
+  state.meta = {
+    num_total_wins = #state.screen.windows,
+    num_stacked_wins = u.reduce(state.summary.numWindows, function(a,b) return a+b end),
+    num_stacks = state.summary.numStacks,
+  }
+
   return state
 end -- }}}
 
