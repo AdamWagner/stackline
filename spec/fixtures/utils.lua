@@ -14,12 +14,6 @@ function M.prepareFrame(f)
   return frame
 end
 
-function isGeometryObject(v)
-  local mt = getmetatable(v)
-  if mt and mt.getarea then
-    return true
-  end
-end
 
 function M.process(data)
   -- If key is 'frame' or 'fullFrame' wrap value in geometry(...). Recursive.
@@ -28,7 +22,7 @@ function M.process(data)
 
   for k, v in pairs(data) do
 
-    if (k == 'frame' or k == 'fullFrame') and (not isGeometryObject(v)) then
+    if (k == 'frame' or k == 'fullFrame') and (not u.isGeometryObject(v)) then
       obj[k] = geometry(M.prepareFrame(v))
 
     elseif type(v) == 'table' then
