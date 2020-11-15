@@ -38,12 +38,13 @@ end
 
 local getiter = function(x)
 
-    if u.isarray(x) then
-        return ipairs
-    elseif type(x) == "table" then
-        return pairs
-    end
-    error("expected table", 3)
+  local u = require 'lib.utils'
+  if u.isarray(x) then
+    return ipairs
+  elseif type(x) == "table" then
+    return pairs
+  end
+  error("expected table", 3)
 end
 
 -- Compute
@@ -119,14 +120,18 @@ function M.find(t, value)
     return result
 end
 
-function M.include(list, value)
-    for i in M.iter(list) do
-        if i == value then
-            return true
-        end
-    end
-    return false
+function M.include(t, value)
+  -- supports nested tables
+  local u = require 'lib.utils'
+  local _iter = (type(value) == 'function') and value or u.deepEqual
+  for k,v in pairs(t) do
+    if _iter(v,value) then return true end
+  end
+  return false
 end
+
+M.includes = M.include
+M.contains = M.include
 
 -- Filtering
 function M.any(list, func)
@@ -147,6 +152,11 @@ function M.all(vs, fn)
     return true
 end
 M.every = M.all
+
+M.none = function(vs, fn)
+    return not M.all(vs, fn)
+end
+
 
 
 -- Transform
