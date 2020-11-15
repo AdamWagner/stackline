@@ -109,8 +109,8 @@ end -- }}}
 
 -- Config manager
 function M:init(conf) -- {{{
+    assert(conf, "Initial conf table is required (use the default conf)")
     log.i('Initializing configmanager…')
-    self:validate(conf)
     ipcConfigPort = hs.ipc.localPort('stackline-config',
         function(_, msgID, msg)
             if msgID == 900 then
@@ -121,7 +121,7 @@ function M:init(conf) -- {{{
         end)
 
     self.__index = self
-    return self
+    return self, self:validate(conf)
 end -- }}}
 
 function M:validate(conf) -- {{{
@@ -132,7 +132,7 @@ function M:validate(conf) -- {{{
 
     if isValid then
         log.i('✓ Conf validated successfully')
-        self.conf = conf
+        self.conf = c
         self.autosuggestions = u.keys(table.flatten(self.conf))
     else
         local invalidKeys = table.concat(u.keys(table.flatten(err)), ", ")
@@ -143,7 +143,7 @@ function M:validate(conf) -- {{{
             withdrawAfter   = 10
         }):send()
 
-        log.e('Invalid stackline config:\n', hs.inspect(err))
+        log.e('Invalid stackline config:', hs.inspect(err))
     end
 
 
