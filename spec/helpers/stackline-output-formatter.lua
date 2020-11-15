@@ -4,7 +4,8 @@
 -- OTHERS:
 --  https://github.com/drmplanet/kdlenv/blob/master/koreader/base/spec/unit/verbose_print.lua
 
--- FROM penlight.lua -----------------------------------------------------------
+local s = require 'say'
+-- FROM penlight.lua  {{{
 local sep, other_sep, seps
 local sub = string.sub
 local path = {}
@@ -30,12 +31,20 @@ local function splitpath(P)
     return sub(P, 1, i - 1), sub(P, i + 1)
   end
 end
--- end penlight ----------------------------------------------------------------
+-- END penlight.lua }}}
 
+-- colors & glyphs {{{
 local colors = require 'term.colors'
+local glyph = {
+  success = colors.green('●'),
+  failure= colors.red('◼'),
+  error= colors.magenta('✱'),
+  pending= colors.magenta('◌'),
+}
+-- }}}
 
 return function(options)
-
+    -- opts {{{
   local fileCount = 0
   local fileTestCount = 0
   local testCount = 0
@@ -43,10 +52,115 @@ return function(options)
   local skippedCount = 0
   local failureCount = 0
   local errorCount = 0
+  -- }}}
 
   local width = tonumber(os.getenv('COLUMNS'))
   local busted = require 'busted'
-  local handler = require 'busted.outputHandlers.utfTerminal'(options)
+  local handler = require 'busted.outputHandlers.base'(options)
+  -- inherits from: /usr/local/Cellar/luarocks/3.4.0/share/lua/5.3/busted/outputHandlers/base.lua
+
+  -- local handler = require 'busted.outputHandlers.utfTerminal'(options)
+  -- inherits from: /usr/local/Cellar/luarocks/3.4.0/share/lua/5.3/busted/outputHandlers/utfTerminal.lua
+
+  local failureMessage = function(failure)  -- {{{
+    local string = failure.randomseed and ('Random seed: ' .. failure.randomseed .. '\n') or ''
+    if type(failure.message) == 'string' then
+      string = string .. failure.message
+    elseif failure.message == nil then
+      string = string .. 'Nil error'
+    else
+      string = string .. io.write(failure.message)
+    end
+
+    return string
+  end  -- }}}
+
+  local failureDescription = function(failure, isError)  -- {{{
+    local string = colors.red(s('output.failure')) .. ' → '
+    if isError then
+      string = colors.magenta(s('output.error')) .. ' → '
+    end
+
+    if not failure.element.trace or not failure.element.trace.short_src then
+      string = string ..
+        colors.cyan(failureMessage(failure)) .. '\n' ..
+        colors.bright(failure.name)
+    else
+      string = string ..
+        colors.cyan(failure.element.trace.short_src) .. ' @ ' ..
+        colors.cyan(failure.element.trace.currentline) .. '\n' ..
+        colors.bright(failure.name) .. '\n' ..
+        failureMessage(failure)
+    end
+
+    if options.verbose and failure.trace and failure.trace.traceback then
+      string = string .. '\n' .. failure.trace.traceback
+    end
+
+    return string
+  end  -- }}}
+
+  local pendingDescription = function(pending)  -- {{{
+    local name = pending.name
+
+    local string = colors.yellow(s('output.pending')) .. ' → ' ..
+      colors.cyan(pending.trace.short_src) .. ' @ ' ..
+      colors.cyan(pending.trace.currentline)  ..
+      '\n' .. colors.bright(name)
+
+    if type(pending.message) == 'string' then
+      string = string .. '\n' .. pending.message
+    elseif pending.message ~= nil then
+      string = string .. '\n' .. io.write(pending.message)
+    end
+
+    return string
+  end  -- }}}
+
+  local statusString = function()  -- {{{
+    local successString = s('output.success_plural')
+    local failureString = s('output.failure_plural')
+    local pendingString = s('output.pending_plural')
+    local errorString = s('output.error_plural')
+
+    local sec = handler.getDuration()
+    local successes = handler.successesCount
+    local pendings = handler.pendingsCount
+    local failures = handler.failuresCount
+    local errors = handler.errorsCount
+
+    if successes == 0 then
+      successString = s('output.success_zero')
+    elseif successes == 1 then
+      successString = s('output.success_single')
+    end
+
+    if failures == 0 then
+      failureString = s('output.failure_zero')
+    elseif failures == 1 then
+      failureString = s('output.failure_single')
+    end
+
+    if pendings == 0 then
+      pendingString = s('output.pending_zero')
+    elseif pendings == 1 then
+      pendingString = s('output.pending_single')
+    end
+
+    if errors == 0 then
+      errorString = s('output.error_zero')
+    elseif errors == 1 then
+      errorString = s('output.error_single')
+    end
+
+    local formattedTime = ('%.6f'):format(sec):gsub('([0-9])0+$', '%1')
+
+    return colors.green(successes) .. ' ' .. successString .. ' / ' ..
+      colors.red(failures) .. ' ' .. failureString .. ' / ' ..
+      colors.magenta(errors) .. ' ' .. errorString .. ' / ' ..
+      colors.yellow(pendings) .. ' ' .. pendingString .. ' : ' ..
+      colors.bright(formattedTime) .. ' ' .. s('output.seconds')
+  end  -- }}}
 
   local decorateTestName = function(testName)  -- {{{
     local out = {}
@@ -69,7 +183,7 @@ return function(options)
     end
 
     local filler = remain - len
-    for i = 1, filler+2 do
+    for i = 1, filler+3 do
       text = text .. ' '
     end
     return text
@@ -110,40 +224,39 @@ return function(options)
   handler.testEnd = function(element, parent, status, debug)  -- {{{
     fileTestCount = fileTestCount + 1
 
-    if not options.deferPrint then
-    local successDot = colors.green('●')
-    local failureDot = colors.red('◼')
-    local errorDot   = colors.magenta('✱')
-    local pendingDot = colors.magenta('◌')
-
-    local string = successDot
-
-    if status == 'pending' then
-      string = pendingDot
+    if status == 'success' then
+      insertTable = handler.successes
+      handler.successesCount = handler.successesCount + 1
+    elseif status == 'pending' then
+      insertTable = handler.pendings
+      handler.pendingsCount = handler.pendingsCount + 1
     elseif status == 'failure' then
-      string = failureDot
+      handler.failuresCount = handler.failuresCount + 1
+      return nil, true
     elseif status == 'error' then
-      string = errorDot
+      insertTable = handler.errors
+      return nil, true
     end
 
+    if not options.deferPrint then
+      local string = glyph[status]
+      local name = handler.getFullName(element)
 
-    local name = handler.getFullName(element)
+      local len = #name
+      local space = math.floor(width - 10)
 
-    local len = #name
-    local space = math.floor(width - 10)
-
-    if len > (space) then
-      name = colors.dim(name:sub(1, space - 2) .. " […] ")
-      len = space
-      io.write("\n " .. name)
-    else
-      len = #name + 2
-      if status == 'pending' then
-        name = colors.black(name)
-        io.write('\n ' .. colors.dim(name) .. " ")
+      if len > (space) then
+        name = colors.dim(name:sub(1, space - 2) .. " […] ")
+        len = space
+        io.write("\n " .. name)
       else
-        io.write('\n ' .. decorateTestName(name) .. " ")
-      end
+        len = #name + 2
+        if status == 'pending' then
+          name = colors.black(name)
+          io.write('\n ' .. colors.dim(name) .. " ")
+        else
+          io.write('\n ' .. decorateTestName(name) .. " ")
+        end
     end
 
     for i = 1, width - len - 2 do
@@ -151,7 +264,7 @@ return function(options)
     end
     io.write(string)
     io.write(" ")
-      -- io.flush()
+    io.flush()
 
     return nil, true
   end
@@ -170,23 +283,46 @@ end  -- }}}
   end  -- }}}
 
   handler.suiteStart = function(suite, count, total, randomseed)  -- {{{
-    if total > 1 then
-      io.write(repeatSuiteString:format(count, total))
-    end
-    if randomseed then
-      io.write(randomizeString:format(randomseed))
-    end
-    io.write(suiteStartString)
-    io.write(globalSetup)
+    -- if total > 1 then
+    --   io.write(repeatSuiteString:format(count, total))
+    -- end
+    -- if randomseed then
+    --   io.write(randomizeString:format(randomseed))
+    -- end
+    -- io.write(suiteStartString)
+    -- io.write(globalSetup)
       -- io.flush()
 
     return nil, true
   end  -- }}}
 
-  busted.subscribe({'test', 'start'}, handler.testStart)
-  busted.subscribe({'test', 'end'}, handler.testEnd)
+  handler.suiteEnd = function(suite, count, total)  -- {{{
+    print('')
+    print(statusString())
+
+    for i, pending in pairs(handler.pendings) do
+      print('')
+      print(pendingDescription(pending))
+    end
+
+    for i, err in pairs(handler.failures) do
+      print('')
+      print(failureDescription(err))
+    end
+
+    for i, err in pairs(handler.errors) do
+      print('')
+      print(failureDescription(err, true))
+    end
+
+    return nil, true
+  end  -- }}}
+
   busted.subscribe({'file', 'end'}, handler.fileEnd)
   busted.subscribe({'file', 'start'}, handler.fileStart)
-
+  busted.subscribe({'test', 'start'}, handler.testStart)
+  busted.subscribe({'test', 'end'}, handler.testEnd)
+  busted.subscribe({'suite', 'end'}, handler.suiteEnd)
+  busted.subscribe({'suite', 'reset'}, handler.suiteReset)
   return handler
 end
