@@ -48,7 +48,7 @@ local function prop(v)  -- {{{
   return o
 end  -- }}}
 
-local function wrap(o)  -- {{{
+local function wrap(o)
   local obj = {}
   for k, v in pairs(o or {}) do
 
@@ -60,10 +60,10 @@ local function wrap(o)  -- {{{
 
     elseif type(v) == 'table' then   -- recursively wrap if no metatable (real hs modules will have non-nil metatable)
 
-      if getmetatable(v) == nil then
-        obj[k] = prop(wrap(v))
-      else
+      if getmetatable(v) ~= nil or k == 'frame' then
         obj[k] = prop(v)
+      else
+        obj[k] = prop(wrap(v))
       end
 
     else   -- so do nothing (value is not string, number, or table)
@@ -72,7 +72,7 @@ local function wrap(o)  -- {{{
 
   end
   return obj
-end  -- }}}
+end
 
 return {new = prop, wrap = wrap}
 
