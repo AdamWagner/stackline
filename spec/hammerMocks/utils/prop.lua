@@ -35,8 +35,8 @@ local function printTable(value)  -- {{{
 end  -- }}}
 
 local function prop(v)  -- {{{
-  local o = {value = v}
-  mt = {
+  local o = {value = u.copyDeep(v)}
+  local mt = {
     __call = function()
       return o.value
     end,
