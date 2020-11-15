@@ -24,7 +24,6 @@ local winDefault = {
   id = 11111,
   title = "window.lua (~/Programming/Projects/hammerMocks) ((1) of 11) - NVIM",
   application = {name = 'kitty'},
-  screen = screen:new(),
   isFocused = false,
 }
 
@@ -80,10 +79,9 @@ function window.filter:setOverrideFilter(tbl)
 end
 
 function window.filter:getWindows()
-  return u.map(self._windows, u.invoke(window, 'new'))
-  -- return u.map(self._windows, function(w)
-  --   return window:new(w)
-  -- end)
+  return u.map(self._windows, function(w)
+    return window:new(w)
+  end)
 end
 
 function window.filter:subscribe(event, fn)
