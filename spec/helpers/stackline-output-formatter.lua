@@ -54,6 +54,8 @@ return function(options)
   local errorCount = 0
   -- }}}
 
+  -- TODO: get fresh width each time tests run
+  -- Even if width recalculated in functions, it stays the same until busted closes/restarts
   local width = tonumber(os.getenv('COLUMNS'))
   local busted = require 'busted'
   local handler = require 'busted.outputHandlers.base'(options)
@@ -283,16 +285,6 @@ end  -- }}}
   end  -- }}}
 
   handler.suiteStart = function(suite, count, total, randomseed)  -- {{{
-    -- if total > 1 then
-    --   io.write(repeatSuiteString:format(count, total))
-    -- end
-    -- if randomseed then
-    --   io.write(randomizeString:format(randomseed))
-    -- end
-    -- io.write(suiteStartString)
-    -- io.write(globalSetup)
-      -- io.flush()
-
     return nil, true
   end  -- }}}
 
@@ -322,6 +314,8 @@ end  -- }}}
   busted.subscribe({'file', 'start'}, handler.fileStart)
   busted.subscribe({'test', 'start'}, handler.testStart)
   busted.subscribe({'test', 'end'}, handler.testEnd)
+
+  busted.subscribe({'suite', 'start'}, handler.suiteStart)
   busted.subscribe({'suite', 'end'}, handler.suiteEnd)
   busted.subscribe({'suite', 'reset'}, handler.suiteReset)
   return handler

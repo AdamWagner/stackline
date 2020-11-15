@@ -9,7 +9,6 @@ local prop = require 'hammerMocks.utils.prop'
 -- mocked hs modules
 local json = require 'hammerMocks.json'
 
-
 -- ———————————————————————————————————————————————————————————————————————————
 -- hs.task mock
 -- ———————————————————————————————————————————————————————————————————————————
@@ -58,12 +57,14 @@ end
 function task:start()
 
   -- TODO: Should be non-blocking like the real hs.task (coroutines?)
-  sleep(math.random(50, 200) / 100) -- simulate async b/n 0.5s and 2s
+  -- sleep(math.random(50, 200) / 100) -- simulate async b/n 0.5s and 2s
 
   if self.__stdout then -- if response provided use this instead of calling script
-    return type(self.__stdout) == 'table' -- if type table, encode json
-    and self.cb(self.__exitCode, json.encode(self.__stdout)) or
-               self.cb(self.__exitCode, self.__stdout)
+    if type(self.__stdout) == 'table' then
+      return self.cb(self.__exitCode, json.encode(self.__stdout))
+    else
+      return self.cb(self.__exitCode, self.__stdout)
+    end
   else
     local res = io.popen(self.cmd, 'r')
     local out = res:read('*a')
