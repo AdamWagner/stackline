@@ -18,6 +18,7 @@ end -- }}}
 
 function Stackmanager:ingest(windowGroups, appWindows, shouldClean) -- {{{
     local stacksCount = u.len(windowGroups)
+
     if shouldClean or (stacksCount == 0) then
         self:cleanup()
     end
@@ -54,19 +55,23 @@ end -- }}}
 function Stackmanager:getSummary(external) -- {{{
     -- Summarizes all stacks on the current space, making it easy to determine
     -- what needs to be updated (if anything)
-    local stacks = external or self.tabStacks
+    -- local stacks = external or self.tabStacks
+    local stacks = self.tabStacks
     return {
         numStacks = #stacks,
         topLeft = u.map(stacks, function(s)
-            local windows = external and s or s.windows
+            -- local windows = external and s or s.windows
+            local windows = s.windows
             return windows[1].topLeft
         end),
         dimensions = u.map(stacks, function(s)
-            local windows = external and s or s.windows
+            -- local windows = external and s or s.windows
+            local windows = s.windows
             return windows[1].stackId -- stackId is stringified window frame dims ("1150|93|531|962")
         end),
         numWindows = u.map(stacks, function(s)
-            local windows = external and s or s.windows
+            -- local windows = external and s or s.windows
+            local windows = s.windows
             return #windows
         end),
     }

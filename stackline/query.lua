@@ -66,6 +66,11 @@ function Query.mergeWinStackIdxs(groups, winStackIdxs) -- {{{
   end)
 end -- }}}
 
+
+local function remap(groupedWindows)
+  return { windows = groupedWindows }
+end
+
 function Query.shouldRestack(groupedWindows) -- {{{
   -- Analyze new vs. current to determine if a stack refresh is needed
   --  • change num stacks (+/-)
@@ -73,7 +78,7 @@ function Query.shouldRestack(groupedWindows) -- {{{
   --    • change position
   --    • change num windows (win added / removed)
   local curr = stackline.manager:getSummary()
-  local new = stackline.manager:getSummary(u.values(groupedWindows))
+  local new = stackline.manager:getSummary(u.map(groupedWindows, remap))
 
   if curr.numStacks ~= new.numStacks then
     return true
@@ -93,6 +98,7 @@ function Query.run(ws) -- {{{
   if shouldRefresh then
     async(function()
       local ok, winStackIndexes = pcall(hs.json.decode, Query.getWinStackIdxs())
+
       if ok then
         byStack = Query.mergeWinStackIdxs(byStack, winStackIndexes)
         stackline.manager:ingest(byStack, byApp, extantStackExists) -- hand over to the Stack module
