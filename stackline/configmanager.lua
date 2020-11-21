@@ -1,11 +1,21 @@
+-- setup configmanager logger
 local log = hs.logger.new('sline.conf')
 log.setLogLevel('info')
 log.i("Loading module")
 
+-- local validation helpers
 local v = require 'stackline.lib.valid'
 local o = v.optional
 
-local is_color = v.is_table {
+local function unknownTypeValidator(v)  -- {{{
+    log.i("Not validating: ", v)
+    return true
+end  -- }}}
+
+local M = {}
+
+-- Validation ------------------------------------------------------------------
+local is_color = v.is_table {  -- {{{
     white = o(v.is_number()),
     red   = o(v.is_number()),
     green = o(v.is_number()),
@@ -13,14 +23,7 @@ local is_color = v.is_table {
     alpha = o(v.is_number()),
 }
 
-local function unknownTypeValidator(v)
-    log.i("Not validating: ", v)
-    return true
-end
-
-local M = {}
-
-M.types = { -- {{{
+M.types = {
     ['string']    = { validator = v.is_string, coerce = tostring },
     ['number']    = { validator = v.is_number, coerce = tonumber },
     ['table']     = { validator = v.is_table, coerce = u.identity },
@@ -39,6 +42,7 @@ M.types = { -- {{{
 local defaultOnChangeEvt = {    -- {{{
     __index = function() stackline.queryWindowState:start() end
 }  -- }}}
+
 M.events = setmetatable({ -- {{{
     appearance = {
         onChange = function()
@@ -47,7 +51,6 @@ M.events = setmetatable({ -- {{{
     },
     features = {
         clickToFocus      = function() return stackline:refreshClickTracker() end,
-        maxRefreshRate    = nil,
         hsBugWorkaround   = nil,
         winTitles         = nil,
         dynamicLuminosity = nil,
@@ -85,29 +88,24 @@ M.schema = { -- {{{
     advanced = {maxRefreshRate = 0.3},
 } -- }}}
 
-function M:getPathSchema(path) -- {{{
+function M:getSchemaForPath(path) -- {{{
     local _type = u.getfield(path, self.schema) -- lookup type in schema
-    if not _type then
-        return false
-    end
+    if not _type then return false end
     local validator = self.types[_type].validator()
     return _type, validator
 end -- }}}
 
 function M.generateValidator(schemaType) -- {{{
-    if type(schemaType) == 'table' then
+    if type(schemaType) == 'table' then --  return table of validators built by calling self recursively
         local children = u.map(schemaType, M.generateValidator)
-        -- log.d('validator children:\n', hs.inspect(children))
         return v.is_table(children)
-    else
-        -- log.i('schemaType:', schemaType)
-        return M.types[schemaType]
-                and M.types[schemaType].validator() -- returns a fn to be called with value to validate
-                or unknownTypeValidator -- unknown types are assumed-valid
     end
+    return M.types[schemaType] -- return a single fn to be called with val to validate
+            and M.types[schemaType].validator()
+            or unknownTypeValidator
 end -- }}}
 
--- Config manager
+-- Config manager --------------------------------------------------------------
 function M:init(conf) -- {{{
     assert(conf, "Initial conf table is required (use the default conf)")
     log.i('Initializing configmanager…')
@@ -200,7 +198,7 @@ function M:set(path, val) -- {{{
        @val is the value to set at path
        non-existent path segments will be set to an empty table ]]
 
-    local _type, validator = self:getPathSchema(path) -- lookup type in schema
+    local _type, validator = self:getSchemaForPath(path) -- lookup type in schema
 
     if _type == nil then
         self:autosuggest(path)
@@ -229,9 +227,6 @@ function M:toggle(key) -- {{{
     return self
 end -- }}}
 
--- TODO: Add m:Increment(delta)
--- TODO: Add m:Decrement(delta)
-
 function M:parseMsg(msg) -- {{{
     local _, path, val = table.unpack(msg:split(':'))
     path = path:gsub("_(.)", string.upper) -- convert snake_case to camelCase
@@ -242,7 +237,7 @@ function M:parseMsg(msg) -- {{{
     end
 
     -- TODO: resolve 'chicken & egg' problem: need type to fully parse, need to fully parse to get type w/o error
-    local _type, validator = self:getPathSchema(path)
+    local _type, validator = self:getSchemaForPath(path)
     local parsedMsg = {
         path      = path,
         val       = val,
