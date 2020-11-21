@@ -33,6 +33,10 @@ function Stackmanager:ingest(windowGroups, appWindows, shouldClean) -- {{{
         table.insert(self.tabStacks, stack)
         self:resetAllIndicators()
     end
+
+
+    stacksCount = u.len(self.tabStacks)
+    print(string.format('have %s stacks after ingets()', stacksCount))
 end -- }}}
 
 function Stackmanager:get() -- {{{
@@ -65,9 +69,10 @@ function Stackmanager:getSummary(external) -- {{{
             return windows[1].topLeft
         end),
         dimensions = u.map(stacks, function(s)
-            -- local windows = external and s or s.windows
-            local windows = s.windows
-            return windows[1].stackId -- stackId is stringified window frame dims ("1150|93|531|962")
+            return s.windows[1].stackId -- stackId is stringified window frame dims ("1150|93|531|962")
+        end),
+        dimensionsFzy = u.map(stacks, function(s)
+            return s.windows[1].stackIdFzy -- stackId is stringified window frame dims ("1150|93|531|962")
         end),
         numWindows = u.map(stacks, function(s)
             -- local windows = external and s or s.windows
