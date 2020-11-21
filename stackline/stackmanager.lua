@@ -28,7 +28,7 @@ function Stackmanager:ingest(windowGroups, appWindows, shouldClean) -- {{{
         stack.id = stackId
         stack:eachWin(function(win)
             win:setOtherAppWindows(appWindows)
-            win.stack = stack -- enables calling stack methods from window
+            win.stack = stack -- makes it easy to call stack methods from window
         end)
         table.insert(self.tabStacks, stack)
         self:resetAllIndicators()
@@ -99,7 +99,7 @@ function Stackmanager:findStackByWindow(win) -- {{{
     -- NOTE 2: Currently unused, since reference to "otherAppWindows" is sstored
     -- directly on each window. Likely to be useful, tho, so keeping it around.
     for _stackId, stack in pairs(self.tabStacks) do
-        if stack.id == win.stackId then
+        if (stack.id == win.stackId) or (stack.id == win.stackIdFzy) then
             return stack
         end
     end
@@ -111,7 +111,7 @@ end -- }}}
 
 function Stackmanager:getClickedWindow(point) -- {{{
     -- given the coordinates of a mouse click, return the first window whose
-    -- indicator element encompasses the point, or nil if none.    
+    -- indicator element encompasses the point, or nil if none.
     for _stackId, stack in pairs(self.tabStacks) do
         local clickedWindow = stack:getWindowByPoint(point)
         if clickedWindow then
