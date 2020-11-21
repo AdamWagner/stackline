@@ -1,0 +1,15 @@
+
+-- NOTE: mocked hs.json uses https://github.com/rxi/json.lua
+describe('#lib json', function()
+  before_each(function()
+    _G.hs = helpers.reloadMock()
+  end)
+  it('decodes', function()
+    local decoded = hs.json.decode('[1,2,3,{"x":10}]')
+    assert.is_table(decoded)
+  end)
+  it('encodes', function()
+    local encoded = hs.json.encode({1, 2, 3, {x = 10}})
+    assert.is_string(encoded)
+  end)
+end)
