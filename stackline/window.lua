@@ -1,4 +1,6 @@
 local u = require 'stackline.lib.utils'
+local Indicator = require'stackline.indicator'
+
 local Window = {}
 
 function Window:new(hsWin) -- {{{
@@ -18,6 +20,14 @@ function Window:new(hsWin) -- {{{
     self.__index = self
     return ws
 end -- }}}
+
+function Window:setupIndicator()  -- {{{
+  if self.indicator then self.indicator:delete() end
+  self.indicator = Indicator
+     :new(self)
+     :init()
+     :draw()
+end  -- }}}
 
 function Window:isFocused() -- {{{
     local focusedWin = hs.window.focusedWindow()
@@ -78,19 +88,16 @@ end -- }}}
 
 function Window:deleteIndicator() -- {{{
     if self.indicator then
-        self.indicator:delete(self.config.fadeDuration)
+        self.indicator:delete()
+        self.indicator.canvas = nil -- TODO: Update stack_spec so that stack:resetAllIndicators() passes *without* this kludge
     end
 end -- }}}
 
-function Window:notSelfSameScreen(w) -- {{{
-    return (w.id ~= self.id) and (w.screen == self.screen)
-end  -- }}}
-
 function Window:setOtherAppWindows(byApp) -- {{{
-    local function filter(w)
-        return self:notSelfSameScreen(w)
+    local function notSelfSameScreen(w)
+        return (w.id ~= self.id) and (w.screen == self.screen)
     end
-    self.otherAppWindows = u.filter(byApp[self.app], filter)
+    self.otherAppWindows = u.filter(byApp[self.app], notSelfSameScreen)
 end -- }}}
 
 function Window:unfocusOtherAppWindows() -- {{{
