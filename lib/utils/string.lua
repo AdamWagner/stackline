@@ -64,10 +64,14 @@ function string:distance(str2)  -- {{{
     return distance[len1][len2] / #other
 end  -- }}}
 
-function string:ensureEndsWith(char)  -- {{{
-    -- ensure path ends with slash ("/")
+function string:endsWith(char)  -- {{{
   local lastChar = self:sub(#self)
-  if lastChar ~= char then
+  return lastChar == char
+end  -- }}}
+
+function string:ensureEndsWith(char)  -- {{{
+    -- ensure string ends with given char
+  if not self:endsWith(char) then
     self = self .. char
   end
 end  -- }}}
