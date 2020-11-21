@@ -75,7 +75,8 @@ function canvas:hide()
   return self
 end
 function canvas:delete()
-  return nil
+  self = nil
+  return self
 end
 
 function canvas:appendElements()

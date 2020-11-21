@@ -4,6 +4,8 @@ local prop = require 'hammerMocks.utils.prop'
 -- Mockbase is a simple base class that simplifies writing stateful mock modules.
 -- See alternative approach that uses tiered __index() lookup to manage defaults/overrides:
 --    https://github.com/inmation/library/blob/master/mock/inmation.lua
+-- Another alt "magicMock()" is refreshingly simple (just keeps track of method calls)
+--    https://github.com/CloneTrooper1019/Roblox-Client-Tracker/blob/roblox/BuiltInPlugins/GameSettings/Framework/packages/_Index/jtaylor_mock/mock/MagicMock.lua
 -- ————————————————————————————————————————————————————————————————————————————
 
 local MockBase = {}

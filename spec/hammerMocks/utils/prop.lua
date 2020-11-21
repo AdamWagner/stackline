@@ -60,6 +60,7 @@ local function wrap(o)
 
     elseif type(v) == 'table' then   -- recursively wrap if no metatable (real hs modules will have non-nil metatable)
 
+      -- TODO: consider using u.isGeometryObject()
       if getmetatable(v) ~= nil or k == 'frame' then
         obj[k] = prop(v)
       else
