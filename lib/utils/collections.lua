@@ -1,4 +1,3 @@
-
 -- local helper fns
 local getiter = function(x)  -- {{{
   local function isarray(x)
@@ -20,14 +19,25 @@ end  -- }}}
 local M = {}
 
 -- copy all hs.fnutils functions to this module
-local fnutils = hs and hs.fnutils or require 'hs.fnutils'  -- {{{
+local fnutils = hs and hs.fnutils or require 'hs.fnutils'
 fnutils.any = fnutils.some
 for k,v in pairs(fnutils) do
     M[k] = v
 end
-  -- }}}
 
--- measure
+-- building blocks
+function M.iter(list_or_iter)  -- {{{
+    if type(list_or_iter) == "function" then
+        return list_or_iter
+    end
+
+    return coroutine.wrap(function()
+        for i = 1, #list_or_iter do
+            coroutine.yield(list_or_iter[i])
+        end
+    end)
+end  -- }}}
+
 function M.len(t)  -- {{{
     local count = 0
     for _ in pairs(t) do
