@@ -15,12 +15,6 @@ function  Stack:get() -- {{{
     return self.windows
 end -- }}}
 
-function Stack:getHs() -- {{{
-   return u.map(self.windows, function(w)
-       return w._win
-   end)
-end -- }}}
-
 function Stack:frame() -- {{{
    -- All stacked windows have the same dimensions,
    -- so the 1st Hs window's frame is ~= to the stack's frame
@@ -34,13 +28,6 @@ function Stack:eachWin(fn) -- {{{
    end
 end -- }}}
 
-function Stack:getOtherAppWindows(win) -- {{{
-   -- NOTE: may not need when HS issue #2400 is closed
-   return u.filter(self:get(), function(w)
-       return w.app == win.app
-   end)
-end -- }}}
-
 function Stack:anyFocused() -- {{{
    return u.any(self.windows, function(w)
        return w:isFocused()
@@ -49,10 +36,7 @@ end -- }}}
 
 function Stack:resetAllIndicators() -- {{{
    self:eachWin(function(win)
-       win.indicator = require'stackline.indicator'
-         :new(win)
-         :init()
-         :draw()
+       win:setupIndicator()
    end)
 end -- }}}
 
@@ -68,7 +52,7 @@ end -- }}}
 
 function Stack:deleteAllIndicators() -- {{{
    self:eachWin(function(win)
-       win.indicator:delete()
+       win:deleteIndicator()
    end)
 end -- }}}
 
