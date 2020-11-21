@@ -1,6 +1,6 @@
 local async = require 'stackline.lib.async'
 
-describe('#module stackmanager', function()
+describe('#module #stackmanager', function()
 
   before_each(function()
     require 'lib.updatePackagePath'
@@ -56,15 +56,25 @@ describe('#module stackmanager', function()
 
   describe('finds', function()
 
-    it('window by id', function()
-      local win = stackline.manager:findWindow(24388)
-      assert.is_equal('kitty', win.app)
+    it('window', function()
+      local win_id = stackline.manager:get()[1].windows[1].id
+      local win = stackline.manager:findWindow(win_id)
+      assert.is_table(win)
     end)
 
     it('stack by window', function()
-      local win = stackline.manager:findWindow(24388)
+      local dimensionsFzy = fixture.summary.dimensionsFzy
+
+      -- query window
+      local win = stackline.manager:get()[1].windows[1]
       local stack = stackline.manager:findStackByWindow(win)
+
+      -- verify result
+      assert.is_table(stack)
+      assert.contains(dimensionsFzy, stack.id)
     end)
+
+
   end)
 
 end)
