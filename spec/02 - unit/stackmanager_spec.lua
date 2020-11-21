@@ -8,82 +8,63 @@ describe('#module stackmanager', function()
     fixture = require 'spec.fixtures.load'()
     hs.window.filter:set(fixture.screen.windows)
     hs.task:set(fixture.stackIndexes)
-
+    stackline = require 'stackline.stackline'
+    stackline.config = require 'stackline.configManager'
   end)
 
-  it('main module is initially nil', function()
-    assert.is_nil(stackline)
+  it('initially nil', function()
+    assert.is_nil(stackline.manager)
   end)
 
-  describe(':init()', function() -- {{{
+  describe('init()', function()
 
     before_each(function()
-      stackline = require 'stackline.stackline'
-      stackline.config = require 'stackline.configManager'
+      stackline:init()
     end)
 
     it('works', function()
-      stackline:init()
       assert.is_table(stackline.manager)
       assert.is_boolean(stackline.manager.showIcons)
     end)
 
-    it('key methods are callable', function()
-      stackline:init()
+    it('callable methods', function()
       assert.is_function(stackline.manager.get)
       assert.is_function(stackline.manager.ingest)
     end)
 
-    it('expected num stacks', function()
+    it('update()', function()
+      local ws = stackline.wf:getWindows()
+      stackline.manager:update()
+      assert.greater_than(0, #stackline.manager.tabStacks)
+    end)
+
+    it('correct num stacks', function()
       assert.equals(fixture.summary.numStacks, #stackline.manager.tabStacks)
     end)
 
+    it('getSummary()', function()
+      assert.is_table(stackline.manager:getSummary())
+    end)
 
-    it('expected summary', function()
-      stackline:init()
-      stackline.manager:update()
-
-      -- stackline.manager:update()
+    it('correct stacks/wins', function()
       local summary = stackline.manager:getSummary()
-      summary.topLeft = nil
+      summary.topLeft = nil -- TODO: consider removing 'topLeft'. It's pretty unnecessary
       assert.deepEqual(summary, fixture.summary)
     end)
 
-  end) -- }}}
+  end)
 
-  -- it(':ingest()', function() -- {{{
-  --   before_each(function()
-  --     hs.window.filter:set(fixture.screen.windows)
-  --     stackline = require 'stackline.stackline'
-  --     stackline:init()
-  --     stackline.manager:update()
-  --   end)
+  describe('finds', function()
 
-  --   it('trigger by passing ws → Query.query()', function()
-  --     local ws = stackline.wf:getWindows()
-  --     stackline.manager:update()
+    it('window by id', function()
+      local win = stackline.manager:findWindow(24388)
+      assert.is_equal('kitty', win.app)
+    end)
 
-  --     local test = stackline.manager.tabStacks
-  --     -- u.p(test)
-  --     -- u.p(hs.window.filter:getWindows())
-  --     -- wf = hs.window.filter.new()
-  --     -- u.p(wf:getWindows())
-  --     -- assert.greater_than(0, #stackline.manager.tabStacks)
-  --   end)
-
-  -- it('creates stack instances given grpd wins', function()
-  --   u.p(stackline.manager.tabStacks)
-  --     -- assert.is_table(actual)
-  -- end)
-
-  -- it('are retrieved', function()
-  --   async(function()
-  --     local winStackIndexes = hs.json.decode(Query.getWinStackIdxs())
-  --     local ok, parsed = pcall(hs.json.decode, winStackIndexes)
-  --     assert.same(parsed, fixture.stackIndexes)
-  --   end)
-  -- end)
-
-  -- end) -- }}}
+    it('stack by window', function()
+      local win = stackline.manager:findWindow(24388)
+      local stack = stackline.manager:findStackByWindow(win)
+    end)
+  end)
 
 end)

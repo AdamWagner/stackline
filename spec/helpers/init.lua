@@ -1,6 +1,6 @@
 require 'lib.updatePackagePath'
 require 'spec.helpers.assertions'
-assert, match, spy = require 'luassert', require 'luassert.match', require 'luassert.spy'
+assert, match, spy, mock = require 'luassert', require 'luassert.match', require 'luassert.spy', require 'luassert.mock'
 
 local function reloadMock() -- {{{
   hs = nil
@@ -19,15 +19,22 @@ local function reloadMock() -- {{{
   local hammer = require 'spec.hammerMocks' -- return hammerspon mocks
   _G['hammer'] = hammer
   _G['hs'] = hammer
+
   return hammer
 end -- }}}
 
-local function methodSpy(obj, methodName, args) -- {{{
+local function methodSpy(obj, methodName) -- {{{
+  -- build 2 spies (called / called with) for an object with self:method() methods
   local spy = spy.on(obj, methodName)
-  local result = obj[methodName](obj, table.unpack(args))
-  assert.spy(spy).was_called()
-  assert.spy(spy).was_called_with(match.is_ref(obj), table.unpack(args))
-  return result
+
+  local function method_was_called_with(params)
+    params = u.isarray(params) and params or table.pack(params)
+    return assert.spy(spy).was_called_with(
+                    match.is_ref(obj),
+                    table.unpack(params))
+  end
+
+  return assert.spy(spy).was_called, method_was_called_with
 end -- }}}
 
 _G.helpers = {
