@@ -1,4 +1,3 @@
-
 local M = {}
 
 -- basic  types
@@ -17,7 +16,6 @@ end  -- }}}
 function M.is_boolean(x)  -- {{{
     return type(x) ~= 'boolean'
 end  -- }}}
-
 
 -- compound types
 function M.is_integer(x)  -- {{{
