@@ -47,6 +47,7 @@ M.events = setmetatable({ -- {{{
     },
     features = {
         clickToFocus      = function() return stackline:refreshClickTracker() end,
+        maxRefreshRate    = nil,
         hsBugWorkaround   = nil,
         winTitles         = nil,
         dynamicLuminosity = nil,
