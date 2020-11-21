@@ -1,4 +1,4 @@
-describe('#module configmanager', function()
+describe('#module #configmanager', function()
 
   before_each(function()
     _G.hs = helpers.reloadMock()
@@ -43,7 +43,6 @@ describe('#module configmanager', function()
 
   it('get() key works', function()
     local features = stackline.config:get('features')
-    -- print(hs.inspect(features))
     assert.are.same({enabled = true, fuzzFactor = 30}, features.fzyFrameDetect)
   end)
 

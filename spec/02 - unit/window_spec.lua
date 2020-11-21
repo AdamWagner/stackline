@@ -2,8 +2,8 @@
 
 -- test helpers
 -- ———————————————————————————————————————————————————————————————————————————
-local  get_win = {
-  -- getters for hs.window values
+local  get_win = {  -- {{{
+    -- getters for hs.window values
   app = function(w) return w:application():name() end,
   title = function(w) return w:title() end,
   id = function(w) return w:id() end,
@@ -12,27 +12,25 @@ local  get_win = {
   screen = function(w) return w:screen() end,
   screen_frame = function(w) return w:screen():frame() end,
   screen_fullFrame = function(w) return w:screen():fullFrame() end,
-}
+}  -- }}}
 
-local function testSchema(schema, obj)
-  -- given a schema and an obj, test obj for each entry in schema
-
-
+local function testSchema(schema, obj)  -- {{{
+    -- given a schema and an obj, test obj for each entry in schema
   for _,val in pairs(schema) do
     assert(val.key, 'Schema entries must have a "key" property')
     assert(val.is_type, 'Schema entries must have a "is_type" property')
     assert.is_callable(val.is_type)
 
     local getter = (val.fn ~= nil)
-      and val.fn                           -- use val.fn if it exists
-      or function(x) return x[val.key] end -- otherwise use val.key to lookup directly
+      and val.fn                             -- use val.fn if it exists
+      or function(x) return x[val.key] end   -- otherwise use val.key to lookup directly
 
-    -- run the test!
+      -- run the test!
     it(val.key, function()
       val.is_type(getter(obj))
     end)
   end
-end
+end  -- }}}
 
 describe('#module #only window', function()
 

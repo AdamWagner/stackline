@@ -5,7 +5,6 @@ function Indicator:new(win)  -- {{{
     win:isStackFocused()
     local config = stackline.config:get('appearance')
     local c = config
-
     local indicator = {
         win = win,
         config = c,

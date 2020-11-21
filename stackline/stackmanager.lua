@@ -33,10 +33,6 @@ function Stackmanager:ingest(windowGroups, appWindows, shouldClean) -- {{{
         table.insert(self.tabStacks, stack)
         self:resetAllIndicators()
     end
-
-
-    stacksCount = u.len(self.tabStacks)
-    print(string.format('have %s stacks after ingets()', stacksCount))
 end -- }}}
 
 function Stackmanager:get() -- {{{
