@@ -275,5 +275,10 @@ entity["summary"]["numWindows"][2] = 2
 entity["summary"]["dimensions"] = {}
 entity["summary"]["dimensions"][1] = [[607|53|1109|1032]]
 entity["summary"]["dimensions"][2] = [[75|53|513|1032]]
+entity["summary"]["dimensionsFzy"] = {}
+entity["summary"]["dimensionsFzy"][1] = [[600|30|1080|1020]]
+entity["summary"]["dimensionsFzy"][2] = [[60|30|510|1020]]
 entity["summary"]["numStacks"] = 2
+
+
 return entity

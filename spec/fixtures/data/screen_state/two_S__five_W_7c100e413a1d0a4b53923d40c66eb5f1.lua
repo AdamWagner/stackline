@@ -1,4 +1,3 @@
-local entity = {}
 entity = {}
 entity["stackIndexes"] = {}
 entity["stackIndexes"]["376"] = 0
@@ -142,6 +141,9 @@ entity["summary"]["numStacks"] = 2
 entity["summary"]["dimensions"] = {}
 entity["summary"]["dimensions"][1] = [[798|38|948|1062]]
 entity["summary"]["dimensions"][2] = [[45|38|749|529]]
+entity["summary"]["dimensionsFzy"] = {}
+entity["summary"]["dimensionsFzy"][1] = [[30|30|720|510]]
+entity["summary"]["dimensionsFzy"][2] = [[780|30|930|1050]]
 entity["config"] = {}
 entity["config"]["advanced"] = {}
 entity["config"]["advanced"]["maxRefreshRate"] = 0.3

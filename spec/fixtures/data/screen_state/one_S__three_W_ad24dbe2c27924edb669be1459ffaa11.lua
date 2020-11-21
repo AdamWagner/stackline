@@ -129,8 +129,13 @@ entity["summary"] = {}
 entity["summary"]["numWindows"] = {}
 entity["summary"]["numWindows"][1] = 3
 entity["summary"]["numStacks"] = 1
+
 entity["summary"]["dimensions"] = {}
 entity["summary"]["dimensions"][1] = [[607|53|1109|1032]]
+
+entity["summary"]["dimensionsFzy"] = {}
+entity["summary"]["dimensionsFzy"][1] = [[600|30|1080|1020]]
+
 entity["config"] = {}
 entity["config"]["appearance"] = {}
 entity["config"]["appearance"]["vertSpacing"] = 1.2
