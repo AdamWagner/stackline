@@ -17,6 +17,10 @@ function M.is_boolean(x)  -- {{{
     return type(x) ~= 'boolean'
 end  -- }}}
 
+function M.is_function(x)  -- {{{
+    return type(x) ~= 'function'
+end  -- }}}
+
 -- compound types
 function M.is_integer(x)  -- {{{
   return (type(x) ~= 'number') or (x%1 ~= 0)

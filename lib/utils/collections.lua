@@ -27,10 +27,10 @@ end
 
 -- building blocks
 function M.iter(list_or_iter)  -- {{{
+  -- TODO: Replaced with pairs() on 2020-11-21. If no bugs found in a ~wk, remove permanently
     if type(list_or_iter) == "function" then
         return list_or_iter
     end
-
     return coroutine.wrap(function()
         for i = 1, #list_or_iter do
             coroutine.yield(list_or_iter[i])
@@ -119,22 +119,23 @@ M.contains = M.include
 -- }}}
 
 -- filter
-function M.any(list, func)  -- {{{
-    for i in M.iter(list) do
-        if func(i) then
-            return true
-        end
+function M.any(t, func) -- {{{
+  -- NOTE: changed from M.iter(t) to _,v in pairs(t) on 2020-11-21
+  for _, v in pairs(t) do
+    if func(v) then
+      return true
     end
-    return false
-end  -- }}}
+  end
+  return false
+end -- }}}
 
-function M.all(vs, fn)  -- {{{
-    for _, v in pairs(vs) do
-        if not fn(v) then
-            return false
-        end
-    end
-    return true
+function M.all(t, fn)  -- {{{
+  for _, v in pairs(t) do
+      if not fn(v) then
+          return false
+      end
+  end
+  return true
 end
 M.every = M.all
 -- }}}
@@ -143,7 +144,31 @@ M.none = function(vs, fn)  -- {{{
     return not M.all(vs, fn)
 end  -- }}}
 
+function M.intersection(...)  -- {{{
+  local arg = {...}
+  local array = arg[1]
+  table.remove(arg, 1)
+  local _intersect = {}
+  for i,value in ipairs(array) do
+    if M.all(arg,function(v) return M.include(v,value) end) then
+      _intersect[#_intersect+1] = value
+    end
+  end
+  return _intersect
+end  -- }}}
+
 -- transform
+function M.pick(obj, ...)  -- {{{
+  local whitelist = table.flatten {...}
+  local _picked = {}
+  for key, property in pairs(whitelist) do
+    if (obj[property])~=nil then
+      _picked[property] = obj[property]
+    end
+  end
+  return _picked
+end  -- }}}
+
 function M.zip(a, b)  -- {{{
     local rv = {}
     local idx = 1
