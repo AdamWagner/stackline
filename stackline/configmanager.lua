@@ -54,6 +54,7 @@ M.events = setmetatable({ -- {{{
         hsBugWorkaround   = nil,
         winTitles         = nil,
         dynamicLuminosity = nil,
+        fzyFrameDetect    = function() stackline.manager:update() end,
     },
     advanced = {
         maxRefreshRate    = function() print('Needs implemented') end,
