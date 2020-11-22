@@ -9,6 +9,7 @@ describe('#module #configmanager', function()
     hs.task:set(state.stackIndexes)
 
     stackline = require 'stackline.stackline.stackline'
+    stackline:init()
     stackline.config = require 'stackline.stackline.configManager'
   end)
 
@@ -43,13 +44,14 @@ describe('#module #configmanager', function()
 
   it('get() key works', function()
     local features = stackline.config:get('features')
-    assert.are.same({enabled = true, fuzzFactor = 30}, features.fzyFrameDetect)
+    local default = require 'conf'
+    assert.are.same(default.features.fzyFrameDetect, features.fzyFrameDetect)
   end)
 
   it('get() dotted path works', function()
     local fzyFrameDetect = stackline.config:get('features.fzyFrameDetect')
-    -- print(hs.inspect(features))
-    assert.same({enabled = true, fuzzFactor = 30}, fzyFrameDetect)
+    local default = require 'conf'
+    assert.same(default.features.fzyFrameDetect, fzyFrameDetect)
   end)
 
   it('set() dotted path works', function()
