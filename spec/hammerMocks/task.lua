@@ -57,7 +57,7 @@ end
 function task:start()
 
   -- TODO: Should be non-blocking like the real hs.task (coroutines?)
-  -- sleep(math.random(50, 200) / 100) -- simulate async b/n 0.5s and 2s
+  sleep(math.random(50, 200) / 100) -- simulate async b/n 0.5s and 2s
 
   if self.__stdout then -- if response provided use this instead of calling script
     if type(self.__stdout) == 'table' then
