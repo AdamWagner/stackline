@@ -121,7 +121,7 @@ describe('#module #query', function()
             local thisStack = byStack[stackId]
             local testDescription = stackId .. ' (exp ' .. numWin .. ', got ' .. #thisStack .. ')'
             it(testDescription, function()
-              assert.same(numWin, #thisStack)
+              assert.deepEqual(numWin, #thisStack)
             end)
           end
         end) -- describe: num wins in grp

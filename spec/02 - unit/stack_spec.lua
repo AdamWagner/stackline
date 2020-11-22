@@ -90,7 +90,7 @@ insulate('#module #stack', function()
         table.insert(indicators_reset, w.indicator.canvas)
       end)
     end)
-    assert.equal(5, #indicators_reset)
+    assert.equal(fixture.meta.num_total_wins, #indicators_reset)
 
   end)
 
