@@ -23,7 +23,6 @@ end -- }}}
 
 function Query.getWinStackIdxs() -- {{{
   local r = async()
-  -- hs.task.new(c.paths.getStackIdxs, r.resolve):start()
   hs.task.new(c.paths.getStackIdxs, function(code, out, err)
     r.resolve(out)
   end):start()
@@ -66,10 +65,9 @@ function Query.mergeWinStackIdxs(groups, winStackIdxs) -- {{{
   end)
 end -- }}}
 
-
-local function remap(groupedWindows)
+local function remap(groupedWindows)  -- {{{
   return { windows = groupedWindows }
-end
+end  -- }}}
 
 function Query.shouldRestack(groupedWindows) -- {{{
   -- Analyze new vs. current to determine if a stack refresh is needed
