@@ -1,9 +1,10 @@
+local u = require 'lib.utils'
+
 describe('#module #window', function()
 
   setup(function()
     require 'lib.updatePackagePath'
-    u = require 'lib.utils'
-    _G.hs = helpers.reloadMock()
+    hs = helpers.reloadMock()
 
     testSchema = helpers.schemas.testGen.testSchema
 

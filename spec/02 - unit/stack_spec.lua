@@ -63,7 +63,6 @@ insulate('#module #stack', function()
 
   it('resetAllIndicators', function()
     local indicators = {}
-
     stackline.manager:eachStack(function(s)
       s:eachWin(function(w)
         table.insert(indicators, w.indicator.canvas)
@@ -72,8 +71,8 @@ insulate('#module #stack', function()
 
     assert.greater_than(0, #indicators)
 
-    local indicators_deleted = {}
 
+    local indicators_deleted = {}
     stackline.manager:eachStack(function(s)
       s:deleteAllIndicators()
       s:eachWin(function(w)
@@ -90,6 +89,7 @@ insulate('#module #stack', function()
         table.insert(indicators_reset, w.indicator.canvas)
       end)
     end)
+
     assert.equal(fixture.meta.num_total_wins, #indicators_reset)
 
   end)

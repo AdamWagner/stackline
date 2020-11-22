@@ -178,6 +178,17 @@ function M.pick(obj, ...)  -- {{{
   return _picked
 end  -- }}}
 
+function M.omit(obj, ...)
+  local blocklist = M.flatten {...}
+  local _picked = {}
+  for key, value in pairs(obj) do
+    if not M.include(blocklist,key) then
+      _picked[key] = value
+    end
+  end
+  return _picked
+end
+
 function M.zip(a, b)  -- {{{
     local rv = {}
     local idx = 1
