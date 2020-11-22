@@ -2,6 +2,7 @@
 -- │ Fixture utils  │
 -- └────────────────┘
 local geometry = require 'hs.geometry' -- real hs.geometry
+local u = require 'lib.utils'
 
 local M = {}
 

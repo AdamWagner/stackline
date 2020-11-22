@@ -2,6 +2,17 @@ require 'lib.updatePackagePath'
 require 'spec.helpers.assertions'
 assert, match, spy, mock = require 'luassert', require 'luassert.match', require 'luassert.spy', require 'luassert.mock'
 
+local function loadBusted()  -- {{{
+  require 'busted.runner'()
+  _G.describe = require'busted'.describe
+  _G.it = require'busted'.it
+  _G.pending = require'busted'.pending
+  _G.setup = require'busted'.setup
+  _G.teardown = require'busted'.teardown
+  _G.before_each = require'busted'.before_each
+  _G.after_each = require'busted'.after_each
+end  -- }}}
+
 local function reloadMock() -- {{{
   hs = nil
   _G.hs = nil
@@ -37,8 +48,15 @@ local function methodSpy(obj, methodName) -- {{{
   return assert.spy(spy).was_called, method_was_called_with
 end -- }}}
 
+loadBusted()
+require 'lib.updatePackagePath'
+_G.hs = reloadMock()
+
 _G.helpers = {
   scenario = require 'spec.helpers.scenario',
+  schemas = require 'spec.helpers.schemas',
+  loadBusted = loadBusted,
   reloadMock = reloadMock,
   methodSpy = methodSpy,
+  testSetup = testSetup,
 }
