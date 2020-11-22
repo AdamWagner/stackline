@@ -55,14 +55,11 @@ end -- }}}
 function Stackmanager:getSummary(external) -- {{{
     -- Summarizes all stacks on the current space, making it easy to determine
     -- what needs to be updated (if anything)
-    -- local stacks = external or self.tabStacks
-    local stacks = self.tabStacks
+    local stacks = external or self.tabStacks
     return {
         numStacks = #stacks,
         topLeft = u.map(stacks, function(s)
-            -- local windows = external and s or s.windows
-            local windows = s.windows
-            return windows[1].topLeft
+            return s.windows[1].topLeft
         end),
         dimensions = u.map(stacks, function(s)
             return s.windows[1].stackId -- stackId is stringified window frame dims ("1150|93|531|962")
@@ -71,10 +68,22 @@ function Stackmanager:getSummary(external) -- {{{
             return s.windows[1].stackIdFzy -- stackId is stringified window frame dims ("1150|93|531|962")
         end),
         numWindows = u.map(stacks, function(s)
-            -- local windows = external and s or s.windows
-            local windows = s.windows
-            return #windows
+            return #s.windows
         end),
+        appCount = (function()
+            -- local win = u.flatten(u.values(u.map(stacks, function(s) return s.windows end)))
+            local stackedWin = u.flatten(
+                u.values(u.map(stacks, function(s) return s.windows end))
+            )
+
+            local prunedWins = u.map(stackedWin, function(w) return u.pick(w, 'id', 'app') end)
+
+            local byApp = table.groupBy(prunedWins, 'app')
+
+            local appCount = u.map(byApp, function(x) return #x end)
+
+            return appCount
+        end)(),
     }
 end -- }}}
 
