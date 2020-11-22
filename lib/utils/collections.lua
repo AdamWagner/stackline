@@ -158,6 +158,15 @@ function M.intersection(...)  -- {{{
 end  -- }}}
 
 -- transform
+
+function M.pluck(t, key)  -- {{{
+  local _t = {}
+  for k, v in pairs(t) do
+    if v[key] then _t[#_t+1] = v[key] end
+  end
+  return _t
+end  -- }}}
+
 function M.pick(obj, ...)  -- {{{
   local whitelist = table.flatten {...}
   local _picked = {}
@@ -193,6 +202,20 @@ function M.invert(t)  -- {{{
         rtn[v] = k
     end
     return rtn
+end  -- }}}
+
+function M.flatten(array)  -- {{{
+  shallow = true
+  local new_flattened
+  local _flat = {}
+  for key,value in ipairs(array) do
+    if type(value) == 'table' then
+      new_flattened = shallow and value or M.flatten (value)
+      for k,item in ipairs(new_flattened) do _flat[#_flat+1] = item end
+    else _flat[#_flat+1] = value
+    end
+  end
+  return _flat
 end  -- }}}
 
 return M

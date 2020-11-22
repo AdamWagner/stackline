@@ -16,15 +16,19 @@ table.merge(utils, require 'lib.utils.functions')
 table.merge(utils, require 'lib.utils.comparison')
 table.merge(utils, require 'lib.utils.cloning')
 
+function utils.globalKeys()  -- {{{
+  local gkeys = u.keys(_G)
+  table.sort(gkeys, function(a,b) return a < b end)
+  return gkeys
+end  -- }}}
 
--- ———————————————————————————————————————————————————————————————————————————
 -- Stackline-specific utils
 -- ———————————————————————————————————————————————————————————————————————————
-function utils.isGeometryObject(v)
+function utils.isGeometryObject(v)  -- {{{
   local _v = utils.copyDeep(v)
   local mt = getmetatable(_v)
 
-  -- tests
+    -- tests
   local test_floor_method, test_table_prop, is_rect
 
   has_metatable = mt and mt.getarea and mt.floor
@@ -39,7 +43,6 @@ function utils.isGeometryObject(v)
           and test_floor_method
           and test_table_prop
           and is_rect
-end
-
+end  -- }}}
 
 return utils

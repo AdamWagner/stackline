@@ -96,13 +96,16 @@ function table.reduce(obj, callback, memo)
     return _memo
 end
 
-function table.groupBy(obj, by)
+function table.groupBy(tbl, by)
+  assert(tbl ~= nil, 'table to groupBy must not be nil')
+
     function reducer(accumulator, current)
+      assert(type(accumulator) == 'table', 'reducer accumulator must be a table')
+
       local result
-      if type(by) == 'function' then
-          result = by(current)
-      elseif type(by) == 'string'  then
-          result = current[by]
+
+      if type(by) == 'function' then result = by(current)
+      elseif type(by) == 'string'  then result = current[by]
       end
 
       if not accumulator[result] then
@@ -113,5 +116,5 @@ function table.groupBy(obj, by)
       return accumulator
     end
 
-    return table.reduce(obj, reducer, {})
+    return table.reduce(tbl, reducer, {})
 end
