@@ -1,3 +1,5 @@
+-- FROM: https://github.com/LuaDist-testing/lua-schema-validation
+
 local format = string.format
 local floor = math.floor
 local insert = table.insert
