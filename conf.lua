@@ -38,7 +38,7 @@ c.features.hsBugWorkaround            = true                -- Workaround for ht
 
 c.features.fzyFrameDetect             = {}                  -- Round window frame dimensions by fuzzFactor before identifying stacked windows
 c.features.fzyFrameDetect.enabled     = true                -- Enable/disable fuzzy frame detection
-c.features.fzyFrameDetect.fuzzFactor  = 30                  -- Window frame dimensions will be rounded to nearest fuzzFactor
+c.features.fzyFrameDetect.fuzzFactor  = 90                  -- Window frame dimensions will be rounded to nearest fuzzFactor
 
 c.features.winTitles                 = 'not_implemented'    -- Valid options: false, true, 'when_switching', 'not_implemented'
 c.features.dynamicLuminosity         = 'not_implemented'    -- Valid options: false, true, 'not_implemented'
