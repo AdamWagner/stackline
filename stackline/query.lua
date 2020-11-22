@@ -23,7 +23,6 @@ end -- }}}
 
 function Query.getWinStackIdxs() -- {{{
   local r = async()
-  -- hs.task.new(c.paths.getStackIdxs, r.resolve):start()
   hs.task.new(c.paths.getStackIdxs, function(code, out, err)
     r.resolve(out)
   end):start()
