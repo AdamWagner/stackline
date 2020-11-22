@@ -2,9 +2,9 @@ local async = require 'stackline.lib.async'
 
 describe('#module #stackmanager', function()
 
-  before_each(function()
-    require 'lib.updatePackagePath'
-    _G.hs = helpers.reloadMock()
+  setup(function()
+    -- require 'lib.updatePackagePath'
+    hs = helpers.reloadMock()
     fixture = require 'spec.fixtures.load'()
     hs.window.filter:set(fixture.screen.windows)
     hs.task:set(fixture.stackIndexes)
@@ -18,8 +18,8 @@ describe('#module #stackmanager', function()
 
   describe('init()', function()
 
-    before_each(function()
-      stackline:init()
+    setup(function()
+      stackline:init(fixture.config)
     end)
 
     it('works', function()
@@ -49,7 +49,7 @@ describe('#module #stackmanager', function()
     it('correct stacks/wins', function()
       local summary = stackline.manager:getSummary()
       summary.topLeft = nil -- TODO: consider removing 'topLeft'. It's pretty unnecessary
-      assert.deepEqual(summary, fixture.summary)
+      assert.deepEqual(fixture.summary, summary)
     end)
 
   end)

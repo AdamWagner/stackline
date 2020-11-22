@@ -203,13 +203,13 @@ entity["summary"] = {}
 entity["summary"]["numStacks"] = 3
 entity["summary"]["numWindows"] = {}
 entity["summary"]["numWindows"][1] = 2
-entity["summary"]["numWindows"][2] = 3
-entity["summary"]["numWindows"][3] = 2
+entity["summary"]["numWindows"][2] = 2
+entity["summary"]["numWindows"][3] = 3
 
 entity["summary"]["dimensions"] = {}
-entity["summary"]["dimensions"][1] = [[45|572|749|529]]
-entity["summary"]["dimensions"][2] = [[798|38|948|1062]]
-entity["summary"]["dimensions"][3] = [[45|38|749|529]]
+entity["summary"]["dimensions"][1] = [[798|38|948|1062]]
+entity["summary"]["dimensions"][2] = [[45|38|749|529]]
+entity["summary"]["dimensions"][3] = [[45|572|749|529]]
 
 entity["summary"]["dimensionsFzy"] = {}
 entity["summary"]["dimensionsFzy"][1] = [[30|570|720|510]]

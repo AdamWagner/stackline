@@ -1,11 +1,11 @@
 
 -- NOTE: "insulate" is the only way I could load a new fixture in & make sure
 -- the old one was forgotten. That doesn't seem right, but…
-insulate('#module stack', function()
+insulate('#module #stack', function()
 
   before_each(function()
     require 'lib.updatePackagePath'
-    _G.hs = helpers.reloadMock()
+    hs = helpers.reloadMock()
 
     local fixturePath = 'screen_state.three_S__seven_W_45315fe12c8ef6a1a7fbf3a3a2b013f6'
     fixture = require 'spec.fixtures.load'()

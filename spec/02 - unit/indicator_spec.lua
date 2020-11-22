@@ -1,4 +1,4 @@
-describe('#module indicator', function()
+describe('#module #indicator', function()
 
   -- setup(function()
   --   local  = mock(t, true)
