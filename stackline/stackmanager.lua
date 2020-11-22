@@ -45,6 +45,12 @@ function Stackmanager:eachStack(fn) -- {{{
     end
 end -- }}}
 
+function Stackmanager:eachWin(fn) -- {{{
+    self:eachStack(function(s) 
+        s:eachWin(fn)
+    end)
+end -- }}}
+
 function Stackmanager:cleanup() -- {{{
     self:eachStack(function(stack)
         stack:deleteAllIndicators()
