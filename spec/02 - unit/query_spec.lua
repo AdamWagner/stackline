@@ -4,48 +4,13 @@ local are_stackline_wins = helpers.schemas.entities.are_stackline_wins
 local is_stackline_win = helpers.schemas.entities.is_stackline_win
 local is_hs_win = helpers.schemas.entities.is_hs_win
 local is_groupedwins = helpers.schemas.entities.is_groupedwins
-
-local function applyFixture(fixturePath)  -- {{{
-  if type(fixturePath) == 'string' then
-    fixture = require 'spec.fixtures.load'(fixturePath)
-  else
-    fixture = require 'spec.fixtures.load'()
-  end
-  hs.window.filter:set(fixture.screen.windows)
-  hs.task:set(fixture.stackIndexes)
-  return fixture
-end  -- }}}
-
-local function startStackline(fixture)  -- {{{
-  stackline = require 'stackline.stackline'
-  stackline:init(fixture.config)
-  -- NOTE: the only way to test various fuzzFactors
-  -- (e.g., "disabled") is to pass in config from fixture.
-  query = require 'stackline.query'
-end  -- }}}
-
-local function makeWindows()  -- {{{
-  ws = hs.window.filter:new():getWindows()
-  windows = u.map(ws, function(w)
-    return stackline.window:new(w)
-  end)
-end  -- }}}
-
-local function prepareExpected()  -- {{{
-    -- Get the appropriate stackId field from summary based on whether fzyFrameDetect is enabled
-  local groupKey = stackline.config:get('.features.fzyFrameDetect.enabled')
-                    and 'dimensionsFzy'
-                    or 'dimensions'
-
-  expected = u.zip(fixture.summary.numWindows, fixture.summary[groupKey])
-  return expected
-end  -- }}}
+local test_utils = helpers.test_utils
 
 local function setupQueryTests()  -- {{{
   hs = helpers.reloadMock()
-  fixture = applyFixture()
-  startStackline(fixture)
-  makeWindows()
+  fixture = test_utils.applyFixture()
+  test_utils.startStackline(fixture)
+  test_utils.makeWindows()
   return fixture
 end  -- }}}
 
@@ -74,7 +39,7 @@ describe('#module #query', function()
       -- NOTE: byApp keys = app names, values = arrays of stackline windows
     local byApp = query.groupByApp(byStack, windows)
     ok, err = is_groupedwins(byApp)
-    if not ok then error(err) end
+    if not ok then assert.is_true(err) end
   end)  -- }}}
 
   it('gets stack indexes from yabai', function()  -- {{{
@@ -98,12 +63,12 @@ describe('#module #query', function()
         -- NOTE: extracting these fns to a local helper fn breaks subsequent tests.
         -- TODO: Find out how to extract these setup fns without breaking subsequent tests
         hs = helpers.reloadMock()
-        fixture = applyFixture(fixturePath)
-        startStackline(fixture)
-        makeWindows()
+        fixture = test_utils.applyFixture(fixturePath)
+        test_utils.startStackline(fixture)
+        test_utils.makeWindows()
 
         byStack = query.groupByStack(windows)
-        expected = prepareExpected()
+        expected = test_utils.prepareExpected()
         io.write('\n\nSCENARIO: ' .. fixture.meta.description) -- separate each scenario in the output
       end)
 

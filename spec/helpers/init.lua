@@ -58,5 +58,5 @@ _G.helpers = {
   loadBusted = loadBusted,
   reloadMock = reloadMock,
   methodSpy = methodSpy,
-  testSetup = testSetup,
+  test_utils = require 'spec.helpers.test-utils',
 }

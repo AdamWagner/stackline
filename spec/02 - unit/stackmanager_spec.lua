@@ -3,7 +3,6 @@ local async = require 'stackline.lib.async'
 describe('#module #stackmanager', function()
 
   setup(function()
-    -- require 'lib.updatePackagePath'
     hs = helpers.reloadMock()
     fixture = require 'spec.fixtures.load'()
     hs.window.filter:set(fixture.screen.windows)
@@ -63,17 +62,17 @@ describe('#module #stackmanager', function()
     end)
 
     it('stack by window', function()
-      local dimensionsFzy = fixture.summary.dimensionsFzy
-
       -- query window
       local win = stackline.manager:get()[1].windows[1]
       local stack = stackline.manager:findStackByWindow(win)
 
       -- verify result
       assert.is_table(stack)
-      assert.contains(dimensionsFzy, stack.id)
+      assert.contains(
+        fixture.summary[helpers.test_utils.getStackIdsKey()],
+        stack.id
+      )
     end)
-
 
   end)
 
