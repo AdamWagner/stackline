@@ -1,4 +1,11 @@
 entity = {}
+
+entity["meta"] = {}
+entity["meta"]["num_stacked_wins"] = 5
+entity["meta"]["num_stacks"] = 2
+entity["meta"]["num_total_wins"] = 6
+entity["meta"]["description"] = "6 win, 2 stacks. fuzzFactor:30, enabled."
+
 entity["stackIndexes"] = {}
 entity["stackIndexes"]["376"] = 0
 entity["stackIndexes"]["267"] = 1
@@ -16,10 +23,6 @@ entity["stackIndexes"]["207"] = 0
 entity["stackIndexes"]["378"] = 0
 entity["stackIndexes"]["292"] = 0
 entity["stackIndexes"]["373"] = 0
-entity["meta"] = {}
-entity["meta"]["num_stacked_wins"] = 5
-entity["meta"]["num_stacks"] = 2
-entity["meta"]["num_total_wins"] = 6
 entity["screen"] = {}
 entity["screen"]["windows"] = {}
 entity["screen"]["windows"][1] = {}
@@ -142,8 +145,15 @@ entity["summary"]["dimensions"] = {}
 entity["summary"]["dimensions"][1] = [[798|38|948|1062]]
 entity["summary"]["dimensions"][2] = [[45|38|749|529]]
 entity["summary"]["dimensionsFzy"] = {}
-entity["summary"]["dimensionsFzy"][1] = [[30|30|720|510]]
-entity["summary"]["dimensionsFzy"][2] = [[780|30|930|1050]]
+entity["summary"]["dimensionsFzy"][1] = [[780|30|930|1050]]
+entity["summary"]["dimensionsFzy"][2] = [[30|30|720|510]]
+entity["summary"]["appCount"] = {
+  Evernote = 1,
+  ["Google Chrome"] = 1,
+  kitty = 3,
+}
+
+
 entity["config"] = {}
 entity["config"]["advanced"] = {}
 entity["config"]["advanced"]["maxRefreshRate"] = 0.3

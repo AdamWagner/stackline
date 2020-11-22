@@ -1,9 +1,12 @@
 local entity = {}
+
 entity["meta"] = {}
-entity["description"] = "Left side < Chrome's min width, BUT delta is < fuzzFactor, so stack detected."
 entity["meta"]["num_total_wins"] = 5
 entity["meta"]["num_stacks"] = 2
 entity["meta"]["num_stacked_wins"] = 5
+entity["meta"]["description"] = "Left side < Chrome's min width, BUT delta is < fuzzFactor:30, so stack detected."
+
+
 entity["screen"] = {}
 entity["screen"]["frame"] = {}
 entity["screen"]["frame"]["x"] = 0.0
@@ -279,6 +282,13 @@ entity["summary"]["dimensionsFzy"] = {}
 entity["summary"]["dimensionsFzy"][1] = [[600|30|1080|1020]]
 entity["summary"]["dimensionsFzy"][2] = [[60|30|510|1020]]
 entity["summary"]["numStacks"] = 2
+entity["summary"]["appCount"] = {
+  Code = 1,
+  Evernote = 1,
+  ["Google Chrome"] = 1,
+  Hammerspoon = 1,
+  kitty = 1,
+}
 
 
 return entity

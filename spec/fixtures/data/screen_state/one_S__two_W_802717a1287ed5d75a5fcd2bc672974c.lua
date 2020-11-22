@@ -1,5 +1,11 @@
 local entity = {}
 entity = {}
+entity["meta"] = {}
+entity["meta"]["num_stacks"] = 1
+entity["meta"]["num_stacked_wins"] = 2
+entity["meta"]["num_total_wins"] = 3
+entity["meta"]["description"] = "3 wins, 1 stack, fuzzFactor:30, enabled"
+
 entity["summary"] = {}
 entity["summary"]["dimensions"] = {}
 entity["summary"]["dimensions"][1] = [[45|38|674|1062]]
@@ -8,6 +14,12 @@ entity["summary"]["dimensionsFzy"][1] = [[30|30|660|1050]]
 entity["summary"]["numWindows"] = {}
 entity["summary"]["numWindows"][1] = 2
 entity["summary"]["numStacks"] = 1
+entity["summary"]["appCount"] = {
+  Finder = 1,
+  Hammerspoon = 1
+}
+
+
 entity["stackline"] = {}
 entity["stackline"][1] = {}
 entity["stackline"][1]["id"] = [[30|30|660|1050]]
@@ -52,10 +64,6 @@ entity["stackline"][1]["windows"][2]["stack"] = {}
 entity["stackline"][1]["windows"][2]["stack"]["id"] = [[30|30|660|1050]]
 entity["stackline"][1]["windows"][2]["stack"]["numWindows"] = 2
 entity["stackline"][1]["windows"][2]["stackIdFzy"] = [[30|30|660|1050]]
-entity["meta"] = {}
-entity["meta"]["num_stacks"] = 1
-entity["meta"]["num_stacked_wins"] = 2
-entity["meta"]["num_total_wins"] = 3
 entity["config"] = {}
 entity["config"]["advanced"] = {}
 entity["config"]["advanced"]["maxRefreshRate"] = 0.3

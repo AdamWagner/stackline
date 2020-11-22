@@ -1,10 +1,11 @@
 local entity = {}
 entity["meta"] = {}
 entity["meta"]["name"] = "getOtherAppWindows"
-entity["meta"]["description"] = "3 kitty wins across 2 stacks (to test getOtherAppWindows()). 7 win. total"
 entity["meta"]["num_stacks"] = 3
 entity["meta"]["num_total_wins"] = 7
 entity["meta"]["num_stacked_wins"] = 7
+entity["meta"]["description"] = "3 kitty wins across 2 stacks (to test getOtherAppWindows()). 7 win. total"
+
 entity["config"] = {}
 entity["config"]["advanced"] = {}
 entity["config"]["advanced"]["maxRefreshRate"] = 0.3
@@ -204,14 +205,24 @@ entity["summary"]["numWindows"] = {}
 entity["summary"]["numWindows"][1] = 2
 entity["summary"]["numWindows"][2] = 3
 entity["summary"]["numWindows"][3] = 2
+
 entity["summary"]["dimensions"] = {}
 entity["summary"]["dimensions"][1] = [[45|572|749|529]]
 entity["summary"]["dimensions"][2] = [[798|38|948|1062]]
 entity["summary"]["dimensions"][3] = [[45|38|749|529]]
+
 entity["summary"]["dimensionsFzy"] = {}
 entity["summary"]["dimensionsFzy"][1] = [[30|570|720|510]]
 entity["summary"]["dimensionsFzy"][2] = [[780|30|930|1050]]
 entity["summary"]["dimensionsFzy"][3] = [[30|30|720|510]]
+entity["summary"]["appCount"] = {
+  Evernote = 1,
+  ["Google Chrome"] = 2,
+  Hammerspoon = 1,
+  kitty = 3,
+}
+
+
 entity["stackline"] = {}
 entity["stackline"][1] = {}
 entity["stackline"][1]["windows"] = {}

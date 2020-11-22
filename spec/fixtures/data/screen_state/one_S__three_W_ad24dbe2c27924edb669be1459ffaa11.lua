@@ -1,9 +1,11 @@
 local entity = {}
+
 entity["meta"] = {}
-entity["description"] = "Missed stack of 2 windows (HS console, Chrome) due to left side width < Chrome's min width."
 entity["meta"]["num_total_wins"] = 5
 entity["meta"]["num_stacks"] = 1
 entity["meta"]["num_stacked_wins"] = 3
+entity["meta"]["description"] = "Stack with HS console, Chrome *missed* with fuzzFactor:30, enabled."
+
 entity["screen"] = {}
 entity["screen"]["id"] = 2077748985
 entity["screen"]["frame"] = {}
@@ -135,6 +137,11 @@ entity["summary"]["dimensions"][1] = [[607|53|1109|1032]]
 
 entity["summary"]["dimensionsFzy"] = {}
 entity["summary"]["dimensionsFzy"][1] = [[600|30|1080|1020]]
+entity["summary"]["appCount"] = {
+  Code = 1,
+  Evernote = 1,
+  kitty = 1,
+}
 
 entity["config"] = {}
 entity["config"]["appearance"] = {}
