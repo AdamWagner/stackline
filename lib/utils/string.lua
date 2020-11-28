@@ -1,3 +1,6 @@
+-- See also:
+--   - https://github.com/amstel91/LuaLibs/blob/master/string/strl.lua
+
 function string:split(p)  -- {{{
     -- Splits the string [s] into substrings wherever pattern [p] occurs.
     -- Returns: a table of substrings or, a table with the string as the only element
@@ -74,4 +77,12 @@ function string:ensureEndsWith(char)  -- {{{
   if not self:endsWith(char) then
     self = self .. char
   end
+end  -- }}}
+
+function string:truncate(maxlen)  -- {{{
+    local txtlen = self:len()
+    if txtlen > maxlen then
+        self = self:sub(1, maxlen - 3) .. "..."
+    end
+    return self
 end  -- }}}
