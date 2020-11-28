@@ -8,4 +8,10 @@ include = {
    "stackline%/.+$",  -- and everything namespaced underneath it
 }
 
+exclude = {
+ "spec",
+ "conf$",
+ "lib",
+}
+
 configfile = './.luacov'
