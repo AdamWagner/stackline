@@ -1,10 +1,4 @@
--- modules = {
---    ["lib.*"] = "lib",
---    ["stackline.*"] = "stackline"
--- }
-
 include = {
-   "stackline$",      -- the main module
    "stackline%/.+$",  -- and everything namespaced underneath it
 }
 
