@@ -116,9 +116,29 @@ Now your `~/.hammerspoon` directory should look like this:
 
 #### 2. Install the hammerspoon cli tool
 
-Open the hammerspoon console via the menu bar, type `hs.ipc.cliInstall()`, and hit return.
+1. Ensure Hammerspoon is running
+2. Open the hammerspoon console via the menu bar
+3. Type `hs.ipc.cliInstall()` and hit return
 
-Confirm that `hs` is now available:
+<table>
+<tbody>
+<thead>
+ <th>Open the Hammperspoon console via the menu bar</th>
+ <th>Type `hs.ipc.cliInstall()` and hit return</th>
+</thead>
+  <tr>
+    <td>
+       <img src="https://user-images.githubusercontent.com/1683979/90970190-66513400-e4b6-11ea-9385-6e31571fd013.png"/>
+    </td>
+    <td>
+       <img src="https://user-images.githubusercontent.com/1683979/100528318-769d3d00-3190-11eb-8444-1a70ad5f7baa.png"/>
+    </td>
+  </tr>
+</tbody>
+</table>
+
+
+Finally confirm that `hs` is now available by entering the following in your terminal (shell):
 
 ```sh
 ❯ which hs
