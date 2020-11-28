@@ -10,7 +10,7 @@ local click = hs.eventtap.event.types['leftMouseDown'] -- fyi, print hs.eventtap
 log.i("Loading module")
 
 stackline = {}
-stackline.config = require 'stackline.stackline.configManager'
+stackline.config = require 'stackline.stackline.configmanager'
 stackline.window = require 'stackline.stackline.window'
 
 function stackline:init(userConfig) -- {{{
