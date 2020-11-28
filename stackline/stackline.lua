@@ -16,6 +16,11 @@ stackline.window = require 'stackline.stackline.window'
 function stackline:init(userConfig) -- {{{
     log.i('starting stackline')
 
+    if stackline.manager then
+        -- guard against re-initializtion https://github.com/AdamWagner/stackline/issues/46#issuecomment-723527826
+        return print('stackline already initialized')
+    end
+
     -- Default window filter controls what windows hs "sees"
     -- Required before initialization
     self.wf = wf.new():setOverrideFilter{  -- {{{
