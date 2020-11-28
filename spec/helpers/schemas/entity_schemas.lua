@@ -46,8 +46,8 @@ local M = {}
 -- Hammerspoon schemas
 -- ———————————————————————————————————————————————————————————————————————————
 
--- hs.window schema
-M.is_hs_win = v.is_table {
+-- hs.window
+M.is_hs_win = v.is_table {  -- {{{
   application = unwrap(v.is_table {
     name = unwrap( v.is_string() )
   }),
@@ -62,14 +62,14 @@ M.is_hs_win = v.is_table {
   isVisible = o(v.is_boolean()),
   isMinimized = o(v.is_boolean()),
   isMaximizable = o(v.is_boolean()),
-}
+}  -- }}}
 
 
 -- Stackline schemas
 -- ———————————————————————————————————————————————————————————————————————————
 
--- TODO: stackline Indicator schema
-M.is_stackline_indicator = v.is_table {
+-- stackline indicator
+M.is_stackline_indicator = v.is_table {  -- {{{
   showIcons  = v.is_boolean(),
   stackFocus = v.is_boolean(),
   side       = v.in_list{'right', 'left'},
@@ -108,12 +108,13 @@ M.is_stackline_indicator = v.is_table {
     frame     = unwrap(is_frame()),
     fullFrame = unwrap(is_frame()),
   }
-}
+}  -- }}}
+M.are_stackline_indicators = v.is_array(M.is_stackline_indicator)
 
 -- stackline window
-M.is_stackline_win = v.is_table {
+M.is_stackline_win = v.is_table {  -- {{{
   app        = v.is_string(),
-  -- app        = v.is_boolean(), -- use to confirm that failing validations fail tests
+    -- app        = v.is_boolean(),   -- use to confirm that failing validations fail tests
   frame      = is_frame(),
   id         = v.is_number(),
   screen     = v.is_number(),
@@ -123,16 +124,14 @@ M.is_stackline_win = v.is_table {
   topLeft    = v.is_string(),
   _win       = M.is_hs_win,
   indicator  = o(M.is_stackline_indicator),
-}
-
+}  -- }}}
 M.are_stackline_wins = v.is_array(M.is_stackline_win)
-
 
 -- stackline stack
 M.is_groupedwins_keys = v.is_array(v.is_string())
 M.is_groupedwins_values = v.is_array(M.are_stackline_wins)
 
-M.is_groupedwins = function(stack)
+M.is_groupedwins = function(stack)  -- {{{
     local stackKeys = u.keys(stack)
     local stackVals = u.values(stack)
 
@@ -143,6 +142,6 @@ M.is_groupedwins = function(stack)
     assert(ok, err)
 
     return ok, err
-end
+end  -- }}}
 
 return M

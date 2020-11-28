@@ -17,7 +17,7 @@ function stackline:init(userConfig) -- {{{
     -- Default window filter controls what windows hs "sees"
     -- Required before initialization
     self.wf = wf.new():setOverrideFilter{  -- {{{
-        visible = true,   -- (i.e. not hidden and not minimized)
+        visible = true, -- (i.e. not hidden and not minimized)
         fullscreen = false,
         currentSpace = true,
         allowRoles = 'AXStandardWindow',
@@ -52,20 +52,20 @@ function stackline:init(userConfig) -- {{{
     end)  -- }}}
 
     self.windowEvents = { -- {{{
-        wf.windowCreated,      -- window added
+        wf.windowCreated,      -- ↓ window added
         wf.windowUnhidden,
         wf.windowUnminimized,
 
-        wf.windowFullscreened, -- window changed
+        wf.windowFullscreened, -- ↓ window changed
         wf.windowUnfullscreened,
         wf.windowMoved,        -- NOTE: winMoved includes move AND resize evts
 
-        wf.windowDestroyed,    -- window removed
+        wf.windowDestroyed,    -- ; window removed
         wf.windowHidden,
         wf.windowMinimized,
     } -- }}}
 
-    -- On each win evt above (or at most once every 0.3s)
+    -- On each win evt above (or at most once every `maxRefreshRate`, which is 0.3s by default)
     -- query window state and check if refersh needed
     self.wf:subscribe( -- {{{
         self.windowEvents, function(_win, _app, _evt)

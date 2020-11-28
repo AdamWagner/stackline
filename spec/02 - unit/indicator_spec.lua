@@ -16,18 +16,7 @@ describe('#module #indicator', function()
     stackline.manager:eachWin(function(w)
         table.insert(indicators, w.indicator)
     end)
-    u.p(indicators[1])
-
-    local indicator_keys = {"side", "rectIdx", "iconIdx", "canvas_rect", "canvas", "radius", "screen", "c", "showIcons", "frame", "width", "iconRadius", "stackFocus", "screenFrame", "fadeDuration", "icon_rect" }
-
-    -- u.p(u.keys(u.omit(indicators[1], 'win', 'config')))
-    u.p(u.omit(indicators[1], 'win', 'config'))
-
-
     assert.equals(fixture.meta.num_total_wins, #indicators)
-
-
-
   end)
 
   it('match schema', function()
@@ -39,9 +28,7 @@ describe('#module #indicator', function()
   end)
 
 
-
-
-  it('Experiment with spies & mocks', function()
+  pending('Experiment with spies & mocks', function()
     stackline.manager = mock(stackline.manager)
     stackline.window = mock(stackline.window)
 
@@ -50,7 +37,6 @@ describe('#module #indicator', function()
 
     -- u.p(stackline.manager)
     -- assert.spy(stackline.manager.update).was_called(2)
-
 
     -- hs.logger.new('test')
     -- hs.logger.new('testing')
