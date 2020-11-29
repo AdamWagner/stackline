@@ -9,7 +9,7 @@ end
 function M.roundToNearest(roundTo, numToRound)
   assert(type(numToRound)=='number', "\nroundToNearest(): numToRound must be a number\n")
   assert(type(roundTo)=='number', "\nroundToNearest(): roundTo must be a number\n")
-  if roundTo == 0 then roundTo=1 end
+  if roundTo == 0 then roundTo = 1 end
   return numToRound - numToRound % roundTo
 end
 

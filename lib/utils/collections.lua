@@ -47,32 +47,33 @@ function M.len(t)  -- {{{
 end  -- }}}
 
 -- get / set
-function M.setfield(f, v, t)  -- {{{
-    t = t or _G   -- start with the table of globals
-    for w, d in string.gmatch(f, "([%w_]+)(.?)") do
-        if d == "." then   -- not last field?
-            t[w] = t[w] or {}   -- create table if absent
-            t = t[w]            -- get the table
+function M.setfield(path, val, tbl)  -- {{{
+    tbl = tbl or _G
+    for part, sep in path:gmatch("([%w_]+)(.?)") do
+        if sep == "." then   -- not last field?
+            tbl[part] = tbl[part] or {}   -- create table if absent
+            tbl = tbl[part]               -- get the table
         else   -- last field
-            t[w] = v   -- do the assignment
+            tbl[part] = val   -- do the assignment
         end
     end
 end  -- }}}
 
-function M.getfield(f, t, isSafe)  -- {{{
-    local v = t or _G   -- start with the table of globals
+function M.getfield(val_path, tbl, options)  -- {{{
+    local opts = options or {}
+    local val = tbl or _G
     local res = nil
 
-    for w in string.gmatch(f, "[%w_]+") do
-        if type(v) ~= 'table' then return v end   -- if v isn't table, return immediately
-        v = v[w]                                  -- lookup next val
-        if v ~= nil then res = v end              -- only update safe result if v not null
+    for part in val_path:gmatch("[%w_]+") do
+        if type(val) ~= 'table' then return val end -- if v isn't table, return immediately
+        val = val[part]                             -- lookup next val
+        if val ~= nil then res = val end            -- only update safe result if v not null
     end
 
-    if isSafe then   -- return the last non-nil value found
-        if v ~= nil then return v else return res end
+    if opts.lastNonNil then
+        return val ~=nil and val or res -- return the last non-nil value found
     else
-        return v   -- return the last value found regardless
+        return val -- return the last value found regardless
     end
 end  -- }}}
 
