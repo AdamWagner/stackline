@@ -44,11 +44,9 @@ local defaultOnChangeEvt = {    -- {{{
 }  -- }}}
 
 M.events = setmetatable({ -- {{{
-    appearance = {
-        onChange = function()
-            stackline.manager:resetAllIndicators()
-        end,
-    },
+    appearance = function()
+        stackline.manager:resetAllIndicators()
+    end,
     features = {
         clickToFocus      = function() return stackline:refreshClickTracker() end,
         hsBugWorkaround   = nil,
@@ -184,7 +182,6 @@ function M:get(path) -- {{{
     -- @path is a dot-separated string (e.g., 'appearance.color')
     -- return full config if no path provided
     if path == nil then return self.conf end
-
     local ok, val = pcall(u.getfield, path, self.conf)
 
     if ok then
@@ -196,25 +193,27 @@ end -- }}}
 
 function M:set(path, val) -- {{{
     --[[ @path is a dot-separated string (e.g., 'appearance.color')
-       @val is the value to set at path
-       non-existent path segments will be set to an empty table ]]
+         @val is the value to set at path
+         non-existent intermediary path segments will be set to an empty table ]]
 
     local _type, validator = self:getSchemaForPath(path) -- lookup type in schema
 
     if _type == nil then
-        self:autosuggest(path)
+        self:autosuggest(path) -- Invalid path to set, suggest a similar valid path to the user
     else
-        local typedVal = self.types[_type].coerce(val)
-        local isValid, err = validator(typedVal)           -- validate val is appropriate type
-        -- log.d('\nval:', typedVal)
-        -- log.d('val type:', type(typedVal))
+        local coercedVal = self.types[_type].coerce(val)
+        local isValid, err = validator(coercedVal) -- validate val is appropriate type
         if isValid then
-            -- log.d('Setting', path, 'to', typedVal)
-            u.setfield(path, typedVal, self.conf)
-            local onChange = u.getfield(path, self.events, true)
-            if type(onChange) == 'function' then onChange() end
+            log.d('Setting', path, 'to', coercedVal)
+
+            if coercedVal ~= self:get(path) then
+                -- if new val ~= old val, set & run onChange handler
+                u.setfield(path, coercedVal, self.conf)
+                local onChange = u.getfield(path, self.events, {lastNonNil = true})
+                if type(onChange) == 'function' then onChange() end
+            end
         else
-            -- log.e(hs.inspect(err))
+            log.e(hs.inspect(err))
         end
         return self, val
     end
@@ -223,7 +222,7 @@ end -- }}}
 
 function M:toggle(key) -- {{{
     local toggledVal = not self:get(key)
-    -- log.d('Toggling', key, 'from ', self:get(key), 'to ', toggledVal)
+    log.d('Toggling', key, 'from ', self:get(key), 'to ', toggledVal)
     self:set(key, toggledVal)
     return self
 end -- }}}
