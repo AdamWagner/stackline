@@ -31,7 +31,5 @@ active_buffer_filename="$(active_kitty_win \
   | cut -d '"' -f2)"
 
 current_file="$(fd $active_buffer_filename | head -n1 | xargs -I{} basename "{}" | cut -d '.' -f1)"
-
-current_test_file="$(fd $current_file ./spec)"
-
+current_test_file="$(fd $current_file ./spec | head -n1)"
 busted "$current_test_file"
