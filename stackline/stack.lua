@@ -41,8 +41,8 @@ function Stack:resetAllIndicators() -- {{{
 end -- }}}
 
 function Stack:redrawAllIndicators(opts) -- {{{
-   -- TODO: eliminate need for opts.except arg that
-   -- enables redrawing all indicators *except* one window.
+   -- TODO: eliminate need for opts.except arg redraws all indicators *except* the window with the given id
+   opts = opts or {}
    self:eachWin(function(win)
        if win.id ~= opts.except then
            win.indicator:redraw()

@@ -20,7 +20,7 @@ function Indicator:new(win)  -- {{{
     return indicator
 end  -- }}}
 
-function Indicator:init(win) -- {{{
+function Indicator:init() -- {{{
     local c = self.config
     self.width = self.showIcons and c.size or (c.size / c.pillThinness)
     self.iconRadius = self.width / c.radius
@@ -175,7 +175,7 @@ function Indicator:getIndicatorPosition() -- {{{
 end -- }}}
 
 function Indicator:getColorAttrs(isStackFocused, isWinFocused) -- {{{
-    local opts = self.config
+    local color, alpha, dimmer, iconDimmer = self.config.color, self.config.alpha, self.config.dimmer, self.config.iconDimmer
     -- Lookup bg color and image alpha based on stack + window focus
     -- e.g., fillColor = self:getColorAttrs(self.stackFocus, self.win.focus).bg
     --       iconAlpha = self:getColorAttrs(self.stackFocus, self.win.focus).img
@@ -183,22 +183,22 @@ function Indicator:getColorAttrs(isStackFocused, isWinFocused) -- {{{
         stack = {
             ['true'] = {
                 window = {
-                    ['true'] = {bg = u.extend(opts.color, {alpha = opts.alpha}), img = opts.alpha},
+                    ['true'] = {bg = u.extend(color, {alpha = alpha}), img = alpha},
                     ['false'] = {
-                        bg = u.extend(u.copy(opts.color), {alpha = opts.alpha / opts.dimmer}),
-                        img = opts.alpha / opts.iconDimmer,
+                        bg = u.extend(u.copy(color), {alpha = alpha / dimmer}),
+                        img = alpha / iconDimmer,
                     },
                 },
             },
             ['false'] = {
                 window = {
                     ['true'] = {
-                        bg = u.extend(u.copy(opts.color), {alpha = opts.alpha / (opts.dimmer / 1.2)}), -- last-focused icon stays full alpha when stack unfocused
-                        img = opts.alpha,
+                        bg = u.extend(u.copy(color), {alpha = alpha / (dimmer / 1.2)}), -- last-focused icon stays full alpha when stack unfocused
+                        img = alpha,
                     },
                     ['false'] = {
-                        bg = u.extend(u.copy(opts.color), {alpha = stackline.manager:getShowIconsState() and 0 or 0.2}), -- unfocused icon has slightly lower alpha when stack also unfocused
-                        img = opts.alpha / (opts.iconDimmer + (opts.iconDimmer * 0.70)),
+                        bg = u.extend(u.copy(color), {alpha = stackline.manager:getShowIconsState() and 0 or 0.2}), -- unfocused icon has slightly lower alpha when stack also unfocused
+                        img = alpha / (iconDimmer + (iconDimmer * 0.70)),
                     },
                 },
             },

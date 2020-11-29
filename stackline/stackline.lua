@@ -35,7 +35,7 @@ function stackline:init(userConfig) -- {{{
 
     -- Reuseable fn that runs at most once every 0.3s
     -- yabai is only queried if Hammerspoon query results are different than current state
-    local maxRefreshRate = self.config:get('advanced.maxRefreshRate')
+    local maxRefreshRate = self.config:get('advanced.maxRefreshRate') or 0.3
     self.queryWindowState = timer.new(maxRefreshRate, function()  -- {{{
         self.manager:update()
     end)  -- }}}

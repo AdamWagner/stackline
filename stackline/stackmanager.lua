@@ -5,7 +5,7 @@ local Stackmanager = {}
 
 function Stackmanager:init() -- {{{
     self.tabStacks = {}
-    self.showIcons = stackline.config:get('appearance.showIcons')
+    self.showIcons = stackline.config:get('appearance.showIcons') or true
     -- self.__index = self
     return self
 end -- }}}
@@ -46,7 +46,7 @@ function Stackmanager:eachStack(fn) -- {{{
 end -- }}}
 
 function Stackmanager:eachWin(fn) -- {{{
-    self:eachStack(function(s) 
+    self:eachStack(function(s)
         s:eachWin(fn)
     end)
 end -- }}}

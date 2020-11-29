@@ -55,8 +55,8 @@ function Window:getScreenSide() -- {{{
     return side
 
     -- TODO [low-priority]: BUG: Right-side window incorrectly reports as a left-side window with {{{
-    -- very large padding settings. Will need to consider coordinates from both
-    -- sides of a window. Impact is minimal with smaller threshold (<= 0.75). }}}
+    -- very large padding settings. Will need to consider coordinates from both sides of a window.
+    -- Impact is minimal with smaller threshold (<= 0.75). }}}
 
     -- TODO [very-low-priority]: find a way to use hs.window.filter.windowsTo{Dir}  {{{
     -- to determine side instead of percLeft/Right
@@ -64,14 +64,13 @@ function Window:getScreenSide() -- {{{
     --      stackline.wf:windowsToWest(self._win)
     --    https://www.hammerspoon.org/docs/hs.window.html#windowsToWest
     --      self._win:windowsToSouth() }}}
-
 end -- }}}
 
 function Window:makeStackId(hsWin) -- {{{
     local frame = hsWin:frame():floor()
     local x,y,w,h = frame.x, frame.y, frame.w, frame.h
 
-    local fuzzFactor = stackline.config:get('features.fzyFrameDetect.fuzzFactor') or 0
+    local fuzzFactor = stackline.config:get('features.fzyFrameDetect.fuzzFactor') or 1
     local roundToFuzzFactor = u.partial(u.roundToNearest, fuzzFactor)
     local ff = u.map({x, y, w, h}, roundToFuzzFactor)
 
