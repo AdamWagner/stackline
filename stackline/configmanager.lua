@@ -40,7 +40,7 @@ M.types = {
 } -- }}}
 
 local defaultOnChangeEvt = {    -- {{{
-    __index = function() stackline.queryWindowState:start() end
+    __index = function() stackline.throttledUpdate:start() end
 }  -- }}}
 
 M.events = setmetatable({ -- {{{
