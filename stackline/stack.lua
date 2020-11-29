@@ -70,6 +70,7 @@ end -- }}}
 
 function Stack:getWindowByPoint(point) -- {{{
    local foundWin = u.filter(self.windows, function(w)
+       if not w.indicator then return false end
        local indicatorEls = w.indicator:canvasElements()
        local wFrame = hs.geometry.rect(indicatorEls[1].frame)
        return point:inside(wFrame)
