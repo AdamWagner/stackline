@@ -4,7 +4,7 @@ entity["meta"]["name"] = "getOtherAppWindows"
 entity["meta"]["num_stacks"] = 3
 entity["meta"]["num_total_wins"] = 7
 entity["meta"]["num_stacked_wins"] = 7
-entity["meta"]["description"] = "3 kitty wins across 2 stacks (to test getOtherAppWindows()). 7 win. total"
+entity["meta"]["description"] = "3 kitty wins across 2 stacks (to test getOtherAppWindows()). 7 win. total, all stacked. Will fail if fuzzFactor == 1"
 
 entity["config"] = {}
 entity["config"]["advanced"] = {}

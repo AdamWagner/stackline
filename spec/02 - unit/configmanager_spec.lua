@@ -141,6 +141,5 @@ describe('#module #configmanager', function()
     end)
   end)
 
-
 end)
 

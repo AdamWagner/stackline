@@ -14,9 +14,9 @@ describe('#module #indicator', function()
   it('exists for each stacked win', function()
     local indicators = {}
     stackline.manager:eachWin(function(w)
-        table.insert(indicators, w.indicator)
+        table.insert(indicators, {w.app, w.indicator.iconIdx})
     end)
-    assert.equals(fixture.meta.num_total_wins, #indicators)
+    assert.equals(fixture.meta.num_stacked_wins, #indicators)
   end)
 
   it('match schema', function()
