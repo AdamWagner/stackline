@@ -178,7 +178,7 @@ function M.pick(obj, ...)  -- {{{
   return _picked
 end  -- }}}
 
-function M.omit(obj, ...)
+function M.omit(obj, ...)  -- {{{
   local blocklist = M.flatten {...}
   local _picked = {}
   for key, value in pairs(obj) do
@@ -187,7 +187,7 @@ function M.omit(obj, ...)
     end
   end
   return _picked
-end
+end  -- }}}
 
 function M.zip(a, b)  -- {{{
     local rv = {}

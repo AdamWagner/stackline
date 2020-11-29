@@ -1,19 +1,20 @@
 local each = require 'lib.utils.collections'.each
 
-
 local M = {}
 
 function M.identity(value)
-    return value
+  return value
 end
 
 function M.roundToNearest(roundTo, numToRound)
-    return numToRound - numToRound % roundTo
+  assert(type(numToRound)=='number', "\nroundToNearest(): numToRound must be a number\n")
+  assert(type(roundTo)=='number', "\nroundToNearest(): roundTo must be a number\n")
+  if roundTo == 0 then roundTo=1 end
+  return numToRound - numToRound % roundTo
 end
 
-
 function M.uniqueHash(data)
-    -- Sort data keys for consistent hashes
+  -- Sort data keys for consistent hashes
   each(data, function(v)
     if type(v) == 'table' then
       table.sort(v, function(a,b)
@@ -23,11 +24,10 @@ function M.uniqueHash(data)
     end
   end)
 
-    -- …and build unique hash based on stack summary
+  -- …and build unique hash based on stack summary
   local result = hs.hash.MD5(hs.inspect(data))
   return result
 end
-
 
 -- USAGE: numberWordMap[4] → 'four'
 M.numberWordMap = setmetatable({

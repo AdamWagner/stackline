@@ -69,13 +69,9 @@ end -- }}}
 
 function Window:makeStackId(hsWin) -- {{{
     local frame = hsWin:frame():floor()
+    local x,y,w,h = frame.x, frame.y, frame.w, frame.h
 
-    local x = frame.x
-    local y = frame.y
-    local w = frame.w
-    local h = frame.h
-
-    local fuzzFactor = stackline.config:get('features.fzyFrameDetect.fuzzFactor')
+    local fuzzFactor = stackline.config:get('features.fzyFrameDetect.fuzzFactor') or 0
     local roundToFuzzFactor = u.partial(u.roundToNearest, fuzzFactor)
     local ff = u.map({x, y, w, h}, roundToFuzzFactor)
 
