@@ -28,10 +28,10 @@ function Stack:eachWin(fn) -- {{{
    end
 end -- }}}
 
-function Stack:anyFocused() -- {{{
-   return u.any(self.windows, function(w)
-       return w:isFocused()
-   end)
+function Stack:isFocused() -- {{{
+  return u.any(self.windows, function(w)
+    return w:isFocused()
+  end)
 end -- }}}
 
 function Stack:resetAllIndicators() -- {{{

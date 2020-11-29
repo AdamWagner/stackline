@@ -23,6 +23,8 @@ end -- }}}
 
 function Window:setupIndicator()  -- {{{
   if self.indicator then self.indicator:delete() end
+  self:isFocused()
+  self.stack:isFocused()
   self.indicator = Indicator
      :new(self)
      :init()
@@ -30,14 +32,8 @@ function Window:setupIndicator()  -- {{{
 end  -- }}}
 
 function Window:isFocused() -- {{{
-    local focusedWin = hs.window.focusedWindow()
-    return focusedWin
-        and focusedWin:id() == self.id
-        or false
-end -- }}}
-
-function Window:isStackFocused() -- {{{
-    return self.stack:anyFocused()
+  local focusedWin = hs.window.focusedWindow()
+  return focusedWin and (focusedWin:id() == self.id) or false
 end -- }}}
 
 function Window:getScreenSide() -- {{{

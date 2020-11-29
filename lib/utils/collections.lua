@@ -46,7 +46,6 @@ function M.len(t)  -- {{{
     return count
 end  -- }}}
 
--- get / set
 function M.setfield(path, val, tbl)  -- {{{
     tbl = tbl or _G
     for part, sep in path:gmatch("([%w_]+)(.?)") do
@@ -59,21 +58,21 @@ function M.setfield(path, val, tbl)  -- {{{
     end
 end  -- }}}
 
-function M.getfield(val_path, tbl, options)  -- {{{
-    local opts = options or {}
-    local val = tbl or _G
+function M.getfield(path, tbl, opts)  -- {{{
+    tbl = tbl or _G
+    opts = opts or {}
     local res = nil
 
-    for part in val_path:gmatch("[%w_]+") do
-        if type(val) ~= 'table' then return val end -- if v isn't table, return immediately
-        val = val[part]                             -- lookup next val
-        if val ~= nil then res = val end            -- only update safe result if v not null
+    for part in path:gmatch("[%w_]+") do
+        if type(tbl) ~= 'table' then return tbl end  -- if v isn't table, return immediately
+        tbl = tbl[part]                              -- lookup next val
+        if tbl ~= nil then res = tbl end             -- only update safe result if v not null
     end
 
-    if opts.lastNonNil then
-        return val ~=nil and val or res -- return the last non-nil value found
+    if opts.lastNonNil then   -- return the last non-nil value found
+        return tbl ~=nil and tbl or res
     else
-        return val -- return the last value found regardless
+        return tbl   -- return the last value found regardless
     end
 end  -- }}}
 
@@ -230,4 +229,90 @@ function M.flatten(array)  -- {{{
   return _flat
 end  -- }}}
 
+
+---------------------------------------------------------------------------------------------------
+-- stack.lua
+---------------------------------------------------------------------------------------------------
+M.Queue = {}
+M.Queue.__index = M.Queue
+
+---------------------------------------------------------------------------------------------------
+-- Creates and returns a new stack
+function M.Queue:new()
+    local stack = {}
+    stack._size = 0
+    return setmetatable(stack, M.Queue)
+end
+
+---------------------------------------------------------------------------------------------------
+-- Copies and returns a new stack.
+function M.Queue:copy()
+    local stack = {}
+    for k,v in pairs(self) do
+        stack[k] = v
+    end
+    return setmetatable(stack, M.Queue)
+end
+
+---------------------------------------------------------------------------------------------------
+-- Clears the stack of all values.
+function M.Queue:clear()
+    for k,v in pairs(self) do
+        self[k] = nil
+    end
+    self._size = 0
+end
+
+---------------------------------------------------------------------------------------------------
+-- Returns the number of values in the stack
+function M.Queue:size()
+    return self._size
+end
+
+
+---------------------------------------------------------------------------------------------------
+-- Inserts a new value on top of the stack.
+function M.Queue:push(...)
+    for k, val in pairs({...}) do
+        self._size = self._size + 1
+        self[self._size] = val
+    end
+end
+
+---------------------------------------------------------------------------------------------------
+-- Removes the top value in the stack and returns it. Returns nil if the stack is empty
+function M.Queue:pop()
+    if self._size <= 0 then return nil end
+    local val = self[self._size]
+    self[self._size] = nil
+    self._size = self._size - 1
+    return val
+end
+
+---------------------------------------------------------------------------------------------------
+-- Returns the top value of the stack without removing it.
+function M.Queue:peek()
+    return self[self._size]
+end
+
+function M.Queue:peek2()
+    return self[self._size], self[self._size - 1]
+end
+
+---------------------------------------------------------------------------------------------------
+-- Iterate over all values starting from the top. Set retain to true to keep the values from being removed.
+function M.Queue:iterate(retain)
+    local i = self:size()
+    local count = 0
+    return function()
+        if i > 0 then
+            i = i - 1
+            count = count + 1
+            return count, not retain and self:pop() or self[i+1]
+        end
+    end
+end
+
+
 return M
+

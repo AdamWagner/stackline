@@ -40,7 +40,7 @@ function Stackmanager:get() -- {{{
 end -- }}}
 
 function Stackmanager:eachStack(fn) -- {{{
-    for _stackId, stack in pairs(self.tabStacks) do
+    for _, stack in pairs(self.tabStacks) do
         fn(stack)
     end
 end -- }}}
@@ -101,8 +101,9 @@ end -- }}}
 
 function Stackmanager:findWindow(wid) -- {{{
     -- NOTE: A window must be *in* a stack to be found with this method!
-    for _stackId, stack in pairs(self.tabStacks) do
-        for _idx, win in pairs(stack.windows) do
+    -- TODO: Figure out how to get self:eachWin() to return found window and replace ↓
+    for _, stack in pairs(self.tabStacks) do
+        for _, win in pairs(stack.windows) do
             if win.id == wid then
                 return win
             end

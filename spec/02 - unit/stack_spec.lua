@@ -71,7 +71,6 @@ insulate('#module #stack', function()
 
     assert.greater_than(0, #indicators)
 
-
     local indicators_deleted = {}
     stackline.manager:eachStack(function(s)
       s:deleteAllIndicators()
@@ -90,8 +89,7 @@ insulate('#module #stack', function()
       end)
     end)
 
-    assert.equal(fixture.meta.num_total_wins, #indicators_reset)
-
+    assert.equal(fixture.meta.num_stacked_wins, #indicators_reset)
   end)
 
 end)

@@ -2,11 +2,11 @@ local u = require 'lib.utils'
 local Indicator = {}
 
 function Indicator:new(win)  -- {{{
-    win:isStackFocused()
     local config = stackline.config:get('appearance')
     local c = config
     local indicator = {
         win = win,
+        stack = win.stack,
         config = c,
         c = c,
         showIcons = c.showIcons,
@@ -14,6 +14,7 @@ function Indicator:new(win)  -- {{{
         screen = win._win:screen(),
         rectIdx = 1,   -- Store  canvas elements indexes to reference via :elementAttribute(),
         iconIdx = 2,   -- hammerspoon.org/docs/hs.canvas.html#elementAttribute
+        history = u.Queue:new(),
     }
     setmetatable(indicator, self)
     self.__index = self
@@ -22,6 +23,7 @@ end  -- }}}
 
 function Indicator:init() -- {{{
     local c = self.config
+
     self.width = self.showIcons and c.size or (c.size / c.pillThinness)
     self.iconRadius = self.width / c.radius
 
@@ -46,25 +48,46 @@ function Indicator:init() -- {{{
     return self
 end -- }}}
 
+function Indicator:updateState()  -- {{{
+    -- u.p(self.history)
+    self.history:push({
+        focus = self.win:isFocused(),
+        stackFocus = self.stack:isFocused()
+    })
+end  -- }}}
+
+function Indicator:changes()
+    local curr, last = self.history:peek2()
+    local windowFocusChange = curr.focus ~= last.focus
+    local stackFocusChange = curr.stackFocus ~= last.stackFocus
+
+    -- permutations of stack, window change combos
+    local noChange = not stackFocusChange and not windowFocusChange
+    local bothChange = stackFocusChange and windowFocusChange
+    local onlyStackChange = stackFocusChange and not windowFocusChange
+    local onlyWinChange = not stackFocusChange and windowFocusChange
+
+    return noChange, bothChange, onlyStackChange, onlyWinChange
+end
+
 function Indicator:draw(overrideOpts) -- {{{
     self.config = u.extend(self.config, overrideOpts or {})
     self.radius = self.showIcons and self.iconRadius or self.radius
     self.fadeDuration = self.config.shouldFade and self.config.fadeDuration or 0
 
-
     if self.canvas then
         self.canvas:delete()
     end
 
-    self.win.focus = self.win:isFocused()
-    self.stackFocus = true
+    self:updateState()
+    local curr = self.history:peek()
 
-    -- TODO: Should really create a new canvas for each window
+    -- TODO: Should we create a new canvas for each window, not each indicator?
     self.canvas = hs.canvas.new(self.screenFrame)
     self.canvas:insertElement({
         type             = "rectangle",
         action           = "fill", -- options: strokeAndFill, stroke, fill
-        fillColor        = self:getColorAttrs(self.stackFocus, self.win.focus).bg,
+        fillColor        = self:getColorAttrs(curr.stackFocus, curr.focus).bg,
         frame            = self.canvas_rect,
         roundedRectRadii = {xRadius = self.radius, yRadius = self.radius},
         withShadow       = true,
@@ -76,7 +99,7 @@ function Indicator:draw(overrideOpts) -- {{{
             type = "image",
             image = self:iconFromAppName(),
             frame = self.icon_rect,
-            imageAlpha = self:getColorAttrs(self.stackFocus, self.win.focus).img,
+            imageAlpha = self:getColorAttrs(curr.stackFocus, curr.focus).img,
         }, self.iconIdx)
     end
 
@@ -85,46 +108,28 @@ function Indicator:draw(overrideOpts) -- {{{
     return self
 end -- }}}
 
-function Indicator:redraw() -- {{{
-    local isWindowFocused = self.win:isFocused()
-    local isStackFocused = self.win:isStackFocused()
-
-    -- has stack, window focus changed?
-    local stackFocusChange = isStackFocused ~= self.stackFocus
-    local windowFocusChange = isWindowFocused ~= self.focus
-
-    -- permutations of stack, window change combos
-    local noChange = not stackFocusChange and not windowFocusChange
-    local bothChange = stackFocusChange and windowFocusChange
-    local onlyStackChange = stackFocusChange and not windowFocusChange
-    local onlyWinChange = not stackFocusChange and windowFocusChange
-
-    -- TODO: Refactor to reduce complexity
-    -- LOGIC: Redraw according to what changed.
+function Indicator:redraw(evt) -- {{{
+    -- LOGIC: Cascade redrawing
     -- Supports indicating the *last-active* window in an unfocused stack.
     -- TODO: Fix bug causing stack to continue appearing focused when switching to a non-stacked window from the same app as the focused stack window. Another casualtiy of HS #2400 :<
+    self:updateState()
+    local curr = self.history:peek()
+    local noChange, bothChange, onlyStackChange, onlyWinChange = self:changes()
+
     if noChange then -- bail early if there's nothing to do
         return false
 
-    elseif bothChange then -- If both change, it means a *focused* window's stack is now unfocused.
-        self.stackFocus = isStackFocused
-        self.win.stack:redrawAllIndicators({except = self.id})
-        -- Despite the window being unfocused, do *not* update self.win.focus
-        -- (unfocused stack + focused window = last-active window)
-
     elseif onlyWinChange then -- changing window focus within a stack
-        self.focus = isWindowFocused
-
-        if self.focus and stackline.config:get('features.hsBugWorkaround') then
+        if curr.focus and stackline.config:get('features.hsBugWorkaround') then
             self.win:unfocusOtherAppWindows()
         end
 
+    elseif bothChange then -- If both change, it means a *focused* window's stack is now unfocused.
+        self.stack:redrawAllIndicators({except = self.id})
+
     elseif onlyStackChange then -- aka, already unfocused window's stack is now unfocused, too
-        self.stackFocus = isStackFocused -- so update stackFocus
-        -- if only stack changed *and* win is focused, it means a previously
-        -- unfocused stack is now focused, so redraw other window indicators
-        if isWindowFocused then
-            self.win.stack:redrawAllIndicators({except = self.id})
+        if curr.focus then
+            self.stack:redrawAllIndicators({except = self.id})
         end
     end
 
@@ -132,12 +137,11 @@ function Indicator:redraw() -- {{{
         self:init()
     end
 
-    -- ACTION: Update canvas values
-    local f = self.focus
+    -- ACTION: Update canvas values --------------------------------------------
     local rect = self.canvas[self.rectIdx]
     local icon = self.canvas[self.iconIdx]
 
-    local colorAttrs = self:getColorAttrs(self.stackFocus, self.focus)
+    local colorAttrs = self:getColorAttrs(curr.stackFocus, curr.focus)
     rect.fillColor = colorAttrs.bg
     if self.showIcons then
         icon.imageAlpha = colorAttrs.img
@@ -175,7 +179,7 @@ function Indicator:getIndicatorPosition() -- {{{
 end -- }}}
 
 function Indicator:getColorAttrs(isStackFocused, isWinFocused) -- {{{
-    local color, alpha, dimmer, iconDimmer = self.config.color, self.config.alpha, self.config.dimmer, self.config.iconDimmer
+    local color, alpha, dimmer, iconDimmer = self.c.color, self.c.alpha, self.c.dimmer, self.c.iconDimmer
     -- Lookup bg color and image alpha based on stack + window focus
     -- e.g., fillColor = self:getColorAttrs(self.stackFocus, self.win.focus).bg
     --       iconAlpha = self:getColorAttrs(self.stackFocus, self.win.focus).img

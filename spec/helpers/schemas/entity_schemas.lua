@@ -71,9 +71,14 @@ M.is_hs_win = v.is_table {  -- {{{
 -- stackline indicator
 M.is_stackline_indicator = v.is_table {  -- {{{
   showIcons  = v.is_boolean(),
-  stackFocus = v.is_boolean(),
+  -- stackFocus = v.is_boolean(),
   side       = v.in_list{'right', 'left'},
   width      = v.is_number(),
+
+  win = M.is_stackline_win,
+
+  stack = v.optional, -- TODO: stack schema
+  history    = v.optional, -- TODO: indicator history schema
 
   c = v.is_table {
     alpha        = v.is_number(),
