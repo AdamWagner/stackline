@@ -74,7 +74,7 @@ Enter `stackline`: simple, unobtrusive visual indicators that compliment `yabai`
 - https://github.com/Hammerspoon/hammerspoon ([getting started guide](https://www.hammerspoon.org/go/))
 - https://github.com/stedolan/jq (`brew install jq`)
 
-See [wiki](https://github.com/AdamWagner/stackline/wiki/Install-dependencies) for example keybindings to create and navigate between stacks.
+See [wiki](https://github.com/AdamWagner/stackline/wiki/Install-&-configure-dependencies#user-content-configure-yabai-stacks) for example keybindings to create and navigate between stacks.
 
 ### Installing stackline
 
