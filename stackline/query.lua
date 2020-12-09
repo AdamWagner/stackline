@@ -14,7 +14,7 @@ function Query:getWinStackIdxs(onSuccess) -- {{{
         else -- try again
             hs.timer.doAfter(1, function() self:getWinStackIdxs() end)
         end
-    end, {c.paths.getStackIdxs}):start()
+    end, {c.paths.getStackIdxs, c.paths.yabai, c.paths.jq}):start()
 end -- }}}
 
 function getStackedWinIds(byStack)  -- {{{
