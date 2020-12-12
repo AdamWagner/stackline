@@ -14,6 +14,29 @@ function M.copyShallow(orig)
     return copy
 end
 
+function M.clone(obj, shallow)
+  local lookup_table = {}
+
+  local function _copy (object)
+    if type (object) ~= "table" then
+      return object
+    elseif lookup_table [object] then
+      return lookup_table [object]
+    end  -- if
+
+    local new_table = {}
+    lookup_table [object] = new_table
+
+    for index, value in pairs (object) do
+      new_table [_copy (index)] = _copy (value)
+    end  -- for
+
+    return setmetatable (new_table, getmetatable (object))
+  end  -- function _copy
+
+  return _copy (obj)
+end
+
 function M.copyDeep(obj, seen)
     -- from https://gist.githubusercontent.com/tylerneylon/81333721109155b2d244/raw/5d610d32f493939e56efa6bebbcd2018873fb38c/copy.lua
     -- The issue here is that the following code will call itself

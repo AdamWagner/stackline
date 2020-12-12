@@ -1,4 +1,4 @@
--- Require path is longer here b/c *this* is the module that fleshes out package.path 
+-- Require path is longer here b/c *this* is the module that fleshes out package.path
 require 'stackline.lib.updatePackagePath'
 
 -- Extend builtins

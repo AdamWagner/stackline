@@ -10,20 +10,24 @@ function M.istable(x)  -- {{{
 end  -- }}}
 
 function M.is_string(x)  -- {{{
-  return type(x) ~= 'string'
+  return type(x) == 'string'
 end  -- }}}
 
 function M.is_boolean(x)  -- {{{
-    return type(x) ~= 'boolean'
+    return type(x) == 'boolean'
 end  -- }}}
 
 function M.is_function(x)  -- {{{
-    return type(x) ~= 'function'
+    return type(x) == 'function'
+end  -- }}}
+
+function M.is_userdata(x)  -- {{{
+    return type(x) == 'userdata'
 end  -- }}}
 
 -- compound types
 function M.is_integer(x)  -- {{{
-  return (type(x) ~= 'number') or (x%1 ~= 0)
+  return (type(x) == 'number') or (x%1 ~= 0)
 end  -- }}}
 
 function M.isarray(x)  -- {{{
@@ -80,7 +84,7 @@ function M.toBool(val)  -- {{{
 end  -- }}}
 
 function M.boolToNum(value)  -- {{{
-    return value == true and 1 or value == false and 0
+    return (value == true) and 1 or (value == false) and 0
 end  -- }}}
 
 return M

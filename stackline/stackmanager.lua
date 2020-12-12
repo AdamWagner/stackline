@@ -4,15 +4,27 @@ local Stack = require 'stackline.stackline.stack'
 local Stackmanager = {}
 
 function Stackmanager:init() -- {{{
-    self.tabStacks = {}
-    self.showIcons = stackline.config:get('appearance.showIcons') or true
-    -- self.__index = self
+    local stackmanager = {
+        tabStacks = {},
+        showIcons = stackline.config:get('appearance.showIcons') or true
+    }
+    setmetatable(stackmanager, self)
+    self.__index = self
+    return stackmanager
+end -- }}}
+
+function Stackmanager:rebuild() -- {{{
+    local ws = stackline.wf:getWindows()
+    Query.run(ws)
     return self
 end -- }}}
 
 function Stackmanager:update() -- {{{
-    local ws = stackline.wf:getWindows()
-    Query.run(ws)
+    print('running Stackmanager:update()')
+    -- self:eachStack(function(s) s:update() end)
+    self.tabStacks = u.map(self.tabStacks, function(s)
+        return s:update()
+    end)
     return self
 end -- }}}
 
@@ -65,29 +77,26 @@ function Stackmanager:getSummary(external) -- {{{
     return {
         numStacks = #stacks,
         topLeft = u.map(stacks, function(s)
-            return s.windows[1].topLeft
+            return u.values(s.windows)[1].topLeft
         end),
         dimensions = u.map(stacks, function(s)
-            return s.windows[1].stackId -- stackId is stringified window frame dims ("1150|93|531|962")
+            return u.values(s.windows)[1].stackId -- stackId is stringified window frame dims ("1150|93|531|962")
         end),
         dimensionsFzy = u.map(stacks, function(s)
-            return s.windows[1].stackIdFzy -- stackId is stringified window frame dims ("1150|93|531|962")
+            return u.values(s.windows)[1].stackIdFzy -- stackId is stringified window frame dims ("1150|93|531|962")
         end),
         numWindows = u.map(stacks, function(s)
             return #s.windows
         end),
         appCount = (function()
+            -- TODO: cleanup appCount()
             -- local win = u.flatten(u.values(u.map(stacks, function(s) return s.windows end)))
             local stackedWin = u.flatten(
                 u.values(u.map(stacks, function(s) return s.windows end))
             )
-
             local prunedWins = u.map(stackedWin, function(w) return u.pick(w, 'id', 'app') end)
-
             local byApp = table.groupBy(prunedWins, 'app')
-
             local appCount = u.map(byApp, function(x) return #x end)
-
             return appCount
         end)(),
     }
@@ -136,5 +145,9 @@ function Stackmanager:getClickedWindow(point) -- {{{
         end
     end
 end -- }}}
+
+function Stackmanager:__tostring()  -- {{{
+  return hs.inspect(self:getSummary())
+end  -- }}}
 
 return Stackmanager

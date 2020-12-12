@@ -24,6 +24,7 @@ local is_color = v.is_table {  -- {{{
 }
 
 M.types = {
+    -- NOTE: https://github.com/kitsunies/switch.lua
     ['string']    = { validator = v.is_string, coerce = tostring },
     ['number']    = { validator = v.is_number, coerce = tonumber },
     ['table']     = { validator = v.is_table, coerce = u.identity },
@@ -52,7 +53,7 @@ M.events = setmetatable({ -- {{{
         hsBugWorkaround   = nil,
         winTitles         = nil,
         dynamicLuminosity = nil,
-        fzyFrameDetect    = function() stackline.manager:update() end,
+        fzyFrameDetect    = function() stackline.manager:rebuild() end,
     },
     advanced = {
         maxRefreshRate    = function() print('Needs implemented') end,

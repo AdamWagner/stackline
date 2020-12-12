@@ -30,7 +30,7 @@ function stackline:init(userConfig)
 
     -- init stackmanager, then run update
     self.manager = require 'stackline.stackmanager':init()
-    self.manager:update()
+    self.manager:rebuild()
 
     local maxRefreshRate = self.config:get('advanced.maxRefreshRate') or 0.3
 
@@ -62,55 +62,52 @@ function stackline:init(userConfig)
     -- On each win evt above (or at most once every `maxRefreshRate`, which is 0.3s by default)
     -- query window state and check if refersh needed
     self.wf:subscribe(self.updateOn, function(_win, _app, _evt)
-            self.throttledUpdate:start()
-        end
-    )
+        self.throttledUpdate:start()
+    end)
 
     -- On each win evt listed, simply *redraw* indicators
     -- No need for heavyweight query + refresh
     self.wf:subscribe(self.redrawOn, self.redrawWinIndicator)
 
     -- Activate clickToFocus if feature turned on
-    if self.config:get('features.clickToFocus') then  -- {{{
-        log.i('FEAT: ClickTracker starting')
+    -- if self.config:get('features.clickToFocus') then  -- {{{
+    --     log.i('FEAT: ClickTracker starting')
 
-        -- if indicator containing the clickAt position can be found, focus that indicator's window
-        local function onClick(e)
-            local x, y = e:location().x, e:location().y
-            local clickAt = hs.geometry.point(x,y)
-            local clickedWin = self.manager:getClickedWindow(clickAt)
-            if clickedWin then
-                clickedWin._win:focus()
-                return true -- stops propogation
-            end
-        end
+    --     -- if indicator containing the clickAt position can be found, focus that indicator's window
+    --     local function onClick(e)
+    --         local x, y = e:location().x, e:location().y
+    --         local clickAt = hs.geometry.point(x,y)
+    --         local clickedWin = self.manager:getClickedWindow(clickAt)
+    --         if clickedWin then
+    --             clickedWin._win:focus()
+    --             return true -- stops propogation
+    --         end
+    --     end
 
-        -- Listen for left mouse click events
-        self.clickTracker = hs.eventtap.new({click}, onClick)
+    --     -- Listen for left mouse click events
+    --     self.clickTracker = hs.eventtap.new({click}, onClick)
 
-        self.clickTracker:start()
-    end  -- }}}
+    --     self.clickTracker:start()
+    -- end  -- }}}
 
 end
 
-function stackline:refreshClickTracker() -- {{{
-    local turnedOn = self.config:get('features.clickToFocus')
+-- function stackline:refreshClickTracker() -- {{{
+--     local turnedOn = self.config:get('features.clickToFocus')
 
-    if self.clickTracker:isEnabled() then
-        self.clickTracker:stop() -- always stop if running
-    end
-    if turnedOn then -- only start if feature is enabled
-        log.d('features.clickToFocus is enabled!')
-        self.clickTracker:start()
-    else
-        log.d('features.clickToFocus is disabled')
-        self.clickTracker:stop() -- double-stop if disabled
-    end
-end -- }}}
+--     if self.clickTracker:isEnabled() then
+--         self.clickTracker:stop() -- always stop if running
+--     end
+--     if turnedOn then -- only start if feature is enabled
+--         log.d('features.clickToFocus is enabled!')
+--         self.clickTracker:start()
+--     else
+--         log.d('features.clickToFocus is disabled')
+--         self.clickTracker:stop() -- double-stop if disabled
+--     end
+-- end -- }}}
 
 function stackline.redrawWinIndicator(hsWin, _app, _event) -- {{{
-    -- u.p(_event)
-
     -- Dedicated redraw method to *adjust* the existing canvas element is WAY
     -- faster than deleting the entire indicator & rebuilding it from scratch,
     -- particularly since this skips querying the app icon & building the icon image.
@@ -121,10 +118,23 @@ function stackline.redrawWinIndicator(hsWin, _app, _event) -- {{{
 end -- }}}
 
 hs.spaces.watcher.new(function() -- {{{
+    if stackline.manager then
+        local stackCount = #stackline.manager:get()
+        local msg = string.format('This space has %s stacks', stackCount)
+        if stackCount > 0 then
+            hs.notify.show('stackline', msg, '')
+        else
+            hs.notify.show('stackline', msg, '')
+        end
+    end
+end):start() -- }}}
+
+
+hs.spaces.watcher.new(function() -- {{{
     -- On space switch, query window state & refresh,
     -- plus refresh click tracker
     stackline.throttledUpdate:start()
-    stackline:refreshClickTracker()
+    -- stackline:refreshClickTracker()
 end):start() -- }}}
 
 return stackline

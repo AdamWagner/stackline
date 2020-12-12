@@ -48,27 +48,28 @@ function Indicator:init() -- {{{
     return self
 end -- }}}
 
+-- TODO: Consider moving :updateState() & :changes() into the Window module
 function Indicator:updateState()  -- {{{
-    -- u.p(self.history)
     self.history:push({
         focus = self.win:isFocused(),
         stackFocus = self.stack:isFocused()
     })
 end  -- }}}
 
-function Indicator:changes()
+function Indicator:changes()  -- {{{
+    if self.history:size() < 2 then return true end -- "noChange true"
     local curr, last = self.history:peek2()
     local windowFocusChange = curr.focus ~= last.focus
     local stackFocusChange = curr.stackFocus ~= last.stackFocus
 
-    -- permutations of stack, window change combos
+      -- permutations of stack, window change combos
     local noChange = not stackFocusChange and not windowFocusChange
     local bothChange = stackFocusChange and windowFocusChange
     local onlyStackChange = stackFocusChange and not windowFocusChange
     local onlyWinChange = not stackFocusChange and windowFocusChange
 
     return noChange, bothChange, onlyStackChange, onlyWinChange
-end
+end  -- }}}
 
 function Indicator:draw(overrideOpts) -- {{{
     self.config = u.extend(self.config, overrideOpts or {})
@@ -158,6 +159,7 @@ function Indicator:delete() -- {{{
 end -- }}}
 
 function Indicator:getIndicatorPosition() -- {{{
+    -- Inspo: https://github.com/dreemsoul/awesome-laptop/blob/master/treesome/init.lua
     -- Display indicators on left edge of windows on the left side of the screen,
     -- & right edge of windows on the right side of the screen
     local xval

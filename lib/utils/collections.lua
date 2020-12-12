@@ -13,6 +13,16 @@ local getiter = function(x)  -- {{{
   end
   error("expected table", 3)
 end  -- }}}
+local function indexByEquality(self, x)   -- {{{
+  for k,v in pairs(self) do 
+    if k == x then 
+      return v 
+    end 
+  end 
+end  -- }}}
+
+local flip = require 'lib.utils.functions'.flip
+local curry = require 'lib.utils.functions'.curry
 
 -- Collections utils
 -- ———————————————————————————————————————————————————————————————————————————
@@ -23,7 +33,14 @@ local fnutils = hs and hs.fnutils or require 'hs.fnutils'
 fnutils.any = fnutils.some
 for k,v in pairs(fnutils) do
     M[k] = v
+
+    -- add a curried & flipped version to allow for easy piping (like Ramda.js)
+    M['_'..k] = curry(flip(v))
 end
+
+function M.reject(xs, y)  -- {{{
+  return M.filter(xs, function(x) return y ~= x end)
+end  -- }}}
 
 -- building blocks
 function M.iter(list_or_iter)  -- {{{
@@ -156,6 +173,20 @@ function M.intersection(...)  -- {{{
   end
   return _intersect
 end  -- }}}
+
+function M.uniq(tbl)
+  -- Ensure that __eq metamethods are used when looking up 'seen' keys
+  local seen = setmetatable({}, { __index = indexByEquality })
+
+  local result = {}
+  for _, val in ipairs(tbl) do
+    if not seen[val] then
+      seen[val] = true
+      result[#result + 1] = val
+    end
+  end
+  return result
+end
 
 -- transform
 
