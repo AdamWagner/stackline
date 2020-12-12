@@ -32,8 +32,8 @@ describe('#module #indicator', function()
     stackline.manager = mock(stackline.manager)
     stackline.window = mock(stackline.window)
 
-    stackline.manager:update()
-    stackline.manager:update()
+    stackline.manager:rebuild()
+    stackline.manager:rebuild()
 
     -- u.p(stackline.manager)
     -- assert.spy(stackline.manager.update).was_called(2)

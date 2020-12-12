@@ -33,7 +33,7 @@ describe('#module #stackmanager', function()
 
     it('update()', function()
       local ws = stackline.wf:getWindows()
-      stackline.manager:update()
+      stackline.manager:rebuild()
       assert.greater_than(0, #stackline.manager.tabStacks)
     end)
 
