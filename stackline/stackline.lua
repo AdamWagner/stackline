@@ -118,19 +118,6 @@ function stackline.redrawWinIndicator(hsWin, _app, _event) -- {{{
 end -- }}}
 
 hs.spaces.watcher.new(function() -- {{{
-    if stackline.manager then
-        local stackCount = #stackline.manager:get()
-        local msg = string.format('This space has %s stacks', stackCount)
-        if stackCount > 0 then
-            hs.notify.show('stackline', msg, '')
-        else
-            hs.notify.show('stackline', msg, '')
-        end
-    end
-end):start() -- }}}
-
-
-hs.spaces.watcher.new(function() -- {{{
     -- On space switch, query window state & refresh,
     -- plus refresh click tracker
     stackline.throttledUpdate:start()

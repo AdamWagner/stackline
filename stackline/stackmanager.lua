@@ -20,11 +20,17 @@ function Stackmanager:rebuild() -- {{{
 end -- }}}
 
 function Stackmanager:update() -- {{{
-    print('running Stackmanager:update()')
+
+    local ws = stackline.wf:getWindows()
+    Query.run(ws)
+
+    -- print('running Stackmanager:update()')
     -- self:eachStack(function(s) s:update() end)
-    self.tabStacks = u.map(self.tabStacks, function(s)
-        return s:update()
-    end)
+
+    -- self.tabStacks = u.map(self.tabStacks, function(s)
+    --     return s:update()
+    -- end)
+
     return self
 end -- }}}
 
@@ -42,7 +48,7 @@ function Stackmanager:ingest(windowGroups, appWindows, shouldClean) -- {{{
             win:setOtherAppWindows(appWindows)
             win.stack = stack -- makes it easy to call stack methods from window
         end)
-        table.insert(self.tabStacks, stack)
+        self.tabStacks[stackId] = stack
         self:resetAllIndicators()
     end
 end -- }}}

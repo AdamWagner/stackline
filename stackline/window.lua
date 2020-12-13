@@ -3,11 +3,11 @@ local u = require 'stackline.lib.utils'
 local Indicator = require'stackline.indicator'
 
 -- TODO: remove tmp `onChange()` fn
-local function onChange(key,old,new)
-  if old ~= new then
-    print('\n\nWINDOW ',key, 'changed', '\n old: ', old, '\n new:', new, '\n\n')
-  end
-end
+-- local function onChange(key,old,new)
+--   if old ~= new then
+--     print('\n\nWINDOW ',key, 'changed', '\n old: ', old, '\n new:', new, '\n\n')
+--   end
+-- end
 
 local Window = {}
 

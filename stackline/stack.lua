@@ -36,8 +36,7 @@ function randObj:update()
 end  -- }}}
 
 function onStackChange(key, old, new)  -- {{{
-  print('\n\n-----------\n onStackChange running:', key, 'was set\n\n')
-
+  -- print('\n\n-----------\n onStackChange running:', key, 'was set\n\n')
   local ignore = {'stack', 'otherAppWindows', 'indicator'}
 
   -- local diff = table.diff(old, new)
@@ -80,8 +79,8 @@ function Stack:new(stackedWindows) -- {{{
 end -- }}}
 
 function Stack:update()  -- {{{
-  print('Stack:update() starting')
-  print('Stack:update() BEFORE assigning .windows')
+  -- print('Stack:update() starting')
+  -- print('Stack:update() BEFORE assigning .windows')
 
   self.windows = u.map(self.windows, function(w)
 
