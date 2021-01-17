@@ -61,6 +61,13 @@ function table.merge(t1, t2) -- {{{
     return t1
 end -- }}}
 
+function table.length(t)  -- {{{
+  local n = 0
+  for k, v in pairs(t) do n = n+1 end
+  return n
+end  -- }}}
+table.len = table.length
+
 -- utils module ----------------------------------------------------------------
 utils = {}
 
@@ -505,6 +512,8 @@ function utils.deepCopy(obj, seen) -- {{{
     end
     return setmetatable(res, getmetatable(obj))
 end -- }}}
+
+utils.dcopy = utils.deepCopy
 
 function utils.equal(a, b) -- {{{
     if #a ~= #b then
