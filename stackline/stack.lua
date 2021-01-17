@@ -41,6 +41,16 @@ function Stack:getOtherAppWindows(win) -- {{{
    end)
 end -- }}}
 
+function Stack:isFocused(opts) -- {{{
+  opts = opts or {}
+  local isFocused = u.any(self.windows, function(w)
+    return w:isFocused()
+  end)
+  if opts.commit then self.focus = isFocused end
+  self.focus = isFocused
+  return isFocused
+end -- }}}
+
 function Stack:anyFocused() -- {{{
    return u.any(self.windows, function(w)
        return w:isFocused()
@@ -50,14 +60,14 @@ end -- }}}
 function Stack:resetAllIndicators() -- {{{
    self:eachWin(function(win)
        win:setupIndicator()
-       win:drawIndicator()
+       win.indicator:draw()
    end)
 end -- }}}
 
 function Stack:redrawAllIndicators(opts) -- {{{
    self:eachWin(function(win)
        if win.id ~= opts.except then
-           win:redrawIndicator()
+           win.indicator:redraw()
        end
    end)
 end -- }}}
@@ -70,8 +80,7 @@ end -- }}}
 
 function Stack:getWindowByPoint(point) -- {{{
    local foundWin = u.filter(self.windows, function(w)
-       if not w.indicator then return false end
-       local indicatorEls = w.indicator:canvasElements()
+       local indicatorEls = w.indicator.canvas:canvasElements()
        local wFrame = hs.geometry.rect(indicatorEls[1].frame)
        return point:inside(wFrame)
    end)
@@ -80,5 +89,6 @@ function Stack:getWindowByPoint(point) -- {{{
        return foundWin[1]
    end
 end
+
 
 return Stack
