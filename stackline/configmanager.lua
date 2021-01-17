@@ -232,8 +232,10 @@ function M:set(path, val) -- {{{
 end -- }}}
 
 function M:toggle(key) -- {{{
-    local toggledVal = not self:get(key)
-    log.d('Toggling', key, 'from ', self:get(key), 'to ', toggledVal)
+    local val = self:get(key)
+    if type(val)~='boolean' then log.w(key, 'cannot be toggled because it is not boolean') end
+    local toggledVal = not val
+    log.d('Toggling', key, 'from ', val, 'to ', toggledVal)
     self:set(key, toggledVal)
     return self
 end -- }}}
