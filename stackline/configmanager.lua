@@ -1,7 +1,7 @@
 -- https://github.com/erento/lua-schema-validation
 local log = hs.logger.new('sline.conf')
 log.setLogLevel('info')
-log.i("Loading module")
+log.i('Loading module')
 
 local M = {}
 
@@ -15,8 +15,8 @@ local is_color = v.is_table { -- {{{
     blue  = o(v.is_number()),
     alpha = o(v.is_number()),
 } -- }}}
-local function unknownTypeValidator(v) -- {{{
-    log.i("Not validating: ", schemaType)
+local function unknownTypeValidator(val) -- {{{
+    log.i('Not validating: ', val)
     return true
 end -- }}}
 
@@ -51,7 +51,7 @@ M.types = { -- {{{
     },
 } -- }}}
 
-local defaultOnChangeEvt = {    -- {{{
+local defaultOnChangeEvt = {   -- {{{
     __index = function() stackline.queryWindowState:start() end
 }  -- }}}
 
@@ -67,7 +67,7 @@ M.events = setmetatable({ -- {{{
         dynamicLuminosity = nil,
     },
     advanced = {
-        maxRefreshRate    = function() print('Needs implemented') end,
+        maxRefreshRate = function() print('Needs implemented') end,
     },
 }, defaultOnChangeEvt) -- }}}
 
@@ -108,24 +108,24 @@ M.schema = { -- {{{
 
 function M:getPathSchema(path) -- {{{
     local _type = u.getfield(path, self.schema) -- lookup type in schema
-    if not _type then
-        return false
-    end
+    if not _type then return false end
     local validator = self.types[_type].validator()
+
     return _type, validator
 end -- }}}
 
 function M.generateValidator(schemaType) -- {{{
-    if type(schemaType) == 'table' then
+    if type(schemaType)=='table' then -- recursively build validator
         local children = u.map(schemaType, M.generateValidator)
         log.d('validator children:\n', hs.inspect(children))
         return v.is_table(children)
-    else
-        log.i('schemaType:', schemaType)
-        return
-            M.types[schemaType] and M.types[schemaType].validator() -- returns a fn to be called with value to validate
-            or unknownTypeValidator -- unknown types are assumed-valid
     end
+
+    -- otherwise, return validation fn forgiven type
+    log.i('schemaType:', schemaType)
+    return M.types[schemaType]                  -- if schemaType is a known config type..
+            and M.types[schemaType].validator() -- then return validation fn
+            or unknownTypeValidator             -- otherwise, unknown types are assumed valid
 end -- }}}
 
 -- Config manager
@@ -146,15 +146,14 @@ function M:validate(conf) -- {{{
         self.conf = conf
         self.autosuggestions = u.keys(u.flatten(self.conf))
     else
-        local invalidKeys = table.concat(u.keys(u.flatten(err)), ", ")
+        local invalidKeys = table.concat(u.keys(u.flatten(err)), ', ')
+        log.e('Invalid stackline config:\n', hs.inspect(err))
         hs.notify.new(nil, {
             title           = 'Invalid stackline config!',
-            subTitle        =  'invalid keys:' .. invalidKeys,
+            subTitle        = 'invalid keys:' .. invalidKeys,
             informativeText = 'Please refer to the default conf file.',
             withdrawAfter   = 10
         }):send()
-
-        log.e('Invalid stackline config:\n', hs.inspect(err))
     end
 
     return isValid, err
@@ -169,7 +168,9 @@ function M:autosuggest(path) -- {{{
     local function asc(a, b)
         return a[1] < b[1]
     end
+
     table.sort(scores, asc)
+
     log.d(hs.inspect(scores))
 
     local result1, result2 = scores[1][2], scores[2][2] -- return the best 2 matches
@@ -180,15 +181,14 @@ function M:autosuggest(path) -- {{{
         informativeText = string.format('"%s" is not a default stackline config path', path),
         withdrawAfter = 10
     }):send()
-
 end -- }}}
 
 function M:getOrSet(path, val) -- {{{
-    if path == nil or val == nil then
-        return self:get(path)
-    else
+    if path and val then
         return self:set(path, val)
     end
+
+    return self:get(path)
 end -- }}}
 
 function M:get(path) -- {{{
@@ -212,22 +212,26 @@ function M:set(path, val) -- {{{
 
     if _type == nil then
         self:autosuggest(path)
-    else
-        local typedVal = self.types[_type].coerce(val)
-        local isValid, err = validator(typedVal)           -- validate val is appropriate type
-        log.d('\nval:', typedVal)
-        log.d('val type:', type(typedVal))
-        if isValid then
-            log.d('Setting', path, 'to', typedVal)
-            u.setfield(path, typedVal, self.conf)
-
-            local onChange = u.getfield(path, self.events, true)
-            if type(onChange) == 'function' then onChange() end
-        else
-            log.e(hs.inspect(err))
-        end
-        return self, val
+        return self
     end
+
+    local typedVal = self.types[_type].coerce(val)
+    local isValid, err = validator(typedVal)           -- validate val is appropriate type
+
+    log.d('\nval:', typedVal, '\nval type:', type(typedVal))
+
+    if not isValid then
+        log.e(hs.inspect(err))
+        return self
+    end
+
+    log.d('Setting', path, 'to', typedVal)
+
+    u.setfield(path, typedVal, self.conf)
+
+    local onChange = u.getfield(path, self.events, true)
+    if type(onChange) == 'function' then onChange() end
+    return self, val
 
 end -- }}}
 
