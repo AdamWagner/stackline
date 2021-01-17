@@ -30,7 +30,7 @@ function stackline:init(userConfig) -- {{{
         allowRoles = 'AXStandardWindow',
     }  -- }}}
 
-    local userConfig = userConfig or {}
+    userConfig = userConfig or {}
     self.config:init( -- init config with default conf + user overrides
         table.merge(require 'stackline.conf', userConfig)
     )
@@ -116,9 +116,8 @@ function stackline.redrawWinIndicator(hsWin, _app, _event) -- {{{
     -- particularly since this skips querying the app icon & building the icon image.
     local stackedWin = stackline.manager:findWindow(hsWin:id())
     if stackedWin then -- if non-existent, the focused win is not stacked
-        stackedWin:redrawIndicator()
+        stackedWin.indicator:redraw()
     end
-
 end -- }}}
 
 hs.spaces.watcher.new(function() -- {{{
