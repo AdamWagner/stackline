@@ -1,156 +1,319 @@
--- local helper fns
-local getiter = function(x)  -- {{{
-  local function isarray(x)
-        -- NOTE: this duplicates functionality in utils > types, but needs to be
-        -- defined here to avoid circular reference / stack overflow
-        -- TODO: find a better way to handle this (?)
-    return type(x) == 'table' and x[1] ~= nil
-  end
-  if isarray(x) then
-    return ipairs
-  elseif type(x) == "table" then
-    return pairs
-  end
-  error("expected table", 3)
-end  -- }}}
+-- INSPO
+--  - https://github.com/lunarmodules/Penlight/blob/master/lua/pl/tablex.lua
+--  - https://github.com/lunarmodules/Penlight/blob/master/lua/pl/List.lua
+--  - https://github.com/lunarmodules/Penlight/blob/master/lua/pl/Map.lua
+--  - https://github.com/DoooReyn/LuaHashMap/blob/master/map.lua
+--  - https://github.com/kurapica/PLoop
+--  - https://github.com/renatomaia/loop-collections/tree/master/lua/loop/collection
+--  - https://github.com/jeblad/LuaCollections/tree/master/includes/LuaLibrary/lua/pure
+--  - https://github.com/Billiam/enumerable.lua
+
+
+local check = require 'lib.utils.typecheck'.scheck
+
+-- local helper fns ------------------------------------------------------------
+
 local function indexByEquality(self, x)   -- {{{
-  for k,v in pairs(self) do 
-    if k == x then 
-      return v 
-    end 
-  end 
+  for k,v in pairs(self) do
+    if k == x then
+      return v
+    end
+  end
 end  -- }}}
 
 local flip = require 'lib.utils.functions'.flip
 local curry = require 'lib.utils.functions'.curry
+local pipe = require 'lib.utils.functions'.pipe
 
 -- Collections utils
 -- ———————————————————————————————————————————————————————————————————————————
 local M = {}
 
+
+local primatives = {
+  'number',
+  'table',
+  'string',
+  'boolean',
+  'function',
+  'userdata',
+  'thread',
+}
+
+function M.identity(x)  -- {{{
+  return x
+end  -- }}}
+
+function M.getiter(x) -- {{{
+  -- Dynamically determine whether to use ipairs or pairs based on the provided table
+  -- USAGE NOTE: How to check which fn was returned from the outside:
+  --    local fn = u.getiter(tbl)
+  --    local iteratorType = fn == ipairs and 'pairs' or 'pairs'
+  local u = require 'lib.utils.types'
+  if u.is_array(x) then return ipairs
+  elseif u.is_table(x) then return pairs end
+  error("expected table", 3)
+end  -- }}}
+
+function M.iter(x) -- {{{
+  return M.getiter(x)(x)
+end  -- }}}
+
 -- copy all hs.fnutils functions to this module
 local fnutils = hs and hs.fnutils or require 'hs.fnutils'
 fnutils.any = fnutils.some
-for k,v in pairs(fnutils) do
-    M[k] = v
 
-    -- add a curried & flipped version to allow for easy piping (like Ramda.js)
-    M['_'..k] = curry(flip(v))
+for k,v in pairs(fnutils) do
+  M[k] = v -- add the vanilla fnutils method
+  M['_'..k] = curry(flip(v)) -- alt version: curry & flip args for easy piping (like Ramda.js)
 end
+
+
+function makeMapper(iter)-- {{{
+  local iterator = (iter==pairs or iter==ipairs)
+    and iter -- use given iterator if either 'pairs' or 'ipairs'
+    or pairs -- otherwise, fallback to 'pairs'
+
+  return function(t, f)
+    -- From moses.lua
+    -- fnutils.map only uses the 1st return value from mapper fn
+    -- NOTE: end key as 2nd return value to map both values *and* keys
+    local _t = {}
+    for idx,val in iterator(t) do
+      local i, kv, v = idx, f(val, idx)
+      _t[v and kv or i] = v or kv
+    end
+    return _t
+  end
+end-- }}}
+
+-- CAUTION! Keep an eye on this — could cause some sneaky bugs.
+-- Tweak map to accept a list of fns
+-- and automatically send through pipe.
+function M.map(tbl, ...)
+  local mapper = makeMapper(pairs)
+  if #{...} > 1 then   -- if multiple fns give, use pipe
+    return mapper(tbl, u.pipe(...))
+  else -- otherwise run given fn on each member
+    return mapper(tbl, ...)
+  end
+end
+
+function M.mapi(tbl, ...)
+  local mapper = makeMapper(ipairs)
+
+  local fns = #{...} > 1
+    and u.pipe(...)   -- if multiple fns give, use pipe
+    or select(1, ...) -- otherwise run given fn on each member
+
+  return mapper(tbl, fns)
+end
+
+
+function M.detect(t, value)  -- {{{
+  local equal = require 'lib.utils.comparison'.deepEqual
+  local _iter = (type(value) == 'function') and value or equal
+  for key,arg in pairs(t) do
+    if _iter(arg,value) then return key end
+  end
+end  -- }}}
+
+function M.select(t, f)  -- {{{
+  --- Selects and returns values passing an iterator test.
+  -- <br/><em>Aliased as `filter`</em>.
+  -- @name select
+  -- @param t a table
+  -- @param f an iterator function, prototyped as `f (v, k)`
+  -- @return the selected values
+  -- @see reject
+  local _t = {}
+  for index,value in pairs(t) do
+    if f(value,index) then _t[#_t+1] = value end
+  end
+  return _t
+end  -- }}}
+
+function M.where(t, props)  -- {{{
+  --[[
+    Filter list of tables by providing key=val pairs that must match.
+    E.g.,
+    x = {
+      { name = 'billy',   age = 33, sex = 'male' },
+      { name = 'bob',     age = 33, sex = 'male' },
+      { name = 'thorton', age = 22, sex = 'female' }
+    }
+    r = M.findWhere(x, {sex = 'male'})
+    → {
+      { name = 'billy',   age = 33, sex = 'male' },
+      { name = 'bob',     age = 33, sex = 'male' },
+    }
+  --]]
+  local r = M.select(t, function(v)
+    for key in pairs(props) do
+      if v[key] ~= props[key] then return false end
+    end
+    return true
+  end)
+  return #r > 0 and r or nil
+end  -- }}}
+
+function M.findWhere(t, props)  -- {{{
+  -- FROM: https://github.com/Yonaba/Moses/blob/master/moses.lua#L582
+  --[[
+    Get just the FIRST element matching key=val pairs
+    in a list of tables.
+    E.g.,
+    x = {
+      { name = 'billy',   age = 33, sex = 'male' },
+      { name = 'bob',     age = 33, sex = 'male' },
+      { name = 'thorton', age = 22, sex = 'female' }
+    }
+    r = M.findWhere(x, {sex = 'male'})
+    → {
+      { name = 'billy',   age = 33, sex = 'male' },
+    }
+  --]]
+  local index = M.detect(t, function(v)
+    print('V:', hs.inspect(v))
+    for key in pairs(props) do
+      if props[key] ~= v[key] then return false end
+    end
+    return true
+  end)
+  return index and t[index]
+end  -- }}}
 
 function M.reject(xs, y)  -- {{{
   return M.filter(xs, function(x) return y ~= x end)
 end  -- }}}
 
--- building blocks
-function M.iter(list_or_iter)  -- {{{
-  -- TODO: Replaced with pairs() on 2020-11-21. If no bugs found in a ~wk, remove permanently
-    if type(list_or_iter) == "function" then
-        return list_or_iter
-    end
-    return coroutine.wrap(function()
-        for i = 1, #list_or_iter do
-            coroutine.yield(list_or_iter[i])
-        end
-    end)
-end  -- }}}
-
+-- building blocks -------------------------------------------------------------
 function M.len(t)  -- {{{
-    local count = 0
-    for _ in pairs(t) do
-        count = count + 1
-    end
-    return count
+  local count = 0
+  for _ in pairs(t) do
+    count = count + 1
+  end
+  return count
 end  -- }}}
 
 function M.setfield(path, val, tbl)  -- {{{
-    tbl = tbl or _G
-    for part, sep in path:gmatch("([%w_]+)(.?)") do
-        if sep == "." then   -- not last field?
-            tbl[part] = tbl[part] or {}   -- create table if absent
-            tbl = tbl[part]               -- get the table
-        else   -- last field
-            tbl[part] = val   -- do the assignment
-        end
+  tbl = tbl or _G
+  for part, sep in path:gmatch("([%w_]+)(.?)") do
+    if sep == "." then   -- not last field?
+      tbl[part] = tbl[part] or {}   -- create table if absent
+      tbl = tbl[part]               -- get the table
+    else   -- last field
+      tbl[part] = val   -- do the assignment
     end
+  end
 end  -- }}}
 
 function M.getfield(path, tbl, opts)  -- {{{
-    tbl = tbl or _G
-    opts = opts or {}
-    local res = nil
+  tbl = tbl or _G
+  opts = opts or {}
+  local res = nil
 
-    for part in path:gmatch("[%w_]+") do
-        if type(tbl) ~= 'table' then return tbl end  -- if v isn't table, return immediately
-        tbl = tbl[part]                              -- lookup next val
-        if tbl ~= nil then res = tbl end             -- only update safe result if v not null
-    end
+  for part in path:gmatch("[%w_]+") do
+    if type(tbl) ~= 'table' then return tbl end  -- if v isn't table, return immediately
+    tbl = tbl[part]                              -- lookup next val
+    if tbl ~= nil then res = tbl end             -- only update safe result if v not null
+  end
 
-    if opts.lastNonNil then   -- return the last non-nil value found
-        return tbl ~=nil and tbl or res
-    else
-        return tbl   -- return the last value found regardless
-    end
+  if opts.lastNonNil then   -- return the last non-nil value found
+    return tbl ~=nil and tbl or res
+  else
+    return tbl   -- return the last value found regardless
+  end
 end  -- }}}
 
--- find
+-- find ------------------------------------------------------------------------
 function M.keys(t)  -- {{{
-    local rtn = {}
-    local iter = getiter(t)
-    for k in iter(t) do
-        rtn[#rtn + 1] = k
-    end
-    return rtn
+  local rtn = {}
+  for k in M.iter(t) do
+    rtn[#rtn + 1] = k
+  end
+  return rtn
 end  -- }}}
 
 function M.values(t)  -- {{{
-    local values = {}
-    for _, v in pairs(t) do
-        values[#values + 1] = v
-    end
-    return values
+  if type(t)~='table' then return {} end
+  local values = {}
+  for _, v in pairs(t) do
+    values[#values + 1] = v
+  end
+  return values
 end  -- }}}
 
 function M.find(t, value)  -- {{{
-    local iter = getiter(t)
-    result = nil
-    for k, v in iter(t) do
-        if k == value then
-            result = v
-        end
+  result = nil
+  for k, v in M.iter(t) do
+    if k == value then
+      result = v
     end
-    return result
+  end
+  return result
 end  -- }}}
 
-function M.include(t, value)  -- {{{
-    -- supports nested tables
-  local u = require 'lib.utils'
-  local _iter = (type(value) == 'function') and value or u.deepEqual
-  for k,v in pairs(t) do
-    if _iter(v,value) then return true end
+function M.filterType(tbl, _type, _depth)  -- {{{
+  check('table,string,?number,?table')
+
+  assert(tbl, "you must provide tbl to filterType")
+  assert(_type, "you must provide an expected type to filterType")
+
+  -- TODO: local opts = _opts or {} -- opts for metatable, and keep/reject/action
+  local depth = _depth or 20
+  local currDepth = 0
+  local res = {}
+
+  -- TODO: local action = opts.action or table._insert
+
+  local function getType(val)
+    currDepth = currDepth + 1
+    for _,v in pairs(val) do
+      local typ = type(v)
+      if typ==_type then
+	res[#res+1] = v
+      end
+       if typ=='table' and (currDepth <= depth) then
+	getType(v)
+      end
+    end
   end
+  getType(tbl) -- get the recursion party started
+  return res
+end  -- }}}
+
+function M.include(t, search)  -- {{{ supports nested tables
+  local testFn = u.is_function(search)
+    and search     -- if search is a fn, use it as our testFn
+    or u.deepEqual -- otherwise fallback to deepEqual
+
+  -- return true the first time it's found
+  for _,v in M.iter(t) do
+    if testFn(v, search) then return true end
+  end
+
   return false
 end
+
 M.includes = M.include
 M.contains = M.include
 -- }}}
 
--- filter
-function M.any(t, func) -- {{{
+-- filter ----------------------------------------------------------------------
+function M.any(t, fn) -- {{{
   -- NOTE: changed from M.iter(t) to _,v in pairs(t) on 2020-11-21
-  for _, v in pairs(t) do
-    if func(v) then
-      return true
-    end
+  -- NOTE: changed back to M.iter on 2020-12-22
+  for _, v in M.iter(t) do
+    if fn(v) then return true end
   end
   return false
 end -- }}}
 
 function M.all(t, fn)  -- {{{
-  for _, v in pairs(t) do
-      if not fn(v) then
-          return false
-      end
+  if not u.is_table(t) then return false end
+  for k, v in M.iter(t) do
+    if not fn(v, k) then return false end
   end
   return true
 end
@@ -158,38 +321,37 @@ M.every = M.all
 -- }}}
 
 M.none = function(vs, fn)  -- {{{
-    return not M.all(vs, fn)
+  return not M.all(vs, fn)
 end  -- }}}
 
 function M.intersection(...)  -- {{{
   local arg = {...}
   local array = arg[1]
   table.remove(arg, 1)
-  local _intersect = {}
+  local res = {}
   for i,value in ipairs(array) do
     if M.all(arg,function(v) return M.include(v,value) end) then
-      _intersect[#_intersect+1] = value
-    end
+    res[#res+1] = value
   end
-  return _intersect
+end
+return res
 end  -- }}}
 
-function M.uniq(tbl)
-  -- Ensure that __eq metamethods are used when looking up 'seen' keys
-  local seen = setmetatable({}, { __index = indexByEquality })
+function M.uniq(tbl)  -- {{{
+  local mt = { __index = indexByEquality } -- Ensure that __eq metamethods are used when looking up 'seen' keys
+  local seen = setmetatable({}, mt)        -- set mt
 
-  local result = {}
-  for _, val in ipairs(tbl) do
-    if not seen[val] then
-      seen[val] = true
-      result[#result + 1] = val
+  local res = {}
+  for _, v in ipairs(tbl) do
+    if not seen[v] then
+      seen[v] = true
+      res[#res + 1] = v
     end
   end
   return result
-end
+end  -- }}}
 
--- transform
-
+-- transform -------------------------------------------------------------------
 function M.pluck(t, key)  -- {{{
   local _t = {}
   for k, v in pairs(t) do
@@ -201,7 +363,7 @@ end  -- }}}
 function M.pick(obj, ...)  -- {{{
   local whitelist = table.flatten {...}
   local _picked = {}
-  for key, property in pairs(whitelist) do
+  for key, property in M.iter(whitelist) do
     if (obj[property])~=nil then
       _picked[property] = obj[property]
     end
@@ -212,7 +374,7 @@ end  -- }}}
 function M.omit(obj, ...)  -- {{{
   local blocklist = M.flatten {...}
   local _picked = {}
-  for key, value in pairs(obj) do
+  for key, value in M.iter(obj) do
     if not M.include(blocklist,key) then
       _picked[key] = value
     end
@@ -221,129 +383,57 @@ function M.omit(obj, ...)  -- {{{
 end  -- }}}
 
 function M.zip(a, b)  -- {{{
-    local rv = {}
-    local idx = 1
-    local len = math.min(#a, #b)
-    while idx <= len do
-        rv[idx] = {a[idx], b[idx]}
-        idx = idx + 1
-    end
-    return rv
+  local rv = {}
+  local idx = 1
+  local len = math.min(#a, #b)
+  while idx <= len do
+    rv[idx] = {a[idx], b[idx]}
+    idx = idx + 1
+  end
+  return rv
 end  -- }}}
 
-function M.extend(destination, source)  -- {{{
-    for k, v in pairs(source) do
-        destination[k] = v
-    end
-    return destination
+function M.extend(dst, src)  -- {{{
+  for k, v in M.iter(src) do
+    dst[k] = v
+  end
+  return dst
 end  -- }}}
 
 function M.invert(t)  -- {{{
-    local rtn = {}
-    for k, v in pairs(t) do
-        rtn[v] = k
-    end
-    return rtn
-end  -- }}}
-
-function M.flatten(array)  -- {{{
-  shallow = true
-  local new_flattened
-  local _flat = {}
-  for key,value in ipairs(array) do
-    if type(value) == 'table' then
-      new_flattened = shallow and value or M.flatten (value)
-      for k,item in ipairs(new_flattened) do _flat[#_flat+1] = item end
-    else _flat[#_flat+1] = value
-    end
+  local rtn = {}
+  for k, v in pairs(t) do
+    rtn[v] = k
   end
-  return _flat
+  return rtn
 end  -- }}}
 
+M.unnest = pipe(
+  M.values, -- doesn't work if key,value pairs, and usually we care about counting the values
+  table.unpack,
+  table.merge
+)
 
----------------------------------------------------------------------------------------------------
--- stack.lua
----------------------------------------------------------------------------------------------------
-M.Queue = {}
-M.Queue.__index = M.Queue
+function M.flatten(tbl, depth, currDepth)  -- {{{
+  local u = require 'lib.utils.types'
+  local insert = table.insert
+  local istab = u.is_table
+  depth = depth or 100
+  currDepth = currDepth or 0
 
----------------------------------------------------------------------------------------------------
--- Creates and returns a new stack
-function M.Queue:new()
-    local stack = {}
-    stack._size = 0
-    return setmetatable(stack, M.Queue)
-end
-
----------------------------------------------------------------------------------------------------
--- Copies and returns a new stack.
-function M.Queue:copy()
-    local stack = {}
-    for k,v in pairs(self) do
-        stack[k] = v
+  local function flatten(res, vs)
+    for k,v in M.iter(vs) do
+      if istab(v) then flatten(res, v)
+      else insert(res, k, v) end
     end
-    return setmetatable(stack, M.Queue)
-end
+    return res
+  end
 
----------------------------------------------------------------------------------------------------
--- Clears the stack of all values.
-function M.Queue:clear()
-    for k,v in pairs(self) do
-        self[k] = nil
-    end
-    self._size = 0
-end
+  local result = flatten({}, tbl)   -- generate draft result
 
----------------------------------------------------------------------------------------------------
--- Returns the number of values in the stack
-function M.Queue:size()
-    return self._size
-end
-
-
----------------------------------------------------------------------------------------------------
--- Inserts a new value on top of the stack.
-function M.Queue:push(...)
-    for k, val in pairs({...}) do
-        self._size = self._size + 1
-        self[self._size] = val
-    end
-end
-
----------------------------------------------------------------------------------------------------
--- Removes the top value in the stack and returns it. Returns nil if the stack is empty
-function M.Queue:pop()
-    if self._size <= 0 then return nil end
-    local val = self[self._size]
-    self[self._size] = nil
-    self._size = self._size - 1
-    return val
-end
-
----------------------------------------------------------------------------------------------------
--- Returns the top value of the stack without removing it.
-function M.Queue:peek()
-    return self[self._size]
-end
-
-function M.Queue:peek2()
-    return self[self._size], self[self._size - 1]
-end
-
----------------------------------------------------------------------------------------------------
--- Iterate over all values starting from the top. Set retain to true to keep the values from being removed.
-function M.Queue:iterate(retain)
-    local i = self:size()
-    local count = 0
-    return function()
-        if i > 0 then
-            i = i - 1
-            count = count + 1
-            return count, not retain and self:pop() or self[i+1]
-        end
-    end
-end
-
+  return table.len(result) > 1
+    and result                      -- if result has length, return result
+    or M.unnest(tbl)                -- otherwise, fall back to unnest() instead
+end  -- }}}
 
 return M
-

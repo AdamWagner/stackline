@@ -7,6 +7,7 @@ function M.identity(value)
 end
 
 function M.roundToNearest(roundTo, numToRound)
+  -- see also https://github.com/lodok3/assignment6/blob/master/lib/lume.lua#L72
   assert(type(numToRound)=='number', "\nroundToNearest(): numToRound must be a number\n")
   assert(type(roundTo)=='number', "\nroundToNearest(): roundTo must be a number\n")
   if roundTo == 0 then roundTo = 1 end
