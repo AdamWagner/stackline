@@ -1,0 +1,111 @@
+--[[ {{{ INSPO:
+  mode:       https://github.com/arrowresearch/mode/blob/master/lua/mode/util.lua#L9
+  nvim-utils: https://github.com/hrsh7th/nvim-tuil/blob/master/lua/oop/class.lua
+  modern:     https://github.com/skrolikowski/Modern
+  http://tst2005.github.io/lua-users.org/wiki/YetAnotherClassImplementation.html
+  https://github.com/Nezuo/class
+  https://github.com/hrsh7th/nvim-tuil/blob/master/lua/oop/class.lua ← TO REVIEW
+    TAB = setmetatable({}, { __index = function (self, n)
+    self[n] = stringRep('    ', n)
+    return self[n]
+end})
+
+ }}} --]]
+
+
+local u = require 'lib.utils'
+
+local BaseClass = {}
+BaseClass.__index = BaseClass
+
+function BaseClass:__index(k)  -- {{{
+    -- When dev calls Class:new( … ):
+    --   1. Call internal Class:construct( … ) to do basic bootstrapping
+    --   2. And then call Class:_new( … ), which is an alias to the new method *actually* authored by the dev
+  if k == 'new' then return self.construct end
+end  -- }}}
+
+function BaseClass:__call(...)  -- {{{
+    return self:new(...)
+end   -- }}}
+
+function BaseClass:__newindex(k,v)
+  --[[
+    Silently renames o:new() → o:_new(), so you can define o:new() in app.
+    When o:new() is called from app,
+       1. o:construct() bootstraps all the OOP goodness…
+       2. o:_new() …and then calls the original o:new() at its o:_new() alias
+  ]]
+  if k=='new' and type(v)=='function' then
+    return rawset(self, '_new', v)
+  end
+  rawset(self, k, v)
+end
+
+function BaseClass:extend(o)  -- {{{
+    local Class = setmetatable(o or {}, self)
+    Class.__index = Class
+
+    function Class:construct(...)
+        -- Auto-wraps subclass:new( … ) with Class:new()
+        -- by renaming the subclass's new method to _new()
+        -- and then calling it from Class:new()
+        local Object = setmetatable({}, Class)
+        Object:_new(...)
+        return Object
+    end
+
+    return Class
+end  -- }}}
+
+local function Class(o)
+  -- must clone optional base tbl, otherwise original class
+  -- will *also* get methods defined on subclass
+  local obj = u.copyDeep(o or {})
+  return BaseClass:extend(obj)
+end
+
+return Class
+
+--[[ {{{ EXAMPLE
+┌───────────────────┐
+│ BaseClass exmaple │
+└───────────────────┘
+
+d.inspectByDefault(true)
+
+Class = require 'lib.Class'
+Win = Class()
+
+-- No need to `return o` or `retrn self` in :new()
+-- Data provided to :new() can be customized if desired
+function Win:new(o)
+  self.first = o.name
+  self.age = o.age / 2
+end
+
+function Win:talk()
+  print('hi there, Im', self.first)
+end
+
+w = Win:new({name = 'Adam', age = 33})
+w:talk()
+
+BigWin = Class(Win)
+function BigWin:big()
+  print("IM SO BIG. ME NAME", self.first)
+end
+
+b = BigWin:new({name = 'Biggy', age = 19})
+b:talk()
+b:big()
+
+↑ Important that the :new() method is defined and called with the same name.
+Some other libraries define it as 'init()' or 'construct()',
+but then it must be called as 'new()' :/ I think I like the consistency better,
+even if it required some trickery behind the scenes.
+
+}}} --]]
+
+
+

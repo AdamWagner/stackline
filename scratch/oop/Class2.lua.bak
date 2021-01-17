@@ -1,0 +1,152 @@
+
+--[[ {{{ INSPO:
+mode:       https://github.com/arrowresearch/mode/blob/master/lua/mode/util.lua#L9
+nvim-utils: https://github.com/hrsh7th/nvim-tuil/blob/master/lua/oop/class.lua
+modern:     https://github.com/skrolikowski/Modern
+http://tst2005.github.io/lua-users.org/wiki/YetAnotherClassImplementation.html
+https://github.com/Nezuo/class
+https://github.com/hrsh7th/nvim-tuil/blob/master/lua/oop/class.lua ← TO REVIEW
+TAB = setmetatable({}, { __index = function (self, n)
+  self[n] = stringRep('    ', n)
+  return self[n]
+end})
+
+ }}} ]]
+
+
+ local u = require 'lib.utils'
+
+ local function getMetamethods(tbl)
+   return u.filter(tbl, function(k, v)
+     print('key: ',k)
+     print('value', v)
+     return type(k)=='string' and k:startsWith("__")
+   end)
+ end
+
+ local function copyMetamethods(src, target)-- {{{
+   table.foreach(src, function(key, value)
+     if string.sub(key, 0, 2) == "__" then
+       rawset(target, key, value)
+     end
+   end)
+   return target
+ end-- }}}
+
+ function utils.class.super(self)
+   local metatable = getmetatable(self)
+   if metatable then return metatable.__super
+   else return {}
+   end
+ end
+
+ local function stripMetamethods(tbl)-- {{{
+   table.foreach(tbl, function(key, value)
+     if string.sub(key, 0, 2) == "__" then
+       rawset(tbl, key, nil)
+     end
+   end)
+ end-- }}}
+
+ --[[
+ Intercept function index requests.
+ Create compound function if necessary
+ otherwise return nil and fallback..
+
+ @internal
+ @param  Module(obj)
+ @param  string(key)@return void
+ ]]
+-- local function __getIndex(obj, key)  -- {{{
+--   local value = rawget(obj, key)
+--
+--   if value == nil or type(value) == 'function' then
+--     local funcs  = {}
+--     --
+--     if type(value) == 'function' then
+--       table.insert(funcs, value)
+--     end
+--     for _, mixin in pairs(obj.__mixins) do
+--       if type(mixin[key]) == 'function' then
+--         table.insert(funcs, mixin[key])
+--       end
+--     end
+--     --
+--     if #funcs > 0 then
+--       return function(...)
+--         local output = {}
+--         for _, func in ipairs(funcs) do
+--           for _, out in pairs({ func(...) }) do
+--             table.insert(output, out)
+--           end
+--         end
+--         return unpack(output)
+--       end
+--     else
+--       -- check mixins for key..
+--       for _, mixin in pairs(obj.__mixins) do
+--         if mixin[key] and type(mixin[key]) ~= 'function' then
+--           return mixin[key]
+--         end
+--       end
+--     end
+--   end
+--
+--   return value
+-- end  -- }}}
+
+
+-- Class
+-- ———————————————————————————————————————————————————————————————————————————
+local BaseClass = {}
+
+-- Make it easy to create instances
+--  e.g., local Human = Class()
+function BaseClass:__call(...)
+return self:new(...)
+end
+
+function BaseClass:construct(newFn)
+-- Auto-wraps subclass:new( … ) to create a properly independent instance
+-- that inherits from the parent class. E.g.,
+--    Klass = require 'lib.Class2'
+--    Human = Klass()                -- or Klass:extend()
+--    function Human:new(name, age)
+--      self.name = name
+--      self.age = age
+--      return self
+--    end
+--    adam = Human('adam', 33)   -- or Human:new('adam', 33)
+  return function(_, ...)
+    local obj = setmetatable({}, { __index = self })
+    newFn(obj, ...)
+    return obj
+  end
+end
+
+function BaseClass:__newindex(k,v)
+  if k=='new' and type(v)=='function' then
+   rawset(self, k, self:construct(v))
+  else
+   rawset(self, k, v)
+  end
+end
+
+function BaseClass:extend(...)
+local mt = {}
+mt.__index = table.merge(self, ...)
+mt.__newindex = BaseClass.__newindex
+mt.__call = BaseClass.__call
+
+
+--
+return setmetatable({}, mt)
+end
+
+return function(o)
+-- must clone optional base tbl, otherwise original class
+-- will *also* get methods defined on subclass
+local obj = u.copyDeep(o or {})
+return BaseClass:extend(obj)
+end
+

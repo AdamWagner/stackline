@@ -95,7 +95,7 @@ end)
 x = {1,1,1,12,2,3,3,4,5,6,6,7,8,1,1,2,2,1,1,12}
 
 function group(tbl)
-  local xs = u.copyDeep(tbl)
+  local xs = u.dcopy(tbl)
   local groups = {}
 
   for _,w in pairs(xs) do
@@ -110,7 +110,7 @@ function group(tbl)
 end
 
 function _group(tbl)
-  local xs = u.copyDeep(tbl)
+  local xs = u.dcopy(tbl)
   local groups = {}
 
 
@@ -126,7 +126,7 @@ function _group(tbl)
 end
 
 function group(tbl)
-  local xs = u.copyDeep(tbl)
+  local xs = u.dcopy(tbl)
   return u.map(R.uniq(xs), function(x)
     return u.filter(xs, u.isEqual(x))
   end)
