@@ -132,15 +132,6 @@ end -- }}}
 function M:init(conf) -- {{{
     log.i('Initializing configmanager…')
     self:validate(conf)
-    ipcConfigPort = hs.ipc.localPort('stackline-config',
-        function(_, msgID, msg)
-            if msgID == 900 then
-                return "version:2.0a" -- if this is not returned, *ipc msgs will NOT work*
-            elseif msgID == 500 then
-                self:handleMsg(msg)
-            end
-        end)
-
     self.__index = self
     return self
 end -- }}}
@@ -246,68 +237,5 @@ function M:toggle(key) -- {{{
     self:set(key, toggledVal)
     return self
 end -- }}}
-
--- TODO: Add m:Increment(delta)
--- TODO: Add m:Decrement(delta)
-
-function M:parseMsg(msg) -- {{{
-    local _, path, val = table.unpack(msg:split(':'))
-    path = path:gsub("_(.)", string.upper) -- convert snake_case to camelCase
-    log.d('path parsed from ipc port', path)
-
-    if type(val) == 'string' then
-        val = val:gsub("%W", "") -- remove all whitespace
-    end
-
-    -- TODO: resolve 'chicken & egg' problem: need type to fully parse, need to fully parse to get type w/o error
-    -- local _type, validator = self:getPathSchema(path)
-
-    local parsedMsg = {
-        path      = path,
-        val       = val,
-        _type     = _type,
-        validator = validator,
-        isGet     = (path ~= nil) and (val == nil),
-        isSet     = (path ~= nil) and (val ~= nil),
-        isToggle  = path:match("toggle") ~= nil, -- TODO: add and _type == 'boolean' when todo above is complete
-    }
-
-    log.d('Parsed msg:\n', hs.inspect(parsedMsg))
-
-    return parsedMsg
-end -- }}}
-
-function M:handleMsg(msg) -- {{{
-    log.d('msg', msg)
-    local m = self:parseMsg(msg)
-    log.d(m)
-
-    if m.isToggle then
-        log.d('isToggle')
-        local key = m.path
-            :gsub('toggle', '')        -- strip leading 'toggle'
-            :gsub("^%L", string.lower) -- lowercase 1st character
-        self:toggle(key)
-        return self:get(key)
-
-    elseif m.isSet then
-        log.d('isSet')
-        local _, setVal = self:set(m.path, m.val)
-        return setVal
-
-    elseif m.isGet then
-        log.d('isGet')
-        local val = self:get(m.path)
-        return val
-
-    else
-        log.e('Unparsable IPC message. Try:')
-        log.i( '    `echo ":toggle_appearance.show_icons:" | hs -m stackline-config"`')
-        log.i( '    `echo ":get_appearance.show_icons:" | hs -m stackline-config"`')
-    end
-
-    return "ok"
-end -- }}}
-
 
 return M
