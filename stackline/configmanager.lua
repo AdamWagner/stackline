@@ -157,7 +157,7 @@ function M:validate(conf) -- {{{
         log.e('Invalid stackline config:\n', hs.inspect(err))
     end
 
-    return valid, err
+    return isValid, err
 end -- }}}
 
 function M:autosuggest(path) -- {{{
