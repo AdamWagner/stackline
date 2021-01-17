@@ -2,6 +2,11 @@ require 'lib.updatePackagePath'
 require 'spec.helpers.assertions'
 assert, match, spy, mock = require 'luassert', require 'luassert.match', require 'luassert.spy', require 'luassert.mock'
 
+
+-- SEE ⭐️ matthewfallshaw/hammerspoon  ⭐️
+-- https://github.com/matthewfallshaw/hammerspoon-config/tree/master/spec
+-- Has really clean & robust tests for his hammerspoon config!
+
 local function loadBusted()  -- {{{
   require 'busted.runner'()
   _G.describe = require'busted'.describe

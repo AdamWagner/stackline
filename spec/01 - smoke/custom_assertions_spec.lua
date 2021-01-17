@@ -7,7 +7,7 @@ describe('#custom_assertions', function()
     end)
 
     it('contains - key', function()
-      assert.contains_key({name='adam', age=33}, 'name')
+      assert.contains_key({name='JohnDoe', age=33}, 'name')
     end)
 
     it('substring', function()
@@ -23,20 +23,20 @@ describe('#custom_assertions', function()
       end)
 
       it('dict', function()
-        local a = {name = 'adam', age = 33}
-        local b = {age = 33, name = 'adam'}
+        local a = {name = 'JohnDoe', age = 33}
+        local b = {age = 33, name = 'JohnDoe'}
         assert.deepEqual(a,b)
       end)
 
       it('list of lists', function()
-        local a = { { name = 'adam' }, { name = 'amy'} }
-        local b = { { name = 'amy'}, { name = 'adam' } }
+        local a = { { name = 'JohnDoe' }, { name = 'JaneDoe'} }
+        local b = { { name = 'JaneDoe'}, { name = 'JohnDoe' } }
         assert.deepEqual(a,b)
       end)
 
       it('nested dict', function()
-        local a = {name = 'adam', friends = { { name = 'amy' }, { name = 'bill'} }}
-        local b = {friends = { { name = 'bill' }, { name = 'amy'} }, name = 'adam' }
+        local a = {name = 'JohnDoe', friends = { { name = 'JaneDoe' }, { name = 'bill'} }}
+        local b = {friends = { { name = 'bill' }, { name = 'JaneDoe'} }, name = 'JohnDoe' }
         assert.deepEqual(a,b)
       end)
     end)

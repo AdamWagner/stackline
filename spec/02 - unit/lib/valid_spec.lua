@@ -14,8 +14,8 @@ describe('#lib validator', function()
   end)
 
   it('number (fail)', function()
-    local r = table.pack(num('adam'))
-    local expected = {false,	'adam is not a number.', n = 2}
+    local r = table.pack(num('JohnDoe'))
+    local expected = {false,	'JohnDoe is not a number.', n = 2}
     assert.are.same(r, expected)
   end)
 
