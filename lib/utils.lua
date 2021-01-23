@@ -6,221 +6,276 @@ log.i("Loading module")
 -- utils module ----------------------------------------------------------------
 u = {}
 
--- Extend builtins -------------------------------------------------------------
-function string:split(p) -- {{{
-  -- Splits the string [s] into substrings wherever pattern [p] occurs.
-  -- Returns: a table of substrings or, a table with the string as the only element
-  local p = p or '%s' -- split on space by default
-  local temp = {}
-  local index = 0
-  local last_index = self:len()
-
-  while true do
-    local i, e = self:find(p, index)
-
-    if i and e then
-      local next_index = e + 1
-      local word_bound = i - 1
-      table.insert(temp, self:sub(index, word_bound))
-      index = next_index
-    else
-      if index > 0 and index <= last_index then
-        table.insert(temp, self:sub(index, last_index))
-      elseif index == 0 then
-        temp = {self}
-      end
-      break
+function u.keys_are_consecutive(val)  -- {{{
+  local i = 0
+  for k in pairs(val) do
+    i = i + 1
+    if val[i] == nil then
+      return false
     end
   end
-
-  return temp
-end -- }}}
-
--- table.insert {{{
--- uses table.insert(..) for numeric keys
--- and  t[k] = v         for all other keys
-table.insertraw = table.insert
-table.insert = function(...)
-  local args = {...}
-  if (#args == 3) and (type(args[2]) == 'string') then
-    local t, k, v = table.unpack(args)
-    t[k] = v
-    return t
-  end
-  table.insertraw(...)
-end
-table._insert = table.insert
--- }}}
-function table.merge(...) -- {{{
-  -- Recursively merge tables
-  --[[ {{{  TEST DATA
-  table.merge(...)
-  x = {1,2,3}
-  y = {'a', 'b', 'c', name = 'JohnDoe', blocks = { 'test',2,3 }}
-  z = {blocks = { 1,2,'3', 99, 3 }, 7,8,9}
-  a = table.merge(x,z,y)
-  hs.inspect(a)
-    -> { "a", "b", "c", 7, 8, 9, 1, 2, 3,
-          blocks = { 1, 2, "3", 99, 3, "test", 2, 3 },
-          name = "JohnDoe"
-       }
-  }}} ]]
-
-  local istbl = u.istable
-  local function both_are_tables(tbl_list)
-    return u.all(tbl_list, istbl)
-  end
-  local out = {}
-
-  for _, tbl in u.iter({...}) do
-    if not istbl(tbl) then
-      return tbl
-    end
-
-    for k, currVal in u.iter(tbl) do
-      local targetVal = out[k]
-      if both_are_tables({currVal, targetVal}) then
-        -- set currVal to recursively merged results
-        currVal = table.merge(currVal, targetVal)
-      end
-      -- set (or replace) key in table
-      table.insert(out, k, currVal)
-    end
-  end
-  return out
-end -- }}}
-function table.flatten(tbl) -- {{{
+  return true
+end  -- }}}
+function u.wrapargs(...) -- {{{
   --[[ TEST
-      -- Children keys == parent keys
-      x = {name='adam',age=33,friends={{name='amy',age=28},{name='bob',age=66}}}
-      y = table.flatten(x)
+     a = u.wrapargs(1,2,3,4)
+     b = u.wrapargs({1,2,3,4})
+     c = u.wrapargs({name = 'adam'}, {name = 'adam'})
+     d = u.wrapargs({ name = 'adam' }, 1,2,3)
+  ]]
+  local args = {...}
+  assert(not u.all(args, u.types.null), 'Error: all wrapped varargs are nil.')
+  local first_tbl_is_args = u.types.tbl(args[1]) and #args[1]>0 and #args==1
+  return first_tbl_is_args and args[1] or args
+end -- }}}
 
-      -- Children keys != parent keeys
-      a = {name='adam',age=33,things={{type='physical', order=28},{another='blah',more=66}}}
-      b = table.flatten(a)
-   ]]
-  local function flatten(_tbl, mdepth, depth, prefix, res, circ) -- {{{
-    local k, v = next(_tbl)
-    while k do
-      local pk = prefix .. k
-      if type(v) ~= 'table' then
-        res[pk] = v
-      else
-        local ref = tostring(v)
-        if not circ[ref] then
-          if mdepth > 0 and depth >= mdepth then
-            res[pk] = v
-          else -- set value except circular referenced value
-            circ[ref] = true
-            local nextPrefix = pk .. '.'
-            flatten(v, mdepth, depth + 1, nextPrefix, res, circ)
-            circ[ref] = nil
-          end
-        end
-      end
-      k, v = next(_tbl, k)
+-- string
+function string:startsWith(str) -- {{{
+  local firstChar = self:sub(1, #str)
+  return firstChar == str
+end -- }}}
+function string:endsWith(str) -- {{{
+  local lastChar = self:sub(#self - (#str - 1))
+  return lastChar == str
+end -- }}}
+function string:removeExcessWhitespace(str) -- {{{
+  return self:gsub("%s+", " ")
+end -- }}}
+function string:ensureEndsWith(char) -- {{{
+  local lastChar = self:sub(#self)
+  if lastChar ~= char then
+    self = self .. char
+  end
+  return self
+end -- }}}
+function string:removeWhitespace(str) -- {{{
+  return self:gsub("%s+", "")
+end -- }}}
+function string:capitalize() -- {{{
+  -- FROM: https://github.com/EvandroLG/str/blob/master/src/str/init.lua#L128
+  if #self== 0 then return self end
+
+  local function upperFirst()
+    return self:sub(1, 1):upper()
+  end
+
+  local function lowerRest()
+    return self:sub(2):lower()
+  end
+
+  return upperFirst() .. lowerRest()
+end -- }}}
+function string:split(pat) -- {{{
+  -- splits the string into substring using the specified separator and return them as a table
+
+  pat = pat or '%s' -- split on space by default
+  local output = {}
+  local fpat = '(.-)' .. pat
+  local last_end = 1
+  local _s, e, cap = self:find(fpat, 1)
+
+  while _s do
+    if _s ~= 1 or cap ~= '' then
+      table.insert(output, cap)
     end
-    return res
-  end -- }}}
 
-  local maxdepth = 0
-  local circularRef = {[tostring(tbl)] = true}
-  local prefix = ''
-  local result = {}
+    last_end = e+1
+    _s, e, cap = self:find(fpat, last_end)
+  end
 
-  return flatten(tbl, maxdepth, 1, prefix, result, circularRef)
+  if last_end <= #self then
+    cap = self:sub(last_end)
+    table.insert(output, cap)
+  end
+
+  return output
 end -- }}}
-function table.setPath(f, v, t) -- {{{
-  -- FROM: https://www.lua.org/pil/14.1.html
-  t = t or _G -- start with the table of globals
-  for w, d in string.gmatch(f, "([%w_]+)(.?)") do
-    if d == "." then -- not last field?
-      t[w] = t[w] or {} -- create table if absent
-      t = t[w] -- get the table
-    else -- last field
-      t[w] = v -- do the assignment
+function string.join(tbl, sep) -- {{{
+  sep = sep or '\n'
+  return table.concat(tbl, sep)
+end -- }}}
+function string:trim_right() -- {{{
+  -- returns a new string with trailing whitespace removed
+  return self:match('(.-)%s*$')
+end -- }}}
+function string:trim_left() -- {{{
+  -- returns a new string with leading whitespace removed
+  return self:match('[^%s+].*')
+end -- }}}
+function string:trim() -- {{{
+  -- returns a copy of string leading and trailing whitespace removed
+  return self.trim_right(
+    self.trim_left(self)
+  )
+end -- }}}
+function string:center(n) -- {{{
+  -- returns a copy of the string passed as parameter centralized with spaces passed in size parameter
+  local aux = ''
+
+  for i=1, n do
+    aux = aux .. ' '
+  end
+
+  return aux .. self .. aux
+end -- }}}
+function u.distance(str1, str2) -- {{{
+  str1, str2 = str1:lower(), str2:lower()
+  local len1, len2 = #str1, #str2
+  local char1, char2, dist = {}, {}, {}
+  str1:gsub('.', function(c) table.insert(char1, c) end)
+  str2:gsub('.', function(c) table.insert(char2, c) end)
+  for i = 0, len1 do dist[i] = {} end
+  for i = 0, len1 do dist[i][0] = i end
+  for i = 0, len2 do dist[0][i] = i end
+  for i = 1, len1 do
+    for j = 1, len2 do
+      dist[i][j] = math.min(
+        dist[i-1][j] + 1, dist[i][j-1] + 1,
+        dist[i-1][j-1] + (char1[i] == char2[j] and 0 or 1)
+      )
     end
   end
+  return dist[len1][len2] / #str2
 end -- }}}
-function table.getPath(path, tbl, isSafe) -- {{{
-  --[[ TEST {{{
-  x = { name = 'adam', path = { other = { more = 33 } } }
 
-  table.getPath('x.path.other')
-  -> { more =  33 }
-
-  table.getPath('x.path.other.more')
-  -> 33
-
-  table.getPath('x.path.other.more.does.not.exist')
-  -> 33
-
-  table.setPath('x.path.other.more', 55)
-  x.path.other.more == 55
-  -> true
-  }}} ]]
-
-  -- FROM: https://www.lua.org/pil/14.1.html
-  isSafe = isSafe or true
-  local v = tbl or _G -- default to global tabl if tbl not provided
-  local res = nil
-
-  for w in path:gmatch('[%w_]+') do
-    if not u.istable(v) then
-      return v
-    end -- if v isn't table, return immediately
-    v = v[w] -- lookup next val
-    if v ~= nil then
-      res = v
-    end -- only update safe result if v not null
-  end
-
-  if isSafe then -- return the last non-nil value found
-    return v ~= nil and v or res
-  else -- return the last value found regardless
-    return v
+-- Iteration utils
+function u.getiter(x) -- {{{
+  -- Dynamically determine whether to use ipairs or pairs based on the provided table
+  -- USAGE NOTE: How to check which fn was returned from the outside:
+  --    local fn = u.getiter(tbl)
+  --    local iteratorType = fn == ipairs and 'pairs' or 'pairs'
+  assert(u.types.tbl(x), 'getiter() expects a table')
+  if u.types.array(x) then
+    return ipairs
+  elseif u.types.tbl(x) then
+    return pairs
   end
 end -- }}}
-function table.len(t) -- {{{
-  local count = 0
-  for _ in pairs(t) do
-    count = count + 1
-  end
-  return count
+function u.iter(x) -- {{{
+  -- selects appropriate iterator AND kicks off the process:
+  --    for k,v in u.iter(tbl) do ...
+  -- instead of:
+  --    for k,v in u.getiter(tbl)(tbl) do ...
+
+  --[[ TEST
+  array = {1,2,3,34,4}
+  dict = {name = 'adam', age = 33}
+  for k,v in u.iter(array) do print(k,v) end
+  for k,v in u.iter(dict) do print(k,v) end
+  ]]
+  return u.getiter(x)(x)
 end -- }}}
-u.len = table.len
 
 -- Type utils
-function u.isnil(val) -- {{{
-  return type(val) == 'nil'
-end -- }}}
-function u.isnum(val) -- {{{
-  return type(val) == 'number'
-end -- }}}
-function u.istable(val) -- {{{
-  return type(val) == 'table'
-end -- }}}
-function u.iskey(val) -- {{{
-  return type(val) == 'string' or type(val) == 'number'
-end -- }}}
-function u.isarray(val) -- {{{
-  if not u.istable(val) then
-    return false
-  end
+-- Generate type check functions {{{
+local primative_types = {
+  ['table'] = true,
+  ['string'] = true,
+  ['boolean'] = true,
+  ['function'] = true,
+  ['userdata'] = true,
+  ['thread'] = true,
+  ['nil'] = true,
+  ['nan'] = function(val) return val ~= val end,
+}
 
-  local function keys_are_consecutive(x)
-    local i = 0
-    for k in pairs(x) do
-      i = i + 1
-      if x[i] == nil then
-        return false
-      end
+local type_aliases = {
+  ['number'] = 'num',
+  ['function'] = 'fn',
+  ['table'] = 'tbl',
+  ['nil'] = 'null',
+}
+
+local compound_types = {    -- {{{
+      -- Note that `number` will overwrite the primative type checker with the same name.
+      -- TODO: is there a better name for this one?
+  number = function(val)
+    return type(val)=='number'
+          and not u.types.null(val)
+          and not u.types.nan(val)
+  end,
+
+  integer = function(val)
+    return val~=nil
+          and u.types.num(val)
+          and math.floor(val)==val
+  end,
+
+  key = function(val)
+    return u.types.string(val) or u.types.num(val)
+  end,
+
+  object = function(val)     -- `val` is an object if keys aren't consecutive from 1.
+    if not u.types.tbl(val) then return false end
+    return not u.keys_are_consecutive(val)
+  end,
+
+  array = function(val)     -- `val` is an array if keys are consecutive from 1.
+    if not u.types.tbl(val) then return false end
+    return u.keys_are_consecutive(val)
+  end,
+
+  sortable = function(val)
+    if not u.types.tbl(val) then return false end
+    if u.any(u.values(val), u.types.tbl) then return false end
+    return u.keys_are_consecutive(val)
+  end,
+
+  callable = function(val)
+    if u.types.fn(val) then return true end
+    local mt = getmetatable(val)
+    return mt and mt.__call~=nil
+  end,
+
+  empty = function(val)
+    if u.types.null(val) then
+      return true
+    elseif u.types.string(val) then
+      return val == ""
+    elseif u.types.tbl(val) then
+      return next(val)==nil
+    else
+      return false
     end
-    return true
-  end
+  end,
+}   -- }}}
 
-  return keys_are_consecutive(val)
-end -- }}}
+local function make_typecheck_fn(typ, fn)    -- {{{
+    -- generate fns for all primative types
+  return type(fn)=='function'
+    and fn
+    or function(val) return type(val)==typ end
+end    -- }}}
+
+u.types = {}
+u.types.all = {}
+
+local function make_checker(typ, fn)
+  local key = type_aliases[typ] or typ
+  u.types[key] = make_typecheck_fn(typ, fn)
+
+  u.types.all[key ..'s'] = function(...) -- {{{
+    --[[ TEST
+      u.types.all.nums(1,2,3)              -- -> true
+      u.types.all.nums({1,2,3})            -- -> true
+      u.types.all.nums(1,2,3, nil, 'hi')   -- -> false
+      u.types.all.nums({1,2,3, nil, 'hi'}) -- -> false
+      u.types.all.nums(nil, nil, nil)      -- -> false
+
+      u.types.all.tbls({1,2,3}, {1,2,3})
+      u.types.all.tbls({ {1,2,3}, {1,2,3} })
+    --]]
+    return u.all(u.wrapargs(...), u.types[key])
+  end -- }}}
+end
+for typ, fn in pairs(primative_types) do
+  make_checker(typ, fn)
+end
+
+for typ, fn in pairs(compound_types) do
+  make_checker(typ, fn)
+end
+  -- }}}
 function u.toBool(val) -- {{{
   -- Reference:
   -- function toboolean( v )
@@ -263,109 +318,10 @@ function u.boolToNum(value) -- {{{
   return value == true and 1 or value == false and 0
 end -- }}}
 
-function u.wrapargs(...) -- {{{
-  local args = {...}
-  local not_all_nil = not u.all({...}, u.isnil)
-
-  assert(not_all_nil, 'Error: all wrapped varargs are nil.')
-
-  return u.istable(args[1]) and table.len(args[1]) and args[1] or args
-end -- }}}
-function u.all_tables(...) -- {{{
-  return u.all(u.wrapargs(...), u.istable)
-end -- }}}
-function u.all_nums(...) -- {{{
-  -- u.all_nums(1,2,3)              -- -> true
-  -- u.all_nums({1,2,3})            -- -> true
-  -- u.all_nums(1,2,3, nil, 'hi')   -- -> false
-  -- u.all_nums({1,2,3, nil, 'hi'}) -- -> false
-  -- u.all_nums(nil, nil, nil)      -- -> false
-  return u.all(u.wrapargs(...), u.isnum)
-end -- }}}
-
--- Iteration utils
-function u.getiter(x) -- {{{
-  -- Dynamically determine whether to use ipairs or pairs based on the provided table
-  -- USAGE NOTE: How to check which fn was returned from the outside:
-  --    local fn = u.getiter(tbl)
-  --    local iteratorType = fn == ipairs and 'pairs' or 'pairs'
-  assert(u.istable(x), 'getiter() expects a table')
-  if u.isarray(x) then
-    return ipairs
-  elseif u.istable(x) then
-    return pairs
-  end
-end -- }}}
-function u.iter(x) -- {{{
-  -- selects appropriate iterator AND kicks off the process:
-  --    for k,v in u.iter(tbl) do ...
-  -- instead of:
-  --    for k,v in u.getiter(tbl)(tbl) do ...
-
-  --[[ TEST
-  array = {1,2,3,34,4}
-  dict = {name = 'adam', age = 33}
-  for k,v in u.iter(array) do print(k,v) end
-  for k,v in u.iter(dict) do print(k,v) end
-  ]]
-  return u.getiter(x)(x)
-end -- }}}
-
--- String utils
-function u.levenshteinDistance(str1, str2) -- {{{
-  str1, str2 = str1:lower(), str2:lower()
-  local len1, len2 = #str1, #str2
-  local char1, char2, distance = {}, {}, {}
-  str1:gsub('.', function(c)
-    table.insert(char1, c)
-  end)
-  str2:gsub('.', function(c)
-    table.insert(char2, c)
-  end)
-  for i = 0, len1 do
-    distance[i] = {}
-  end
-  for i = 0, len1 do
-    distance[i][0] = i
-  end
-  for i = 0, len2 do
-    distance[0][i] = i
-  end
-  for i = 1, len1 do
-    for j = 1, len2 do
-      distance[i][j] = math.min(distance[i - 1][j] + 1, distance[i][j - 1] + 1,
-          distance[i - 1][j - 1] + (char1[i] == char2[j] and 0 or 1))
-    end
-  end
-  return distance[len1][len2] / #str2 -- note
-end -- }}}
-
-function u.extract(list, comp, transform, ...) -- {{{
-  -- from moses.lua
-  -- extracts value from a list
-  transform = transform or u.identity
-  local _ans
-  for k, v in pairs(list) do
-    if not _ans then
-      _ans = transform(v, ...)
-    else
-      local val = transform(v, ...)
-      _ans = comp(_ans, val) and _ans or val
-    end
-  end
-  return _ans
-end -- }}}
-function u.max(t, transform) -- {{{
-  return u.extract(t, u.gt, transform)
-end -- }}}
-
+-- Math utils
 function u.roundToNearest(roundTo, numToRound) -- {{{
-  u.pheader('roundTo', roundTo)
-  u.pheader('numToRound', numToRound)
-  local allnums = u.all_nums(roundTo, numToRound)
-  print('allnums', allnums)
+  local allnums = u.types.all.nums(roundTo, numToRound)
   if not allnums then
-    print('NOT NUMS')
     log.w('roundToNearest() expects number args - returning "0" by default')
     return 0
   end
@@ -440,7 +396,7 @@ function u.dcopy(obj, seen) -- {{{
   }}} ]]
 
   -- return primative values
-  if not u.istable(obj) then
+  if not u.types.tbl(obj) then
     return obj
   end
 
@@ -468,73 +424,65 @@ function u.lt(a, b) -- {{{
   return a < b
 end -- }}}
 function u.equal(a, b) -- {{{
-  if #a ~= #b then
-    return false
-  end
+  --[[ TEST {{{
 
-  for i, _ in ipairs(a) do
-    if b[i] ~= a[i] then
-      return false
+    -- Will compare table keys/vals
+    u.equal({name = 'adam'}, {name = 'adam '})
+    -- -> true
+
+    -- ..but *not* nested tables
+    u.equal(
+      {{name = 'adam'}, {name = 'adam'}},
+      {{name = 'adam'}, {name = 'adam'}}
+    )
+    -- -> false
+  }}} ]]
+  if a==b then return true end
+  if u.types.all.tbls(a,b) then
+    for i, _ in u.iter(a) do
+      if b[i]~=a[i] then return false end
     end
   end
-
   return true
 end -- }}}
-function u.isEqual(a, b) -- {{{
+function u.dequal(a, b) -- {{{
   --[[
     This function takes 2 values as input and returns true if they are equal
     and false if not. a and b can numbers, strings, booleans, tables and nil.
     --]]
 
-  local function isEqualTable(t1, t2)
+  local function isEqualTable(t1, t2)  -- {{{
+    if t1 == t2 then return true end
 
-    if t1 == t2 then
-      return true
-    end
-
-    -- luacheck: ignore
     for k, v in pairs(t1) do
-
-      if type(t1[k]) ~= type(t2[k]) then
-        return false
-      end
-
-      if type(t1[k]) == "table" then
+      local t1k1, t1k2 = type(t1[k]), type(t2[k])
+      if t1k1 ~= t1k2 then return false end
+      if t1k1 == 'table' then
         if not isEqualTable(t1[k], t2[k]) then
           return false
         end
-      else
-        if t1[k] ~= t2[k] then
-          return false
-        end
-      end
+      else if t1[k] ~= t2[k] then return false end end
     end
 
     for k, v in pairs(t2) do
-
-      if type(t2[k]) ~= type(t1[k]) then
-        return false
-      end
-
-      if type(t2[k]) == "table" then
+      local t2k1, t2k2 = type(t1[k]), type(t2[k])
+      if t2k1 ~= t2k2 then return false end
+      if t2k2=='table' then
         if not isEqualTable(t2[k], t1[k]) then
           return false
         end
-      else
-        if t2[k] ~= t1[k] then
-          return false
-        end
+      else if t2[k] ~= t1[k] then return false end
       end
     end
 
     return true
-  end
+  end  -- }}}
 
   if type(a) ~= type(b) then
     return false
   end
 
-  if type(a) == "table" then
+  if u.types.tbl(a) then
     return isEqualTable(a, b)
   else
     return (a == b)
@@ -550,6 +498,33 @@ end -- }}}
 -- functional utils
 function u.identity(value) -- {{{
   return value
+end -- }}}
+function u.curry(fn, params) -- {{{
+  -- FROM: https://github.com/KelsonBall/LuaCurry/blob/master/curry.lua
+  -- ALT (a little simpler?) https://github.com/ericnething/lua-lambda/blob/master/lambda.lua#L30
+  return (function(...)
+    local args = params or {}
+    local num_expected = debug.getinfo(fn).nparams
+    local total_args = #args + #{...}
+
+    if total_args == num_expected then
+      args = {table.unpack(args)}
+      for _, v in ipairs({...}) do
+        table.insert(args, v)
+      end
+      return fn(unpack(args))
+    else
+      for _, v in ipairs({...}) do
+        table.insert(args, v)
+      end
+      return u.curry(fn, args)
+    end
+  end)
+end -- }}}
+function u.flip(fn) -- {{{
+  return function(a, b, ...)
+    return fn(b, a, ...)
+  end
 end -- }}}
 function u.partial(f, ...) -- {{{
   -- FROM: https://www.reddit.com/r/lua/comments/fh2go5/a_partialcurry_implementation_of_mine_hope_you/
@@ -582,81 +557,71 @@ function u.cb(fn) -- {{{
     return fn
   end
 end -- }}}
-function u.values(t) -- {{{
-  local values = {}
-  for _k, v in pairs(t) do
-    values[#values + 1] = v
-  end
-  return values
-end -- }}}
-function u.include(list, value) -- {{{
-  for i in u.iter(list) do
-    if i == value then
-      return true
-    end
-  end
-  return false
-end -- }}}
-function u.any(list, func) -- {{{
-  for i in u.iter(list) do
-    if func(i) then
-      return true
-    end
-  end
-  return false
-end -- }}}
-function u.all(vs, fn) -- {{{
-  fn = fn or u.identity
-  for _, v in pairs(vs) do
-    if not fn(v) then
-      return false
-    end
-  end
-  return true
-end
-u.every = u.all
--- }}}
+
 -- Alias hs.fnutils methods {{{
-u.map = hs.fnutils.map
-u.filter = hs.fnutils.filter
-u.reduce = hs.fnutils.reduce
-u.partial = hs.fnutils.partial
-u.each = hs.fnutils.each
-u.contains = hs.fnutils.contains
-u.some = hs.fnutils.some
-u.any = hs.fnutils.some -- also rename 'some()' to 'any()'
-u.concat = hs.fnutils.concat
-u.copy = hs.fnutils.copy
+hs.fnutils.any = hs.fnutils.some -- alias 'some' as 'any'
+hs.fnutils.all = hs.fnutils.every -- alias 'every' as 'all'
+
+-- Assign hs.fnutils methods to utils ...*plus* curried/flipped alt methods via u._<method_name>
+for k,v in pairs(hs.fnutils) do
+  u[k] = v -- add the vanilla fnutils method
+  u['_'..k] = u.curry(u.flip(v)) -- alt version: curry & flip args for easy piping (like Ramda.js)
+end
 -- }}}
 
--- Collections / transformation utils
-function u.extend(destination, source) -- {{{
-  for k, v in pairs(source) do
-    destination[k] = v
-  end
-  return destination
-end -- }}}
-function u.zip(a, b) -- {{{
-  local rv = {}
+u._reduce = u.curry(function(fn, acc, tbl) -- {{{
+  -- overwrite u._reduce() generated from hs.fnutils with custom version
   local idx = 1
-  local len = math.min(#a, #b)
-  while idx <= len do
-    rv[idx] = {a[idx], b[idx]}
+  while idx <= #tbl do
+    acc = fn(acc, tbl[idx])
     idx = idx + 1
   end
-  return rv
+  return acc
+end) -- }}}
+
+-- Collections / transformation utils
+function u.keys(tbl) -- {{{
+  local res = {}
+  for k in u.iter(tbl) do
+    res[#res + 1] = k
+  end
+  return res
 end -- }}}
-function u.groupBy(t, f) -- {{{
+function u.values(tbl) -- {{{
+  local res = {}
+  for _k, v in u.iter(tbl) do
+    res[#res + 1] = v
+  end
+  return res
+end -- }}}
+function u.find(tbl, val) -- {{{
+  res = nil
+  for k, v in u.iter(tbl) do
+    if k == val then
+      res = v
+    end
+  end
+  return res
+end -- }}}
+function u.include(tbl, val) -- {{{
+  for i in u.iter(tbl) do
+    if i == val then
+      return true
+    end
+  end
+  return false
+end -- }}}
+function u.groupBy(tbl, fn) -- {{{
   -- FROM: https://github.com/pyrodogg/AdventOfCode/blob/1ff5baa57c0a6a86c40f685ba6ab590bd50c2148/2019/lua/util.lua#L149
   local res = {}
-  for _k, v in pairs(t) do
+  for _k, v in pairs(tbl) do
     local g
-    if type(f) == 'function' then
-      g = f(v)
-    elseif type(f) == 'string' and v[f] ~= nil then
-      g = v[f]
+    if u.types.fn(fn) then
+      g = fn(v)
+    elseif u.types.string(fn) and v[fn]~=nil then
+      g = v[fn]
     else
-      error('Invalid group parameter [' .. f .. ']')
+      error('Invalid group parameter [' .. fn .. ']')
     end
 
     if res[g] == nil then
@@ -685,11 +650,11 @@ function u.flatten(tbl, depth) -- {{{
     for k, v in pairs(vs) do
       currDepth = currDepth + 1
 
-      if u.istable(v) and (currDepth <= depth) then
+      if u.types.tbl(v) and (currDepth <= depth) then
         flatten(res, v, currdepth)
       end
 
-      local key = u.iskey(k) and k or tostring(k)
+      local key = u.types.key(k) and k or tostring(k)
       tinsert(res, key, v)
 
     end
@@ -705,30 +670,258 @@ function u.flatten(tbl, depth) -- {{{
             or M.unnest(tbl) -- otherwise, fall back to unnest() instead
     ]]
 end -- }}}
-function u.invert(t) -- {{{
-  local rtn = {}
-  for k, v in pairs(t) do
-    rtn[v] = k
+function u.zip(a, b) -- {{{
+  local rv = {}
+  local idx = 1
+  local len = math.min(#a, #b)
+  while idx <= len do
+    rv[idx] = {a[idx], b[idx]}
+    idx = idx + 1
   end
-  return rtn
+  return rv
 end -- }}}
-function u.keys(t) -- {{{
-  local rtn = {}
-  for k in u.iter(t) do
-    rtn[#rtn + 1] = k
+
+-- table
+-- table.insert {{{
+-- uses table.insert(..) for numeric keys
+-- and  t[k] = v         for all other keys
+table.insertraw = table.insert
+table.insert = function(...)
+  local args = {...}
+  if (#args == 3) and (type(args[2]) == 'string') then
+    local t, k, v = table.unpack(args)
+    t[k] = v
+    return t
   end
-  return rtn
-end -- }}}
-function u.find(t, value) -- {{{
-  local iter = getiter(t)
-  result = nil
-  for k, v in iter(t) do
-    if k == value then
-      result = v
+  table.insertraw(...)
+end
+table._insert = table.insert
+-- }}}
+function table.merge(...) -- {{{
+  -- Recursively merge tables
+  --[[ {{{  TEST DATA
+  table.merge(...)
+  x = {1,2,3}
+  y = {'a', 'b', 'c', name = 'JohnDoe', blocks = { 'test',2,3 }}
+  z = {blocks = { 1,2,'3', 99, 3 }, 7,8,9}
+  a = table.merge(x,z,y)
+  hs.inspect(a)
+    -> { "a", "b", "c", 7, 8, 9, 1, 2, 3,
+          blocks = { 1, 2, "3", 99, 3, "test", 2, 3 },
+          name = "JohnDoe"
+       }
+  }}} ]]
+
+  local function both_are_tables(tbl_list)
+    return u.all(tbl_list, u.types.tbl)
+  end
+  local out = {}
+
+  for _, tbl in u.iter({...}) do
+    if not u.types.tbl(tbl) then
+      return tbl
+    end
+
+    for k, currVal in u.iter(tbl) do
+      local targetVal = out[k]
+      if both_are_tables({currVal, targetVal}) then
+        -- set currVal to recursively merged results
+        currVal = table.merge(currVal, targetVal)
+      end
+      -- set (or replace) key in table
+      table.insert(out, k, currVal)
     end
   end
-  return result
+  return out
 end -- }}}
+function table.flatten(tbl) -- {{{
+  --[[ TEST
+      -- Children keys == parent keys
+      x = {name='adam',age=33,friends={{name='amy',age=28},{name='bob',age=66}}}
+      y = table.flatten(x)
+
+      -- Children keys != parent keeys
+      a = {name='adam',age=33,things={{type='physical', order=28},{another='blah',more=66}}}
+      b = table.flatten(a)
+   ]]
+  local function flatten(_tbl, mdepth, depth, prefix, res, circ) -- {{{
+    local k, v = next(_tbl)
+    while k do
+      local pk = prefix .. k
+      if type(v) ~= 'table' then
+        res[pk] = v
+      else
+        local ref = tostring(v)
+        if not circ[ref] then
+          if mdepth > 0 and depth >= mdepth then
+            res[pk] = v
+          else -- set value except circular referenced value
+            circ[ref] = true
+            local nextPrefix = pk .. '.'
+            flatten(v, mdepth, depth + 1, nextPrefix, res, circ)
+            circ[ref] = nil
+          end
+        end
+      end
+      k, v = next(_tbl, k)
+    end
+    return res
+  end -- }}}
+
+  local maxdepth = 0
+  local circularRef = {[tostring(tbl)] = true}
+  local prefix = ''
+  local result = {}
+
+  return flatten(tbl, maxdepth, 1, prefix, result, circularRef)
+end -- }}}
+function table.groupBy(tbl, by) -- {{{
+  --[[ {{{ TEST DATA
+      a = {
+      {color = 'red', num = 99 },
+      {color = 'red', num = 9 },
+      {color = 'red', num = 102 },
+      {color = 'red', num = 101 },
+      {color = 'red', num = 103 },
+      {color = 'red', num = 102 },
+      {color = 'red', num = 114 },
+      {color = 'orange', num = 9 },
+      {color = 'orange', num = 1 },
+      {color = 'orange', num = 02 },
+      {color = 'orange', num = 01 },
+      {color = 'orange', num = 03 },
+      {color = 'orange', num = 02 },
+      {color = 'orange', num = 14 },
+      {color = 'orange', num = 24 },
+      {color = 'orange', num = 76 },
+      {color = 'blue', num = 2 },
+      {color = 'blue', num = 1 },
+      {color = 'blue', num = 3 },
+      {color = 'blue', num = 2 },
+      {color = 'blue', num = 4 },
+    }
+    g = table.groupBy(a, 'color')
+
+    d.inspectByDefault(false)
+    g = table.groupBy(a, 'color')
+    g.red
+
+   a = {
+      {color = 'red', num = 99 },
+      {color = 'red', num = 99 },
+      {color = 'blue', num = 102 },
+      {color = 'blue', num = 102 },
+      {color = 'green', num = 3 },
+      {color = 'green', num = 3 },
+      {color = 'green', num = 4 },
+    }
+    g = table.groupBy(a)
+
+    -- NOTE: order is NOT guaranteed - so g[2] could be the group with only 1 item (green/4)
+    t1 = g[2][1]
+    t2 = g[2][2]
+    u.isEqual(t2,t1)
+  }}} ]]
+
+  -- NOTE: indexByEquality is VERY important for grouping equal elements together
+  local function indexByEquality(self, x) -- {{{
+    for k, v in pairs(self) do
+      if u.dequal(k, x) then
+        return v
+      end
+    end
+  end -- }}}
+
+  assert(tbl ~= nil, 'table to groupBy must not be nil')
+  by = by or u.identity -- assume identity if no 'by' is passed
+
+  local function reducer(accum, curr)
+    local res
+
+    if u.types.fn(by) then
+      res = by(curr)
+
+    elseif u.types.string(by) then
+      res = curr[by]
+
+    end if not accum[res] then
+      accum[res] = {} end
+
+    -- table.insert(accum[res], curr) -- TIP: insert only curr.id when debugging
+    table.insertraw(accum[res], curr) -- TIP: insert only curr.id when debugging
+    return accum
+  end
+
+  -- IMPORTANT: grouping equal elements together *requires* indexByEquality to be set to __index fn
+  local accumulator = setmetatable({}, {__index = indexByEquality})
+
+  -- Do the reduction!
+  local res = u._reduce(reducer, accumulator)(tbl)
+
+  return u.types.tbl(u.keys(res)[1]) -- if keys are table
+            and u.values(res)       -- return values instead
+            or res                -- otherwise, just send back the normal result
+end -- }}}
+function table.setPath(path, val, tbl) -- {{{
+  -- FROM: https://www.lua.org/pil/14.1.html
+  tbl = tbl or _G -- start with the table of globals
+  for w, d in string.gmatch(path, "([%w_]+)(.?)") do
+    if d == "." then -- not last field?
+      tbl[w] = tbl[w] or {} -- create table if absent
+      tbl = tbl[w] -- get the table
+    else -- last field
+      tbl[w] = val -- do the assignment
+    end
+  end
+end -- }}}
+function table.getPath(path, tbl, isSafe) -- {{{
+  -- FROM: https://www.lua.org/pil/14.1.html
+  --[[ TEST {{{
+  x = { name = 'adam', path = { other = { more = 33 } } }
+
+  table.getPath('x.path.other')
+  -> { more =  33 }
+
+  table.getPath('x.path.other.more')
+  -> 33
+
+  table.getPath('x.path.other.more.does.not.exist')
+  -> 33
+
+  table.setPath('x.path.other.more', 55)
+  x.path.other.more == 55
+  -> true
+  }}} ]]
+
+  isSafe = isSafe or true
+  local v = tbl or _G -- default to global tabl if tbl not provided
+  local res = nil
+
+  for w in path:gmatch('[%w_]+') do
+    if not u.types.tbl(v) then
+      return v
+    end -- if v isn't table, return immediately
+    v = v[w] -- lookup next val
+    if v ~= nil then
+      res = v
+    end -- only update safe result if v not null
+  end
+
+  if isSafe then -- return the last non-nil value found
+    return v ~= nil and v or res
+  else -- return the last value found regardless
+    return v
+  end
+end -- }}}
+function table.len(t) -- {{{
+  local count = 0
+  for _ in pairs(t) do
+    count = count + 1
+  end
+  return count
+end
+u.len = table.len
+-- }}}
 
 return u
 
