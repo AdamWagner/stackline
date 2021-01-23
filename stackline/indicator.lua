@@ -96,7 +96,7 @@ end -- }}}
 function Indicator:draw(overrideOpts) -- {{{
     if self.canvas then self.canvas:delete() end
 
-    self.config = u.extend(self.config, overrideOpts or {})
+    self.config = table.merge(self.config, overrideOpts or {})
     local c = self.config
 
     local radius = c.showIcons and self.iconRadius or self.radius
@@ -201,9 +201,9 @@ function Indicator:getColorAttrs(isStackFocused, isWinFocused) -- {{{
         stack = {
             ['true'] = {
                 window = {
-                    ['true'] = {bg = u.extend(color, {alpha = alpha}), img = alpha},
+                    ['true'] = {bg = table.merge(color, {alpha = alpha}), img = alpha},
                     ['false'] = {
-                        bg = u.extend(u.copy(color), {alpha = alpha / dimmer}),
+                        bg = table.merge(u.copy(color), {alpha = alpha / dimmer}),
                         img = alpha / iconDimmer,
                     },
                 },
@@ -211,11 +211,11 @@ function Indicator:getColorAttrs(isStackFocused, isWinFocused) -- {{{
             ['false'] = {
                 window = {
                     ['true'] = {
-                        bg = u.extend(u.copy(color), {alpha = alpha / (dimmer / 1.2)}), -- last-focused icon stays full alpha when stack unfocused
+                        bg = table.merge(u.copy(color), {alpha = alpha / (dimmer / 1.2)}), -- last-focused icon stays full alpha when stack unfocused
                         img = alpha,
                     },
                     ['false'] = {
-                        bg = u.extend(u.copy(color), {alpha = stackline.manager:getShowIconsState() and 0 or 0.2}), -- unfocused icon has slightly lower alpha when stack also unfocused
+                        bg = table.merge(u.copy(color), {alpha = stackline.manager:getShowIconsState() and 0 or 0.2}), -- unfocused icon has slightly lower alpha when stack also unfocused
                         img = alpha / (iconDimmer + (iconDimmer * 0.70)),
                     },
                 },

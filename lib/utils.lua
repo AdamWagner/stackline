@@ -529,7 +529,6 @@ end -- }}}
 function u.partial(f, ...) -- {{{
   -- FROM: https://www.reddit.com/r/lua/comments/fh2go5/a_partialcurry_implementation_of_mine_hope_you/
   -- WHEN: 2020-08-08
-  local unpack = unpack or table.unpack -- Lua 5.3 moved unpack
   local a = {...}
   local a_len = select("#", ...)
   return function(...)
