@@ -16,7 +16,7 @@ function Stackmanager:update() -- {{{
 end -- }}}
 
 function Stackmanager:ingest(windowGroups, appWindows, shouldClean) -- {{{
-    local stacksCount = u.length(windowGroups)
+    local stacksCount = u.len(windowGroups)
     if shouldClean or (stacksCount == 0) then
         self:cleanup()
     end
