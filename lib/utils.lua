@@ -745,6 +745,10 @@ function u.groupBy(tbl, fn) -- {{{
   end
   return res
 end -- }}}
+u.unnest = u.pipe( -- {{{
+  u.values,   -- doesn't work if key,value pairs, and usually we care about counting the values
+  u._reduce(u.concat, {})
+) -- }}}
 function u.flatten(tbl, depth) -- {{{
   --[[ TEST
       -- Children keys == parent keys
@@ -776,13 +780,9 @@ function u.flatten(tbl, depth) -- {{{
   end
 
   local result = flatten({}, tbl) -- generate draft result
-  return result
-  --[[
-    TODO: Update `return …` when dependencies are available
-        -> return table.len(result) > 1
-            and result       -- if result has length, return result
-            or M.unnest(tbl) -- otherwise, fall back to unnest() instead
-    ]]
+  return table.len(result) > 1
+    and result       -- if result has length, return result
+    or u.unnest(tbl) -- otherwise, fall back to unnest() instead
 end -- }}}
 function u.zip(a, b) -- {{{
   local rv = {}
