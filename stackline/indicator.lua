@@ -163,7 +163,7 @@ function Indicator:redraw(evt) -- {{{
 end -- }}}
 
 function Indicator:delete() -- {{{
-    local fadeDuration = stackline.config:get('appearance.fadeDuration')
+    local fadeDuration = stackline.config:get('appearance.fadeDuration') or 0
 
     if self.canvas then
         self.canvas:delete(fadeDuration)
