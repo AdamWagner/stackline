@@ -30,7 +30,7 @@ c.appearance.offset.y                 = 2                   -- Distance from top
 c.appearance.offset.x                 = 4                   -- Distance away from the edge of the window to render indicators
 
 c.appearance.shouldFade               = true                -- Enable/disable fade animations
-c.appearance.fadeDuration             = 0.2                 -- Duration of fade animations (seconds) 
+c.appearance.fadeDuration             = 0.2                 -- Duration of fade animations (seconds)
 
 -- Features
 c.features.clickToFocus               = true                -- Click indicator to focus window. Mouse clicks are tracked when enabled
@@ -38,7 +38,7 @@ c.features.hsBugWorkaround            = true                -- Workaround for ht
 
 c.features.fzyFrameDetect             = {}                  -- Round window frame dimensions by fuzzFactor before identifying stacked windows
 c.features.fzyFrameDetect.enabled     = true                -- Enable/disable fuzzy frame detection
-c.features.fzyFrameDetect.fuzzFactor  = 30                  -- Window frame dimensions will be rounded to nearest fuzzFactor
+c.features.fzyFrameDetect.fuzzFactor  = 50                  -- Window frame dimensions will be rounded to nearest fuzzFactor
 
 c.features.winTitles                 = 'not_implemented'    -- Valid options: false, true, 'when_switching', 'not_implemented'
 c.features.dynamicLuminosity         = 'not_implemented'    -- Valid options: false, true, 'not_implemented'
