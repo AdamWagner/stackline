@@ -1,7 +1,15 @@
 local log = hs.logger.new('utils')
 local unpack = table.unpack or unpack
+local format = string.format
 log.setLogLevel('info')
 log.i("Loading module")
+
+--[[
+https://luazdf.aiq.dk/fn/like.html
+https://github.com/Akwatujou/Windower/tree/master/addons/libs
+https://github.com/moriyalb/lamda/blob/master/dist/lamda.lua
+https://github.com/Yonaba/Moses/blob/master/moses.lua
+]]
 
 -- utils module ----------------------------------------------------------------
 u = {}
@@ -215,6 +223,31 @@ end -- }}}
 function u.rawpairs(tbl)  -- {{{
  return next, tbl, nil
 end  -- }}}
+function u.spairs(t, order)  -- {{{
+  if type(t) ~= "table" then return end
+
+  local keys = {}
+  if type(order) == 'string' then order = string.lower(order) end
+
+  for k, _ in pairs(t) do
+    if type(k) == 'number' then keys[#keys + 1] = k end
+  end
+  if order == "ascending" then
+    table.sort(keys, function(a, b) return tonumber(a) < tonumber(b) end)
+  elseif order == "descending" then
+    table.sort(keys, function(a, b) return tonumber(a) > tonumber(b) end)
+  elseif type(order) == 'function' then
+    table.sort(keys, function(a, b) return order(t, a, b) end)
+  else
+    table.sort(keys)
+  end
+
+  local i = 0
+  return function()
+    i = i + 1
+    if keys[i] then return keys[i], t[keys[i]] end
+  end
+end -- }}}
 function u.iter_if(fn)  -- {{{
   return function(tbl, k)
     repeat
@@ -611,9 +644,52 @@ u._gt = u.curry(u.flip(u.gt))
 function u.lt(a, b) -- {{{
   return a < b
 end -- }}}
+function u.eq(a,b)-- {{{
+  return a==b
+end-- }}}
+function u.eqLen(a,b)-- {{{
+  return u.len(a)==u.len(b)
+end-- }}}
 function u.eqType(a,b)-- {{{
   return type(a)==type(b)
 end-- }}}
+function u.like(a, b) -- {{{
+  local tmp = {}
+  for i, v in ipairs(a) do
+    local base = tmp[v] or 0
+    tmp[v] = base + 1
+  end
+  for i, v in ipairs(b) do
+    local base = tmp[v] or 0
+    tmp[v] = base + 1
+  end
+  for k, v in pairs(tmp) do
+    if v % 2 ~= 0 then
+      return false
+    end
+  end
+  return true
+end -- }}}
+function u.same(a,b)  -- {{{
+  -- Checks if both array tables are the same. Array tables are the same if they
+  -- have at each position the same values.
+  if u.types.any.tbl({a,b}) then
+    return a == b
+  end
+  for k, v in pairs(a) do
+    local bVal = b[k]
+    if bVal == nil or not u.same(v, bVal) then
+      return false
+    end
+  end
+  for k, v in pairs(b) do
+    local aVal = a[k]
+    if aVal == nil or not u.same(v, aVal) then
+      return false
+    end
+  end
+  return true
+end  -- }}}
 function u.equal(a, b) -- {{{
   --[[ TEST {{{
 
@@ -665,13 +741,13 @@ function u.isSubset(left, right)-- {{{
    if not u.eqType(a, b) then
      return false
    elseif a ~= b then
-
      if u.types.tbl(a) then
-       if not u.isSubset(a, b) then return false end
+       if not u.isSubset(a, b) then
+         return false
+       end
      else
        return false
      end
-
    end -- end `not eqType(a, b)`
  end -- end `for key, a in
 
@@ -707,6 +783,7 @@ function u.deepEqual(a, b) -- {{{
   return u.isSubset(a, b) and u.isSubset(b, a)
 end
 u.dequal = u.deepEqual
+u.deepEquals = u.deepEqual
 -- }}}
 function u.greaterThan(n) -- {{{
   return function(t)
@@ -720,14 +797,14 @@ function u.keys(tbl) -- {{{
   for k in u.iter(tbl) do
     res[#res + 1] = k
   end
-  return res
+  return table.new(res)
 end -- }}}
 function u.values(tbl) -- {{{
   local res = {}
   for _k, v in u.iter(tbl) do
     res[#res + 1] = v
   end
-  return res
+  return table.new(res)
 end -- }}}
 function u.find(tbl, val) -- {{{
   res = nil
@@ -738,29 +815,56 @@ function u.find(tbl, val) -- {{{
   end
   return res
 end -- }}}
-u.pluck = function(tbl, key) -- {{{
+u.pick = function(tbl, ...) -- {{{
   -- Extracts values in a table having a given key.
+  local keys = {...}
   local res = {}
   for k, v in pairs(tbl) do
-    if v[key] then res[#res+1] = v[key] end
+    for _, key in ipairs(keys) do
+      if k == key then res[key] = v end
+    end
+  end
+  return table.new(res)
+end
+u._pick = u.curry(u.flip(u.pick))
+-- }}}
+function u.mapPick(tbl, ...)  -- {{{
+  local keys = {...}
+  local res = {}
+  for _, _tbl in pairs(tbl) do
+    local o = {}
+    for k,v in pairs(_tbl) do
+      if u.include(keys, k) then
+        o[k] = v
+        res[#res+1] = o
+      end
+    end
   end
   return res
+end  -- }}}
+u.pluck = function(tbl, ...) -- {{{
+  -- Extracts values in a table having a given key.
+  local keys = {...}
+  local res = {}
+  for k, v in pairs(tbl) do
+    for _, key in ipairs(keys) do
+      if v[key] then res[#res+1] = v[key] end
+    end
+  end
+  return table.new(res)
 end
 u._pluck = u.curry(u.flip(u.pluck))
 -- }}}
-u.mapPluck = function(tbl, key)  -- {{{
-  return u.map(tbl, u._pluck(key))
-end
-u._mapPluck = u.curry(u.flip(u.mapPluck))
- -- }}}
-function u.include(tbl, val) -- {{{
-  for i in u.iter(tbl) do
-    if i == val then
+function u.include(tbl, target) -- {{{
+  for _, v in u.iter(tbl) do
+    if v == target then
       return true
     end
   end
   return false
-end -- }}}
+end
+u.includes = u.include
+-- }}}
 function u.groupBy(tbl, fn) -- {{{
   -- FROM: https://github.com/pyrodogg/AdventOfCode/blob/1ff5baa57c0a6a86c40f685ba6ab590bd50c2148/2019/lua/util.lua#L149
   local res = {}
@@ -828,6 +932,30 @@ function u.flatten(tbl, depth) -- {{{
     and result       -- if result has length, return result
     or u.unnest(tbl) -- otherwise, fall back to unnest() instead
 end -- }}}
+function u.concat(a, b)  -- {{{
+  --[[
+  Merge two array-like objects.
+  @example
+  u.concat({4, 5, 6}, {1, 2, 3})   --> {4, 5, 6, 1, 2, 3}
+  ]]
+  assert(u.types.all.arrays(a, b), 'concat(a,b) expects two array-like tables.')
+  a = a or {}
+  b = b or {}
+  local len1 = #a
+  local len2 = #b
+  local result = {}
+  local idx = 1
+  while idx <= len1 do
+    result[#result + 1] = a[idx]
+    idx = idx + 1
+  end
+  idx = 1
+  while idx <= len2 do
+    result[#result + 1] = b[idx]
+    idx = idx + 1
+  end
+  return result
+end  -- }}}
 function u.zip(a, b) -- {{{
   local rv = {}
   local idx = 1
@@ -845,32 +973,23 @@ function u.toSet(tbl)  -- {{{
   end
   return res
 end  -- }}}
+function u.unkey(tar, ...)  -- {{{
+    -- Destructure a table
+    -- @param tar table Target table
+    -- @param t table Keys[] to destructure
+    -- FROM: https://github.com/HunterGhost27/AuxiliaryFunctions/blob/master/Story/RawFiles/Lua/AuxFunctions/Shared/Tables.lua#L100
+  local t = {...}
+  if type(t) ~= 'table' then return end
+  local temp = {}
+  for idx, key in u.spairs(t) do
+    if type(tar[key])=='table' then temp[idx] = u.unkey(tar[key], t) end
+    if tar[key] then temp[idx] = tar[key] end
+  end
+  return table.unpack(temp)
+end  -- }}}
 
 -- table
-function table.len(t) -- {{{
-  local count = 0
-  for _ in pairs(t) do
-    count = count + 1
-  end
-  return count
-end
-u.len = table.len
--- }}}
--- table.insert {{{
--- uses table.insert(..) for numeric keys
--- and  t[k] = v         for all other keys
-table.insertraw = table.insert
-table.insert = function(...)
-  local args = {...}
-  if (#args == 3) and (type(args[2]) == 'string') then
-    local t, k, v = unpack(args)
-    t[k] = v
-    return t
-  end
-  table.insertraw(...)
-end
-table._insert = table.insert
--- }}}
+_meta = {}
 function table.merge(...) -- {{{
   -- Recursively merge tables
   --[[ {{{  TEST DATA
@@ -906,35 +1025,306 @@ function table.merge(...) -- {{{
   end
   return out
 end -- }}}
-
-function u.concat(a, b)  -- {{{
-    --[[
-    Merge two array-like objects.
-    @example
-      u.concat({4, 5, 6}, {1, 2, 3})   --> {4, 5, 6, 1, 2, 3}
-  ]]
-  assert(u.types.all.arrays(a, b), 'concat(a,b) expects two array-like tables.')
-	a = a or {}
-	b = b or {}
-	local len1 = #a
-	local len2 = #b
-	local result = {}
-	local idx = 1
-	while idx <= len1 do
-		result[#result + 1] = a[idx]
-		idx = idx + 1
-	end
-	idx = 1
-	while idx <= len2 do
-		result[#result + 1] = b[idx]
-		idx = idx + 1
-	end
-	return result
+-- table.insert {{{
+-- uses table.insert(..) for numeric keys
+-- and  t[k] = v         for all other keys
+table.insertraw = table.insert
+table.insert = function(...)
+  local args = {...}
+  if (#args == 3) and (type(args[2]) == 'string') then
+    local t, k, v = unpack(args)
+    t[k] = v
+    return t
+  end
+  table.insertraw(...)
+end
+table._insert = table.insert
+-- }}}
+_meta.T = {  -- {{{
+  __index = table.merge(table, hs.fnutils, { pluck = u.pluck, pick = u.pick, mapPick = u.mapPick, keys = u.keys, values = u.values })
+}  -- }}}
+function table.new(t)  -- {{{
+  local function n(_t)
+    local newmt = table.merge(getmetatable(_t), _meta.T)
+    return setmetatable(_t, newmt)
+  end
+  local ok, newTable = pcall(n, t)
+  return ok and newTable or t
 end  -- }}}
+table.it = (function()  -- {{{
+  local it = function(t)
+    local key
+
+    return function()
+      key = next(t, key)
+      return t[key], key
+    end
+  end
+
+  return function(t)
+    local meta = getmetatable(t)
+    if not meta then
+      return it(t)
+    end
+
+    local index = meta.__index
+    if index == table then
+      return it(t)
+    end
+
+    local fn = type(index) == 'table' and index.it or index(t, 'it') or it
+    return (fn == table.it and it or fn)(t)
+  end
+end)()  -- }}}
+function table.len(t) -- {{{
+  local count = 0
+  for _ in pairs(t) do
+    count = count + 1
+  end
+  return count
+end
+u.len = table.len
+-- }}}
+function table.rekey(t, key)  -- {{{
+    -- Returns a table keyed by a specified index of a subtable.
+    -- Requires a table of tables, and key must be a valid key in every table.
+    -- Only produces the correct result, if the key is unique.
+    local res = {}
+
+    for value in table.it(t) do
+        res[value[key]] = value
+    end
+
+    return setmetatable(res, getmetatable(t))
+end  -- }}}
+function table.clear(t)  -- {{{
+  -- Removes all elements from a table.
+    for key in pairs(t) do
+        rawset(t, key, nil)
+    end
+
+    return t
+end  -- }}}
+function table.unpackDict(t)  -- {{{
+    -- Returns the values of the table, extracted into an argument list.
+    -- Like unpack, but works on dictionaries as well.
+
+    -- Convert a (possible) dictionary into an array.
+    local res = {}
+    local i = 1
+    for value in table.it(t) do
+        res[i] = value
+        i = i + 1
+    end
+
+    return table.unpack(res)
+end  -- }}}
+function table.empty(t, rec)  -- {{{
+  -- Check if table is empty.
+  -- If rec is true, it counts empty nested empty tables as empty as well.
+  if not rec then return next(t) == nil end
+
+  for _, val in pairs(t) do
+    if type(val) ~= 'table' then
+      return false;
+    else
+      if not table.empty(val, true) then
+        return false;
+      end
+    end
+  end
+  return true
+end  -- }}}
+function table.removeEmpty(tbl) -- {{{
+  for k, v in pairs(tbl) do
+    if table.empty(v) then
+      tbl[k] = nil
+    end
+  end
+  return tbl
+end -- }}}
+function table.reassign(t, tn)  -- {{{
+    -- Returns the first table, reassigned to the second one.
+    return table.update(table.clear(t), tn)
+end  -- }}}
+
+--[[ TEST DIFF {{{
+  af = {{name = 'amy'}, {name = 'bob'}}
+  a = { name = 'adam', age = 33, friends = af}
+
+  bf = {{name = 'amy'}}
+  b = { name = 'adam', age = 34, friends = bf}
+ }}} ]]
+function table.diff(a, b)  -- {{{
+  --[[ {{{ NOTES
+     FROM: https://github.com/martinfelis/luatablediff/blob/master/ltdiff.lua
+  See alternate:
+     /Users/adamwagner/Programming/Projects/stackline/lib/utils/table.lua:215
+     https://github.com/Alloyed/patch.lua/blob/master/patch.lua
+     https://github.com/lijinlong/tbdiff
+     https://github.com/LuaDist-testing/ltdiff/blob/master/ltdiff.lua
+     https://github.com/leegao/AMX2D/blob/9ccb32e5320e37f091d7814147b862ba14a82e47/core/table.lua#L288
+     https://github.com/flingo64/PhotoStation-Upload-Lr-Plugin/blob/master/PhotoStation_upload.lrplugin/PSUtilities.lua#L299
+           Supports filtering by keys first, and supplying equality func
+
+
+
+  NOTE: copying the tables before comparison BREAKS the comparison!!
+  No differences are found!
+  A = u.dcopy(A)
+  B = u.dcopy(B)
+
+  for k,v in pairs(A) do
+    if type(A[k])=="function" or type(A[k])=="userdata" then
+      A[k] = nil
+    end
+  end
+  for k,v in pairs(B) do
+    if type(B[k])=="function" or type(B[k])=="userdata" then
+      B[k] = nil
+    end
+  end
+  }}} ]]
+
+  local is = u.types
+  local diff = {del = {}, mod = {}, sub = {}}
+
+  local function compare(x, y)
+    for k, v in pairs(x) do
+      local xk, yk = x[k], y[k]
+
+      if is.fn(xk) or is.userdata(xk) then
+        -- do nothing (skip)
+
+      elseif yk~=nil and is.all.tbls(xk, yk) then
+        diff[k] = table.diff(xk, yk)
+
+        if next(diff[k])==nil then
+          diff[k] = nil
+        end
+
+      elseif yk==nil then
+        diff.del[#(diff.del) + 1] = k
+
+      elseif yk~=v then
+        diff.mod[k] = {old = xk, new = yk}
+      end
+    end
+  end
+
+  compare(a,b)
+  compare(b,a)
+  return table.removeEmpty(diff)
+end  -- }}}
+function table.diff2(t1, t2, opts, currDepth) -- {{{
+  -- See also /Users/adamwagner/Programming/Projects/stackline/lib/utils/comparison.lua:146
+  -- Another alt: https://github.com/Akwatujou/Windower/blob/master/addons/libs/config.lua#L363
+
+  --[[ TEST {{{
+    af = {{name = 'amy'}, {name = 'bob'}}
+    a = { name = 'adam', age = 33, friends = af}
+
+    bf = {{name = 'amy'}}
+    b = { name = 'adam', age = 34, friends = bf}
+
+    d = table.diff(a,b)
+       -> {
+            changed = { age = { new = 34, old = 33 } },
+            child = {
+              friends = {
+                child = {...},
+                skipped = {...}
+              }
+            },
+            same = { name = "adam" }
+          }
+  }}} ]]
+
+  opts = opts or {}
+  opts.ignore = opts.ignore or {}
+  opts.maxDepth = opts.maxDepth or 10
+
+  local diff = {changed = {}, removed = {}, new = {}, same = {}, skipped = {}, child = {}}
+
+  local function shouldSkip(k, v)
+    if v == nil or u.types.userdata(v) or u.types.fn(v) or (currDepth or 1) >= opts.maxDepth then
+      return true
+    end
+
+    if u.types.string(k) and (k:startsWith('_') or u.includes(opts.ignore, k)) then
+      return true
+    end
+  end
+
+  --[[
+  IMPORTANT! When using multiple key/value observers,
+  (e.g., stackline/lib/kvo.lua)
+  using `v` in this loop will reference an *outdated* value.
+  *Always* use `t1[k]` instead of `v`
+  ]]
+
+  for k, v in pairs(t1) do
+    local skip = shouldSkip(k, t1[k]) or shouldSkip(k, t2[k])
+
+    if skip then
+      diff.skipped[k] = true
+      break
+
+    elseif t2[k] == nil then
+      diff.removed[k] = t1[k]
+
+    elseif u.types.all.tbls(t1[k], t2[k]) then
+      diff.child[k] = table.diff2(t1[k], t2[k], opts, (currDepth or 1) + 1)
+
+    elseif not u.deepEqual(t2[k], t1[k]) then
+      diff.changed[k] = {old = t1[k], new = t2[k]}
+
+    else
+      diff.same[k] = v
+    end
+  end
+
+  for k, v in pairs(t2) do
+    if not (diff.changed[k] or diff.removed[k] or diff.same[k] or diff.skipped[k] or diff.child[k]) then
+      diff.new[k] = v
+    end
+  end
+
+  return table.new(table.removeEmpty(diff))
+end -- }}}
+function table.diff3(t, t_new)  -- {{{
+  -- Returns the table containing only elements from t_new that are different from t and not nil.
+  -- FROM: https://github.com/Akwatujou/Windower/blob/master/addons/libs/config.lua
+  local res = table.new({})
+  local cmp
+
+  for key, val in u.iter(t_new) do
+    cmp = t[key]
+    if cmp ~= nil then
+      if type(cmp) ~= type(val) then
+        print('Mismatched setting types for key \''..key..'\':', type(cmp), type(val))
+      else
+        if type(val) == 'table' then
+          if u.types.array(val) and u.types.array(cmp) then
+            if not u.equal(cmp, val) then
+              res[key] = val
+            end
+          else
+            res[key] = table.diff3(cmp, val)
+          end
+        elseif cmp ~= val then
+          res[key] = val
+        end
+      end
+    end
+  end
+
+  return not table.empty(res) and res or nil
+end  -- }}}
+
 function table.join(tbls)  -- {{{
   return u.reduce(tbls, u.concat, {})
 end  -- }}}
-
 function table.flatten(tbl) -- {{{
   -- Completely flatten long paths into top-level dot-separated string keys
   --[[ TEST {{{
@@ -979,6 +1369,46 @@ function table.flatten(tbl) -- {{{
   local result = {}
 
   return flatten(tbl, maxdepth, 1, prefix, result, circularRef)
+end -- }}}
+function table.append(t, val)-- {{{
+  -- Appends an element to the end of an array table.
+  t[#t+1] = val
+  return t;
+end-- }}}
+function table.extend(t1, t2)  -- {{{
+    -- Appends an array table to the end of another array table.
+  if type(t2) ~= 'table' then
+    return t1:append(t2)
+  end
+  for _, val in ipairs(t2) do
+    t1:append(val)
+  end
+
+  return t1
+end  -- }}}
+function table.flatten2(t, recursive) -- {{{
+  recursive = true and (recursive ~= false)
+
+  local res = {}
+  local key = 1
+  local flat = {}
+  for k, v in ipairs(t) do
+    if type(v) == 'table' then
+      if recursive then
+        flat = table.flatten(v, recursive)
+        table.extend(res, flat)
+        k = k + #flat
+      else
+        table.extend(res, v)
+        k = k + #v
+      end
+    else
+      res[k] = v
+      k = k + 1
+    end
+  end
+
+  return table.new(res)
 end -- }}}
 
 -- TODO: review util method args & arg order for consistent
