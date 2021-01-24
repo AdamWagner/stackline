@@ -24,7 +24,7 @@ function u.wrapargs(...) -- {{{
      d = u.wrapargs({ name = 'adam' }, 1,2,3)
   ]]
   local args = {...}
-  assert(not u.all(args, u.types.null), 'Error: all wrapped varargs are nil.')
+  if u.all(args, u.types.null) then print(args) end
   local first_tbl_is_args = u.types.tbl(args[1]) and #args[1]>0 and #args==1
   return first_tbl_is_args and args[1] or args
 end -- }}}
@@ -314,7 +314,6 @@ u.types.any = {}
 local function make_checker(typ, fn)
   local key = type_aliases[typ] or typ
   u.types[key] = make_typecheck_fn(typ, fn)
-
   u.types.all[key ..'s'] = function(...) -- {{{
     --[[ TEST
       u.types.all.nums(1,2,3)              -- -> true
@@ -397,16 +396,11 @@ function u.roundToNearest(roundTo, numToRound) -- {{{
 end -- }}}
 
 -- Print / debug utils
-function u.p(data, howDeep) -- {{{
-  -- local logger = hs.logger.new('inspect', 'debug')
-  local depth = howDeep or 3
-  if type(data) == 'table' then
-    print(hs.inspect(data, {depth = depth}))
-    -- logger.df(hs.inspect(data, {depth = depth}))
-  else
-    print(hs.inspect(data, {depth = depth}))
-    -- logger.df(hs.inspect(data, {depth = depth}))
-  end
+function u.p(...) -- {{{
+  local args = u.wrapargs(...)
+  local last_arg = args[u.len(args)-1]
+  local depth = u.types.num(last_arg) and last_arg or 3
+  print(hs.inspect(unpack(args), {depth = depth}))
 end -- }}}
 function u.look(obj) -- {{{
   print(hs.inspect(obj, {depth = 2, metatables = true}))
@@ -497,7 +491,7 @@ function u.curry(fn, params) -- {{{
     local total_args = #args + #{...}
 
     if total_args == num_expected then
-      args = {table.unpack(args)}
+      args = {unpack(args)}
       for _, v in ipairs({...}) do
         table.insert(args, v)
       end
@@ -530,6 +524,7 @@ function u.partial(f, ...) -- {{{
     return f(unpack(a, 1, a_len + tmp_len))
   end
 end -- }}}
+
 function u.pipe(...) -- {{{
   local funcs = {...}
   return function(...)
@@ -540,12 +535,12 @@ function u.pipe(...) -- {{{
     return unpack(ret)
   end
 end -- }}}
+
 function u.cb(fn) -- {{{
   return function()
     return fn
   end
 end -- }}}
-
 -- Alias hs.fnutils methods {{{
 hs.fnutils.any = hs.fnutils.some -- alias 'some' as 'any'
 hs.fnutils.all = hs.fnutils.every -- alias 'every' as 'all'
@@ -818,6 +813,15 @@ function u.toSet(tbl)  -- {{{
 end  -- }}}
 
 -- table
+function table.len(t) -- {{{
+  local count = 0
+  for _ in pairs(t) do
+    count = count + 1
+  end
+  return count
+end
+u.len = table.len
+-- }}}
 -- table.insert {{{
 -- uses table.insert(..) for numeric keys
 -- and  t[k] = v         for all other keys
@@ -825,7 +829,7 @@ table.insertraw = table.insert
 table.insert = function(...)
   local args = {...}
   if (#args == 3) and (type(args[2]) == 'string') then
-    local t, k, v = table.unpack(args)
+    local t, k, v = unpack(args)
     t[k] = v
     return t
   end
@@ -848,19 +852,17 @@ function table.merge(...) -- {{{
        }
   }}} ]]
 
-  local function both_are_tables(tbl_list)
-    return u.all(tbl_list, u.types.tbl)
-  end
+  local args = {...}
   local out = {}
 
-  for _, tbl in u.iter({...}) do
+  for _, tbl in u.iter(args) do
     if not u.types.tbl(tbl) then
       return tbl
     end
 
     for k, currVal in u.iter(tbl) do
       local targetVal = out[k]
-      if both_are_tables({currVal, targetVal}) then
+      if u.types.all.tbls({currVal, targetVal}) then
         -- set currVal to recursively merged results
         currVal = table.merge(currVal, targetVal)
       end
@@ -953,6 +955,7 @@ function table.flatten(tbl) -- {{{
 
   return flatten(tbl, maxdepth, 1, prefix, result, circularRef)
 end -- }}}
+
 function table.groupBy(tbl, by) -- {{{
   --[[ {{{ TEST DATA
       a = {
@@ -1004,16 +1007,14 @@ function table.groupBy(tbl, by) -- {{{
   -- NOTE: indexByEquality is VERY important for grouping equal elements together
   local function indexByEquality(self, x) -- {{{
     for k, v in pairs(self) do
-      if u.dequal(k, x) then
-        return v
-      end
+      if u.deepEqual(k, x) then return v end
     end
   end -- }}}
 
   assert(tbl ~= nil, 'table to groupBy must not be nil')
   by = by or u.identity -- assume identity if no 'by' is passed
 
-  local function reducer(accum, curr)
+  local function reducer(acc, curr)
     local res
 
     if u.types.fn(by) then
@@ -1021,13 +1022,16 @@ function table.groupBy(tbl, by) -- {{{
 
     elseif u.types.string(by) then
       res = curr[by]
+    end
 
-    end if not accum[res] then
-      accum[res] = {} end
+    if not acc[res] then
+      acc[res] = {}
+    end
 
-    -- table.insert(accum[res], curr) -- TIP: insert only curr.id when debugging
-    table.insertraw(accum[res], curr) -- TIP: insert only curr.id when debugging
-    return accum
+    if curr then
+      table.insert(acc[res], curr)
+    end
+    return acc
   end
 
   -- IMPORTANT: grouping equal elements together *requires* indexByEquality to be set to __index fn
@@ -1037,9 +1041,11 @@ function table.groupBy(tbl, by) -- {{{
   local res = u._reduce(reducer, accumulator)(tbl)
 
   return u.types.tbl(u.keys(res)[1]) -- if keys are table
-            and u.values(res)       -- return values instead
-            or res                -- otherwise, just send back the normal result
+            and u.values(res)        -- return values instead
+            or res                   -- otherwise, just send back the normal result
 end -- }}}
+table._groupBy = u.curry(u.flip(table.groupBy))
+
 function table.setPath(path, val, tbl) -- {{{
   -- FROM: https://www.lua.org/pil/14.1.html
   tbl = tbl or _G -- start with the table of globals
@@ -1091,15 +1097,6 @@ function table.getPath(path, tbl, isSafe) -- {{{
     return v
   end
 end -- }}}
-function table.len(t) -- {{{
-  local count = 0
-  for _ in pairs(t) do
-    count = count + 1
-  end
-  return count
-end
-u.len = table.len
--- }}}
 
 return u
 
