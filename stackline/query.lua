@@ -71,6 +71,14 @@ local function shouldRestack(new) --[[ {{{
   local curr = stackline.manager:getSummary()
   new = stackline.manager:getSummary(new)
 
+  --[[ Debug
+    u.p(new)
+    u.map({'IDs',curr.ids, new.ids}, u.p)
+    print('numStacks', curr.numStacks, new.numStacks)
+    u.map({'topLeft --',curr.topLeft, new.topLeft}, u.p)
+    u.map({'num windows --', curr.numWindows, new.numWindows}, u.p)
+  ]]
+
   if curr.numStacks ~= new.numStacks then
     log.d('num stacks changed')
     return true
