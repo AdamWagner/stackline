@@ -1143,6 +1143,25 @@ function table.removeEmpty(tbl) -- {{{
   end
   return tbl
 end -- }}}
+function table.update(t1, t2, recursive, maxrec, rec) -- {{{
+  -- Merges two dictionary tables and returns the result. Keys from the new table will overwrite keys.
+  if t2 == nil then
+    return t1
+  end
+
+  recursive = recursive or false
+  maxrec = maxrec or -1
+  rec = rec or 0
+
+  for key, val in pairs(t2) do
+    if (t1[key]~=nil) and recursive and (rec ~= maxrec) and u.types.all.tbl(t1[key], val) and not u.types.array(val) then
+      t1[key] = table.update(t1[key], val, true, maxrec, rec + 1)
+    else
+      t1[key] = val
+    end
+  end
+  return t1
+end -- }}}
 function table.reassign(t, tn)  -- {{{
     -- Returns the first table, reassigned to the second one.
     return table.update(table.clear(t), tn)
@@ -1556,4 +1575,3 @@ function table.getPath(path, tbl, isSafe) -- {{{
 end -- }}}
 
 return u
-

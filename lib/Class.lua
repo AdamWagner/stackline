@@ -1,6 +1,6 @@
 local u = require 'stackline.lib.utils'
 
---[[ NOTE: Auto-wraps subclass:new( … ) to create a properly independent {{{
+--[[ NOTE: Auto-wraps subclass:new( … ) to create a properly independent
     instance that inherits from the parent class.
 
     EXAMPLE:

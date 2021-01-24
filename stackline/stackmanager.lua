@@ -20,7 +20,6 @@ end -- }}}
 
 function Stackmanager:ingest(byStack, byApp, shouldClean) -- {{{
     local stacksCount = u.len(byStack)
-
     if shouldClean or (stacksCount == 0) then
         self:cleanup()
     end

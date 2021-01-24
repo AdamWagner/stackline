@@ -11,7 +11,6 @@ local function getWinStackIdxs() -- {{{
     log.d('getWinStackIdxs() completed', out)
     return r.resolve(out)
   end, {p.yabai, p.jq}):start()
-
   return r:wait()
 end -- }}}
 
