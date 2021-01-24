@@ -63,20 +63,23 @@ function Stackmanager:getSummary(external) -- {{{
     -- making it easy to determine what needs to be updated (if anything)
     local stacks = external or u.pluck(self.stacks, 'windows')
 
+    -- WIP: Sort stacks & windows before compare:
+    u.ieach(stacks, function(stack) table.sort(stack, function(a,b) return a.id < b.id end) end)
+    table.sort(stacks, function(a,b) return #a < #b end)
+    -- end WIP sorting
+
     return {
         numStacks = #stacks,
-        topLeft = u.map(stacks, function(s)
+        ids = u.imap(stacks, function(s)
+            return u.pluck(s, 'id')
+        end),
+        topLeft = u.imap(stacks, function(s)
             return s[1].topLeft
         end),
-        dimensions = u.map(stacks, function(s)
+        dimensions = u.imap(stacks, function(s)
             return s[1].stackId -- stackId is stringified window frame dims ("1150|93|531|962")
         end),
-        dimensionsFzy = u.map(stacks, function(s)
-            -- TODO: dimensionsFzy can probably be removed now that window frames
-            -- have much better fuzzy equality checks built into their metamethods.
-            return s[1].stackIdFzy -- stackIdFzy is stringified window frame dims ("1150|93|531|962")
-        end),
-        lumWindows = u.map(stacks, function(s)
+        numWindows = u.imap(stacks, function(s)
             return #s
         end),
     }
@@ -116,7 +119,7 @@ end -- }}}
 
 function Stackmanager:getClickedWindow(point) -- {{{
     -- given the coordinates of a mouse click, return the first window whose
-    -- indicator element encompasses the point, or nil if none.    
+    -- indicator element encompasses the point, or nil if none.
     for _stackId, stack in pairs(self.stacks) do
         local clickedWindow = stack:getWindowByPoint(point)
         if clickedWindow then
