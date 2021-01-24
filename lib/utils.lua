@@ -49,6 +49,7 @@ function u.extend_mt(tbl, additional_mt)  -- {{{
     end
   end
 
+
   return tbl
 end  -- }}}
 function u.isMetamethodName(key)  -- {{{
@@ -74,7 +75,6 @@ function u.rejectMt(tbl)  -- {{{
 end  -- }}}
 function u.extend_mt(tbl, additional_mt)  -- {{{
   local orig_mt = getmetatable(tbl)
-
   for k,v in pairs(additional_mt) do
     if k ~= '__index' then -- only want to copy class metamethods OTHER than index
       getmetatable(tbl)[k] = v

@@ -95,7 +95,6 @@ end -- }}}
 
 function Indicator:draw(overrideOpts) -- {{{
     if self.canvas then self.canvas:delete() end
-
     self.config = table.merge(self.config, overrideOpts or {})
     local c = self.config
 

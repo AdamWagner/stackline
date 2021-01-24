@@ -24,7 +24,7 @@ local u = require 'stackline.lib.utils'
       local Elder = Person:extend()  -- use :extend() to make subclasses that inherit from parent
 
     See notes here: https://github.com/AdamWagner/stackline/wiki/Dev-diary:-Researching-lua-OOP---class-libraries
- }}} ]]
+--]]
 
 local BaseClass = {}
 
