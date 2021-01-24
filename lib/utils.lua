@@ -717,6 +717,21 @@ function u.find(tbl, val) -- {{{
   end
   return res
 end -- }}}
+u.pluck = function(tbl, key) -- {{{
+  -- Extracts values in a table having a given key.
+  local res = {}
+  for k, v in pairs(tbl) do
+    if v[key] then res[#res+1] = v[key] end
+  end
+  return res
+end
+u._pluck = u.curry(u.flip(u.pluck))
+-- }}}
+u.mapPluck = function(tbl, key)  -- {{{
+  return u.map(tbl, u._pluck(key))
+end
+u._mapPluck = u.curry(u.flip(u.mapPluck))
+ -- }}}
 function u.include(tbl, val) -- {{{
   for i in u.iter(tbl) do
     if i == val then
@@ -794,6 +809,13 @@ function u.zip(a, b) -- {{{
   end
   return rv
 end -- }}}
+function u.toSet(tbl)  -- {{{
+  local res = {}
+  for k,v in ipairs(tbl) do
+    res[v] = true
+  end
+  return res
+end  -- }}}
 
 -- table
 -- table.insert {{{
@@ -858,6 +880,48 @@ function table.flatten(tbl) -- {{{
       a = {name='adam',age=33,things={{type='physical', order=28},{another='blah',more=66}}}
       b = table.flatten(a)
    ]]
+function u.concat(a, b)  -- {{{
+    --[[
+    Merge two array-like objects.
+    @example
+      u.concat({4, 5, 6}, {1, 2, 3})   --> {4, 5, 6, 1, 2, 3}
+  ]]
+  assert(u.types.all.arrays(a, b), 'concat(a,b) expects two array-like tables.')
+	a = a or {}
+	b = b or {}
+	local len1 = #a
+	local len2 = #b
+	local result = {}
+	local idx = 1
+	while idx <= len1 do
+		result[#result + 1] = a[idx]
+		idx = idx + 1
+	end
+	idx = 1
+	while idx <= len2 do
+		result[#result + 1] = b[idx]
+		idx = idx + 1
+	end
+	return result
+end  -- }}}
+function table.join(tbls)  -- {{{
+  return u.reduce(tbls, u.concat, {})
+end  -- }}}
+
+function table.flatten(tbl) -- {{{
+  -- Completely flatten long paths into top-level dot-separated string keys
+  --[[ TEST {{{
+    x = {name='johnDoe',age=99,friends={{name='janeDoe',age=28},{name='bob',age=66}}}
+    y = table.flatten(x)
+        -> {
+            age = 99,
+            ["friends.1.age"] = 28,
+            ["friends.1.name"] = "janeDoe",
+            ["friends.2.age"] = 66,
+            ["friends.2.name"] = "bob",
+            name = "johnDoe"
+        }
+  }}} ]]
   local function flatten(_tbl, mdepth, depth, prefix, res, circ) -- {{{
     local k, v = next(_tbl)
     while k do
