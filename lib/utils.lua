@@ -816,7 +816,7 @@ function u.flatten(tbl, depth) -- {{{
         flatten(res, v, currdepth)
       end
 
-      local key = u.types.key(k) and k or tostring(k)
+      local key = u.types.obj_key(k) and k or tostring(k)
       tinsert(res, key, v)
 
     end
@@ -981,6 +981,8 @@ function table.flatten(tbl) -- {{{
   return flatten(tbl, maxdepth, 1, prefix, result, circularRef)
 end -- }}}
 
+-- TODO: review util method args & arg order for consistent
+-- TODO: programatically create curried/flipped versions together with hs.fnutils fns
 function table.groupBy(tbl, by) -- {{{
   --[[ {{{ TEST DATA
       a = {

@@ -1,68 +1,58 @@
 local u = require 'stackline.lib.utils'
 local async = require 'stackline.lib.async'
-local c = stackline.config:get()
 local log = hs.logger.new('query', 'info')
+log.setLogLevel('debug')
 
-local Query = {}
-Query.log = log
-
-function Query.getWinStackIdxs() -- {{{
+local function getWinStackIdxs() -- {{{
+  local p = stackline.config:get('paths')
   local r = async()
-  log.d('getWinStackIdxs() started')
-  hs.task.new(c.paths.getStackIdxs, function(_code, out, _err)
+
+  hs.task.new(p.getStackIdxs, function(_code, out, _err)
     log.d('getWinStackIdxs() completed', out)
     return r.resolve(out)
-  end, {c.paths.yabai, c.paths.jq}):start()
+  end, {p.yabai, p.jq}):start()
 
   return r:wait()
 end -- }}}
 
--- Query.groupByStack( ... ) -- {{{
+-- groupWindows( ... ) -- {{{
   --[[ TEST {{{
     hs.console.clearConsole()
-
     ws = stackline.wf:getWindows()
-
     windows = u.map(ws, function(w)
       return stackline.window:new(w)
     end)
-
-    Query = require 'stackline.stackline.query'
-
-    byStack = Query.groupByStack(windows)
-
-    byApp = Query.groupByApp(byStack)
-
+    = require 'stackline.stackline.query'
+    byStack = groupByStack(windows)
+    byApp = groupByApp(byStack)
     groupByStackRaw = u.pipe(
       table.groupBy,
       u._filter(u._gt(1))
     )
    }}} ]]
-
-Query.groupByStack = u.pipe(
-  table.groupBy,       -- groups by identity if grouping fn is nil
-  u._filter(u._gt(1))  -- stacks have > 1 window, so ignore 'groups' of 1
+local groupByStack = u.pipe(
+  table.groupBy,          -- groups by identity if grouping fn is nil
+  u._filter(u._gt(1))     -- stacks have > 1 window, so ignore 'groups' of 1
 )
-
-Query.groupByApp = u.pipe(
-  -- TODO: Remove when https://github.com/Hammerspoon/hammerspoon/issues/2400 closed
+-- TODO: can remove groupByApp when github.com/Hammerspoon/hammerspoon/issues/2400 is closed
+local groupByApp = u.pipe(
   table.join,             -- ungroup stacked wins
   table._groupBy('app')   -- app names are keys in group
 )
-
-function Query.groupWindows(ws)
-  --[[ Given stackline window objects:
-       1. Group wins by `stackId` prop (aka top-left frame coords)
-       2. If at least one such group, also group windows by app (to workaround hs bug unfocus event bug)
+local function groupWindows(ws) --[[
+  Given stackline window objects:
+     1. Group wins into stacks by equality; Windows are equal if the diff
+        between each coord of frame is <= fuzzFactor
+     2. Then, group stacked wins by app (workaround for hs bug unfocus event bug)
   ]]
-  local byStack = Query.groupByStack(ws)
-  local byApp = Query.groupByApp(byStack)
+  local byStack = groupByStack(ws)
+  local byApp = groupByApp(byStack)
 
   return byStack, byApp
 end -- }}}
 
-function Query.mergeWinStackIdxs(groups, winStackIdxs) -- {{{
-  -- merge windowID <> stack-index mapping queried from yabai into window objs
+local function mergeWinStackIdxs(groups, winStackIdxs) -- {{{
+  -- Merge windowID <> stack-index mapping queried from yabai into window objs
   return u.map(groups, function(group)
     return u.map(group, function(w)
       w.stackIdx = winStackIdxs[tostring(w.id)]
@@ -71,66 +61,75 @@ function Query.mergeWinStackIdxs(groups, winStackIdxs) -- {{{
   end)
 end -- }}}
 
-function Query.shouldRestack(new) -- {{{
-  -- Analyze self.stacks to determine if a stack refresh is needed
-  --  • change num stacks (+/-)
-  --  • changes to existing stack
-  --    • change position
-  --    • change num windows (win added / removed)
-
+local function shouldRestack(new) --[[ {{{
+  Analyze self.stacks to determine if a stack refresh is needed
+    • change num stacks (+/-)
+    • changes to existing stack
+       • change position
+       • change num windows (win added / removed)
+  ]]
   local curr = stackline.manager:getSummary()
   new = stackline.manager:getSummary(new)
-
-  -- u.pheader('curr summary')
-  -- u.p(curr)
-  -- u.pheader('new summary')
-  -- u.p(new)
 
   if curr.numStacks ~= new.numStacks then
     log.d('num stacks changed')
     return true
-  end
 
-  if not u.equal(curr.topLeft, new.topLeft) then
+  elseif not u.equal(curr.topLeft, new.topLeft) then
     log.d('position changed')
     return true
-  end
 
-  if not u.equal(curr.numWindows, new.numWindows) then
+  elseif not u.equal(curr.numWindows, new.numWindows) then
     log.d('num windows changed')
     return true
   end
 
-  print('Should not redraw.')
+  log.d('Should not restack.')
 end -- }}}
 
-function Query.handoff(byStack, byApp, shouldRestack) -- {{{
+local function handoff(byStack, byApp, _shouldRestack) -- {{{
   async(function()
-    -- Safely attempt to decode json stack index data from yabai
-    local ok, winStackIndexes = pcall(hs.json.decode, Query.getWinStackIdxs())
+    -- Safely attempt to get and decode json stack index data from yabai
+    -- Each stacked window's 'index' determines the vertical placement of its indictor
+    local ok, winStackIndexes = pcall(hs.json.decode, getWinStackIdxs())
 
     -- Exit early if there's a problem decoding stack indexes
     if not ok then
-      log.e('Failed to parse stack index json data retrieved from yabai')
+      log.e('Failed to get stack index data from yabai')
       return false
     end
 
     -- Update each draft stack with an 'index' from yabai
-    byStack = Query.mergeWinStackIdxs(byStack, winStackIndexes)
+    -- NOTE: stackIndexes are retrieved & merged into byStack here due to the
+    -- high cost of the operation.
+    byStack = mergeWinStackIdxs(byStack, winStackIndexes)
 
     -- Hand draft stack data over to the stackmanager
-    stackline.manager:ingest(byStack, byApp, shouldRestack)
+    stackline.manager:ingest(byStack, byApp, _shouldRestack)
   end)
 end -- }}}
 
-function Query.run(ws, force)
-  local byStack, byApp = Query.groupWindows(ws)
-  local shouldRestack = Query.shouldRestack(byStack)
-  log.d('shouldRestack?  -> ' .. tostring(shouldRestack))
+local function run(ws) --[[
+  Given a new set of stackline window objects, group into draft stacks to
+  compare with the current state. If a restack is needed, merge in each window's
+  stack index from yabai and push the draft into stackmanager to trigger a restack.
+  ]]
+  local byStack, byApp = groupWindows(ws)
+  local _shouldRestack = shouldRestack(byStack)
 
-  if shouldRestack or force then
-    Query.handoff(byStack, byApp, shouldRestack)
+  if _shouldRestack then
+    handoff(byStack, byApp, _shouldRestack)
   end
 end
 
-return Query
+return {
+  run = run,
+  log = log,
+  -- fns below temporarily exported for easier debugging
+  _groupByStack = groupByStack,
+  _groupByApp = groupByApp,
+  _groupWindows = groupWindows,
+  _getWinStackIdxs = getWinStackIdxs,
+  _handoff = handoff,
+  _shouldRestack = shouldRestack,
+}
