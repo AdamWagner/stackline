@@ -107,7 +107,7 @@ M.schema = { -- {{{
 } -- }}}
 
 function M:getPathSchema(path) -- {{{
-    local _type = u.getfield(path, self.schema) -- lookup type in schema
+    local _type = table.getPath(path, self.schema) -- lookup type in schema
     if not _type then return false end
     local validator = self.types[_type].validator()
 
@@ -160,7 +160,7 @@ function M:validate(conf) -- {{{
 end -- }}}
 
 function M:autosuggest(path) -- {{{
-    local dist = u.partial(u.levenshteinDistance, path) -- lev.d fn that can be mapped over list of candidates
+    local dist = u.partial(u.distance, path) -- lev.d fn that can be mapped over list of candidates
     local scores = u.zip(
             u.map(self.autosuggestions, dist),          -- list of scores {0.2024, 0.182, 0.991, …}
             self.autosuggestions                        -- list of strings
@@ -196,7 +196,7 @@ function M:get(path) -- {{{
     -- return full config if no path provided
     if path == nil then return self.conf end
 
-    local ok, val = pcall(u.getfield, path, self.conf)
+    local ok, val = pcall(table.getPath, path, self.conf)
 
     if ok then return val
     else self:autosuggest(path)
@@ -227,9 +227,9 @@ function M:set(path, val) -- {{{
 
     log.d('Setting', path, 'to', typedVal)
 
-    u.setfield(path, typedVal, self.conf)
+    table.setPath(path, typedVal, self.conf)
 
-    local onChange = u.getfield(path, self.events, true)
+    local onChange = table.getPath(path, self.events, true)
     if type(onChange) == 'function' then onChange() end
     return self, val
 

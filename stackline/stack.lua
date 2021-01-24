@@ -4,7 +4,8 @@ local Stack = {}
 
 function Stack:new(stackedWindows) -- {{{
     local stack = {
-        windows = stackedWindows
+        id = stackedWindows[1].stackId,
+        windows = stackedWindows,
     }
     setmetatable(stack, self)
     self.__index = self

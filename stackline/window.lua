@@ -1,4 +1,5 @@
 local u = require 'stackline.lib.utils'
+local log = hs.logger.new('Window', 'info')
 local Class = require 'stackline.lib.class'
 local Indicator = require 'stackline.stackline.indicator'
 
@@ -98,5 +99,26 @@ function Window:unfocusOtherAppWindows() -- {{{
         w.indicator:redraw()
     end)
 end -- }}}
+
+function Window.__eq(a, b)  -- {{{
+  -- Return vanilla comparison if either comparator is missing 'frame' key
+  if not a.frame or not b.frame then
+    log.d('Frame is missing from one or both windows being compared')
+    return rawequal(a,b)
+  end
+
+  local fuzzFactor = stackline.config:get('features.fzyFrameDetect.fuzzFactor') or 1
+
+  -- If the abs. value of the difference between at least 1 pair of frame
+  -- coordinates is greater than fuzzFactor, windows are not equal
+  for k,v in pairs(a.frame) do
+    local diff = math.abs(a.frame[k] - b.frame[k])
+    if diff > fuzzFactor then
+      return false
+    end
+  end
+
+  return true -- Otherwise, the two windows *are* equal
+end  -- }}}
 
 return Window

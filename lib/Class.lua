@@ -1,6 +1,6 @@
 local u = require 'stackline.lib.utils'
 
---[[ NOTE: Auto-wraps subclass:new( … ) to create a properly independent
+--[[ NOTE: Auto-wraps subclass:new( … ) to create a properly independent {{{
     instance that inherits from the parent class.
 
     EXAMPLE:
@@ -37,7 +37,12 @@ end
 -- Auto-wraps subclass:new( … ) to create a properly independent instance
 function BaseClass:create(newFn)
   return function(_, ...)
-    local obj = setmetatable({}, { __index = self })
+    local metamethods = u.filterMt(self)
+    local index_tbl = { __index = u.rejectMt(self) }
+
+    local new_metatable = table.merge(metamethods,index_tbl)
+
+    local obj = setmetatable({}, new_metatable)
     newFn(obj, ...)
     return obj
   end
