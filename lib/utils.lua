@@ -19,9 +19,11 @@ end  -- }}}
 function u.wrapargs(...) -- {{{
   --[[ TEST
      a = u.wrapargs(1,2,3,4)
+       -> { 1, 2, 3, 4 }
      b = u.wrapargs({1,2,3,4})
-     c = u.wrapargs({name = 'adam'}, {name = 'adam'})
-     d = u.wrapargs({ name = 'adam' }, 1,2,3)
+       -> { 1, 2, 3, 4 }
+     c = u.wrapargs({name = 'johnDoe'}, {name = 'johnDoe'})
+     d = u.wrapargs({ name = 'johnDoe' }, 1,2,3)
   ]]
   local args = {...}
   if u.all(args, u.types.null) then print(args) end
@@ -204,7 +206,7 @@ function u.iter(x) -- {{{
 
   --[[ TEST
   array = {1,2,3,34,4}
-  dict = {name = 'adam', age = 33}
+  dict = {name = 'johnDoe', age = 33}
   for k,v in u.iter(array) do print(k,v) end
   for k,v in u.iter(dict) do print(k,v) end
   ]]
@@ -526,6 +528,10 @@ function u.partial(f, ...) -- {{{
 end -- }}}
 
 function u.pipe(...) -- {{{
+  --[[ TEST
+    mangle = u.pipe(string.upper, string.reverse )
+    mangle('hi there')
+  ]]
   local funcs = {...}
   return function(...)
     local ret = {...}
@@ -541,7 +547,7 @@ function u.cb(fn) -- {{{
     return fn
   end
 end -- }}}
--- Alias hs.fnutils methods {{{
+-- -> Alias all hs.fnutils methods {{{
 hs.fnutils.any = hs.fnutils.some -- alias 'some' as 'any'
 hs.fnutils.all = hs.fnutils.every -- alias 'every' as 'all'
 
@@ -550,8 +556,28 @@ for k,v in pairs(hs.fnutils) do
   u[k] = v -- add the vanilla fnutils method
   u['_'..k] = u.curry(u.flip(v)) -- alt version: curry & flip args for easy piping (like Ramda.js)
 end
--- }}}
 
+--[[ TEST curried & flipped fnutils {{{
+
+-- Filter -------------------------
+x = {1,2,3,4,4,4,4,6,6,6}
+gt5  = u._filter(function(x) return x > 5 end)
+gt5(x) -- -> {6,6,6}
+
+-- Reduce ------------------------
+x = {1,2,3,4,4,4,4,6,6,6,9}
+sum_reducer = function(acc, curr) return acc + curr end
+sum  = u._reduce(sum_reducer, 0)
+sum(x) -- -> 49
+
+-- Pipe combo ------------------------
+sumif = u.pipe(gt5,sum)
+sumif(x) -- -> 18
+
+ }}} ]]
+
+
+-- }}}
 u._reduce = u.curry(function(fn, acc, tbl) -- {{{
   -- overwrite u._reduce() generated from hs.fnutils with custom version
   local idx = 1
@@ -762,11 +788,19 @@ u.unnest = u.pipe( -- {{{
 function u.flatten(tbl, depth) -- {{{
   --[[ TEST
       -- Children keys == parent keys
-      x = {name='adam',age=33,friends={{name='amy',age=28},{name='bob',age=66}}}
+      x = {name='johnDoe',age=99,friends={{name='janeDoe',age=28},{name='bob',age=66}}}
       y = u.flatten(x)
+         -> {
+              age = 33,
+              ["friends.1.age"] = 28,
+              ["friends.1.name"] = "janeDoe",
+              ["friends.2.age"] = 66,
+              ["friends.2.name"] = "bob",
+              name = "johnDoe"
+            }
 
       -- Children keys != parent keeys
-      a = {name='adam',age=33,things={{type='physical', order=28},{another='blah',more=66}}}
+      a = {name='johnDoe',age=99,things={{type='physical', order=28},{another='blah',more=66}}}
       b = u.flatten(a)
    ]]
   depth = depth or 100
@@ -840,16 +874,16 @@ table._insert = table.insert
 function table.merge(...) -- {{{
   -- Recursively merge tables
   --[[ {{{  TEST DATA
-  table.merge(...)
+    -- case 1 ---
   x = {1,2,3}
   y = {'a', 'b', 'c', name = 'JohnDoe', blocks = { 'test',2,3 }}
   z = {blocks = { 1,2,'3', 99, 3 }, 7,8,9}
   a = table.merge(x,z,y)
-  hs.inspect(a)
-    -> { "a", "b", "c", 7, 8, 9, 1, 2, 3,
-          blocks = { 1, 2, "3", 99, 3, "test", 2, 3 },
-          name = "JohnDoe"
-       }
+      -> { "a", "b", "c", 7, 8, 9, 1, 2, 3,
+            blocks = { 1, 2, "3", 99, 3, "test", 2, 3 },
+            name = "JohnDoe"
+         }
+
   }}} ]]
 
   local args = {...}
@@ -872,16 +906,7 @@ function table.merge(...) -- {{{
   end
   return out
 end -- }}}
-function table.flatten(tbl) -- {{{
-  --[[ TEST
-      -- Children keys == parent keys
-      x = {name='adam',age=33,friends={{name='amy',age=28},{name='bob',age=66}}}
-      y = table.flatten(x)
 
-      -- Children keys != parent keeys
-      a = {name='adam',age=33,things={{type='physical', order=28},{another='blah',more=66}}}
-      b = table.flatten(a)
-   ]]
 function u.concat(a, b)  -- {{{
     --[[
     Merge two array-like objects.
@@ -1061,7 +1086,7 @@ end -- }}}
 function table.getPath(path, tbl, isSafe) -- {{{
   -- FROM: https://www.lua.org/pil/14.1.html
   --[[ TEST {{{
-  x = { name = 'adam', path = { other = { more = 33 } } }
+  x = { name = 'johnDoe', path = { other = { more = 33 } } }
 
   table.getPath('x.path.other')
   -> { more =  33 }
