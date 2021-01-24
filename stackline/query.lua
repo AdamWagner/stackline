@@ -48,7 +48,7 @@ function Query:groupWindows(ws) -- {{{
                 u.groupBy(windows, groupKey), 
                 u.greaterThan(1))  -- stacks have >1 window, so ignore 'groups' of 1
 
-    if u.length(byStack) > 0 then
+    if u.len(byStack) > 0 then
         local stackedWinIds = getStackedWinIds(byStack)
         local stackedWins = u.filter(windows, function(w)
             return stackedWinIds[w.id] --true if win id is in stackedWinIds
