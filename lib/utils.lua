@@ -29,6 +29,51 @@ function u.wrapargs(...) -- {{{
   return first_tbl_is_args and args[1] or args
 end -- }}}
 
+-- Metatable helpers (see for more: https://github.com/nsimplex/wicker/blob/master/init/init_modules/metatablelib.lua)
+function u.extend_mt(tbl, additional_mt)  -- {{{
+  local orig_mt = getmetatable(tbl)
+
+  for k,v in pairs(additional_mt) do
+    if k ~= '__index' then -- only want to copy class metamethods OTHER than index
+      getmetatable(tbl)[k] = v
+    end
+  end
+
+  return tbl
+end  -- }}}
+function u.isMetamethodName(key)  -- {{{
+  return u.types.string(key) and key:startsWith('__')
+end  -- }}}
+function u.filterMt(tbl)  -- {{{
+  local res = {}
+  for k,v in pairs(tbl) do
+    if u.isMetamethodName(k) then
+      res[k] = v
+    end
+  end
+  return res
+end  -- }}}
+function u.rejectMt(tbl)  -- {{{
+  local res = {}
+  for k,v in pairs(tbl) do
+    if not u.isMetamethodName(k) then
+      res[k] = v
+    end
+  end
+  return res
+end  -- }}}
+function u.extend_mt(tbl, additional_mt)  -- {{{
+  local orig_mt = getmetatable(tbl)
+
+  for k,v in pairs(additional_mt) do
+    if k ~= '__index' then -- only want to copy class metamethods OTHER than index
+      getmetatable(tbl)[k] = v
+    end
+  end
+
+  return tbl
+end  -- }}}
+
 -- string
 function string:startsWith(str) -- {{{
   local firstChar = self:sub(1, #str)
@@ -165,6 +210,17 @@ function u.iter(x) -- {{{
   ]]
   return u.getiter(x)(x)
 end -- }}}
+function u.rawpairs(tbl)  -- {{{
+ return next, tbl, nil
+end  -- }}}
+function u.iter_if(fn)  -- {{{
+  return function(tbl, k)
+    repeat
+      k, v = next(tbl, k)
+      if fn(k,v) then return k,v end
+    until k == nil
+  end
+end  -- }}}
 
 -- Type utils
 -- Generate type check functions {{{
@@ -577,6 +633,15 @@ u._reduce = u.curry(function(fn, acc, tbl) -- {{{
   end
   return acc
 end) -- }}}
+function u.rawfilter(tbl,fn) -- {{{
+  -- Bypass __pairs()
+  local res = {}
+  for k,v in u.iter_if(fn), tbl do
+    res[u.types.list_idx(k) and (#res+1) or k] = v
+  end
+  return res
+end -- }}}
+
 
 -- Collections / transformation utils
 function u.keys(tbl) -- {{{
