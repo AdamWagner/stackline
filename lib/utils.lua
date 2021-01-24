@@ -257,10 +257,6 @@ local compound_types = {    -- {{{
           and math.floor(val)==val
   end,
 
-  key = function(val)
-    return u.types.string(val) or u.types.num(val)
-  end,
-
   object = function(val)     -- `val` is an object if keys aren't consecutive from 1.
     if not u.types.tbl(val) then return false end
     return not u.keys_are_consecutive(val)
@@ -269,6 +265,14 @@ local compound_types = {    -- {{{
   array = function(val)     -- `val` is an array if keys are consecutive from 1.
     if not u.types.tbl(val) then return false end
     return u.keys_are_consecutive(val)
+  end,
+
+  obj_key = function(val)
+    return u.types.string(val) or u.types.num(val)
+  end,
+
+  array_key = function(k)
+    return u.types.integer(k) and k >= 1
   end,
 
   sortable = function(val)
@@ -305,6 +309,7 @@ end    -- }}}
 
 u.types = {}
 u.types.all = {}
+u.types.any = {}
 
 local function make_checker(typ, fn)
   local key = type_aliases[typ] or typ
@@ -322,6 +327,13 @@ local function make_checker(typ, fn)
       u.types.all.tbls({ {1,2,3}, {1,2,3} })
     --]]
     return u.all(u.wrapargs(...), u.types[key])
+  end -- }}}
+  u.types.any[key ..'s'] = function(...) -- {{{
+    --[[ TEST
+      u.types.any.nums(1,'test')                -- -> true
+      u.types.any.nums({1,2,2}, {'one', 'two'}) -- -> false
+    --]]
+    return u.any(u.wrapargs(...), u.types[key])
   end -- }}}
 end
 for typ, fn in pairs(primative_types) do
