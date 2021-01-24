@@ -484,85 +484,6 @@ function u.dcopy(obj, seen) -- {{{
   return setmetatable(res, getmetatable(obj))
 end -- }}}
 
--- Comparison utils
-function u.gt(a, b) -- {{{
-  return a > b
-end -- }}}
-function u.lt(a, b) -- {{{
-  return a < b
-end -- }}}
-function u.equal(a, b) -- {{{
-  --[[ TEST {{{
-
-    -- Will compare table keys/vals
-    u.equal({name = 'adam'}, {name = 'adam '})
-    -- -> true
-
-    -- ..but *not* nested tables
-    u.equal(
-      {{name = 'adam'}, {name = 'adam'}},
-      {{name = 'adam'}, {name = 'adam'}}
-    )
-    -- -> false
-  }}} ]]
-  if a==b then return true end
-  if u.types.all.tbls(a,b) then
-    for i, _ in u.iter(a) do
-      if b[i]~=a[i] then return false end
-    end
-  end
-  return true
-end -- }}}
-function u.dequal(a, b) -- {{{
-  --[[
-    This function takes 2 values as input and returns true if they are equal
-    and false if not. a and b can numbers, strings, booleans, tables and nil.
-    --]]
-
-  local function isEqualTable(t1, t2)  -- {{{
-    if t1 == t2 then return true end
-
-    for k, v in pairs(t1) do
-      local t1k1, t1k2 = type(t1[k]), type(t2[k])
-      if t1k1 ~= t1k2 then return false end
-      if t1k1 == 'table' then
-        if not isEqualTable(t1[k], t2[k]) then
-          return false
-        end
-      else if t1[k] ~= t2[k] then return false end end
-    end
-
-    for k, v in pairs(t2) do
-      local t2k1, t2k2 = type(t1[k]), type(t2[k])
-      if t2k1 ~= t2k2 then return false end
-      if t2k2=='table' then
-        if not isEqualTable(t2[k], t1[k]) then
-          return false
-        end
-      else if t2[k] ~= t1[k] then return false end
-      end
-    end
-
-    return true
-  end  -- }}}
-
-  if type(a) ~= type(b) then
-    return false
-  end
-
-  if u.types.tbl(a) then
-    return isEqualTable(a, b)
-  else
-    return (a == b)
-  end
-
-end -- }}}
-function u.greaterThan(n) -- {{{
-  return function(t)
-    return #t > n
-  end
-end -- }}}
-
 -- functional utils
 function u.identity(value) -- {{{
   return value
@@ -654,6 +575,123 @@ function u.rawfilter(tbl,fn) -- {{{
   return res
 end -- }}}
 
+-- Comparison utils
+function u.gt(a,b) -- {{{
+  if u.types.any.nulls(a,b) then
+    return false
+  elseif u.types.tbl(a) then
+    return u.len(a) > b
+  else
+    return a > b
+  end
+end
+u._gt = u.curry(u.flip(u.gt))
+-- }}}
+function u.lt(a, b) -- {{{
+  return a < b
+end -- }}}
+function u.eqType(a,b)-- {{{
+  return type(a)==type(b)
+end-- }}}
+function u.equal(a, b) -- {{{
+  --[[ TEST {{{
+
+    -- Will compare table keys/vals
+    u.equal({name = 'johnDoe'}, {name = 'johnDoe '})
+    -- -> true
+
+    -- ..but *not* nested tables
+    u.equal(
+      {{name = 'johnDoe'}, {name = 'johnDoe'}},
+      {{name = 'johnDoe'}, {name = 'johnDoe'}}
+    )
+    -- -> false
+  }}} ]]
+  if a==b then return true end
+  if u.types.all.tbls(a,b) then
+    for i, _ in u.iter(a) do
+      if b[i]~=a[i] then return false end
+    end
+  end
+  return true
+end -- }}}
+function u.isSubset(left, right)-- {{{
+  --[[ M.isSubset(left, right) --] {{{
+
+    Returns `true` if all the values in *left* match corresponding values in *right* recursively.
+      - Non-table elements match if they are equal
+      - Table elements match if right is a subset of left
+
+    @example ---------
+      local car = {
+        speed = 10,
+        wheels = 4,
+        lightsOn = { indicators = true, headlights = false }
+      }
+
+      M.isSubset(car, {})                                           --> true
+      M.isSubset(car, car)                                          --> true
+      M.isSubset(car, {speed = 10, lightsOn = {indicators = true}}) --> true
+      M.isSubset(car, {speed = 12})                                 --> false
+      M.isSubset({}, car)                                           --> false
+   }}} ]]
+
+ if not u.types.all.tbls { left, right } then return false end
+
+ for key, a in pairs(left) do
+   local b = right[key]
+
+   if not u.eqType(a, b) then
+     return false
+   elseif a ~= b then
+
+     if u.types.tbl(a) then
+       if not u.isSubset(a, b) then return false end
+     else
+       return false
+     end
+
+   end -- end `not eqType(a, b)`
+ end -- end `for key, a in
+
+  -- if we've gotten this far, right IS a subset of left
+ return true
+end-- }}}
+function u.deepEqual(a, b) -- {{{
+  --[[ M.deepEqual(a, b) {{{
+
+    Returns `true` if every element in *a* recursively matches every element *b*.
+      * For elements which are not tables, they match if they are equal.
+      * If they are tables they match if the left is recursively deeply-equal to the right.
+
+    @example
+      local car = {
+        speed = 10,
+        wheels = 4,
+        lightsOn = { indicators = true, headlights = false }
+      }
+      local car2 = {
+        speed = 10,
+        wheels = 4,
+        lightsOn = { indicators = false, headlights = false }
+      }
+
+      M.deepEqual(car, {})                  --> false
+      M.deepEqual(car, car)                 --> true
+      M.deepEqual(car, M.clone(car))        --> true
+      M.deepEqual(car, M.cloneDeep(car))    --> true
+      M.deepEqual(car, car2)                --> false
+    }}} ]]
+  if a==b then return true end
+  return u.isSubset(a, b) and u.isSubset(b, a)
+end
+u.dequal = u.deepEqual
+-- }}}
+function u.greaterThan(n) -- {{{
+  return function(t)
+    return #t > n
+  end
+end -- }}}
 
 -- Collections / transformation utils
 function u.keys(tbl) -- {{{
