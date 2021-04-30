@@ -24,18 +24,18 @@ You can find all the info below and more in the [wiki](https://github.com/AdamWa
 
 ## What is stackline & why would I want to use it?
 
-`stackline` adds simple, unobtrusive visual indicators to compliment `yabai`'s window stacking functionality.
+`stackline` adds simple, unobtrusive visual indicators to complement `yabai`'s window stacking functionality.
 
-A 'stack' is a generalized subset of a tabbed UI that enables multiple macOS windows to occupy the same screen space and behave as a single unit. A stack let's a user…
+A 'stack' is a generalized subset of a tabbed UI that enables multiple macOS windows to occupy the same screen space and behave as a single unit. A stack lets a user…
 
 - add & remove windows from a stack
 - navigate between stacked windows
 - _understand the contents of a stack at a glance_
 
 
-Stacks are a recent addition (June 2020) to the (_excellent!_) macOS tiling window manager [koekeishiya/yabai](https://github.com/koekeishiya/yabai). See [yabai #203](https://github.com/koekeishiya/yabai/issues/203) for more info about `yabai`'s stacking feature. Currently, `yabai` does not provide visual indication of a stack's active window or the inactive windows below. This makes it easy to forgot about the stacked windows that aren't visible.
+Stacks are a recent addition (June 2020) to the (_excellent!_) macOS tiling window manager [koekeishiya/yabai](https://github.com/koekeishiya/yabai). See [yabai #203](https://github.com/koekeishiya/yabai/issues/203) for more info about `yabai`'s stacking feature. Currently, `yabai` does not provide a visual indication of a stack's active window or the inactive windows below. This makes it easy to forget about the stacked windows that aren't visible.
 
-Enter `stackline`: simple, unobtrusive visual indicators that compliment `yabai` window stacks.
+Enter `stackline`: simple, unobtrusive visual indicators that complement `yabai` window stacks.
 
 
 ![stackline-demo](https://user-images.githubusercontent.com/1683979/90967233-08f6bc00-e491-11ea-9b0a-d75f248ce4b1.gif)
@@ -138,7 +138,7 @@ Now your `~/.hammerspoon` directory should look like this:
 </table>
 
 
-Finally confirm that `hs` is now available by entering the following in your terminal (shell):
+Finally, confirm that `hs` is now available by entering the following in your terminal (shell):
 
 ```sh
 ❯ which hs
@@ -193,7 +193,7 @@ All are welcome (actually, _please_ help us, 🤣️)! Feel free to dive in by o
 
 [@zweck](https://github.com/zweck), who, [in the same thread](https://github.com/koekeishiya/yabai/issues/203#issuecomment-656780281), got the gears turning about how [@alin23](gh-alin23)'s idea could be implemented and _also_ urged Adam to share his POC.
 
-[@johnallen3d](https://github.com/johnallen3d) for being one the first folks to install stackline, and for identifying several mistakes & gaps in the setup instructions. 
+[@johnallen3d](https://github.com/johnallen3d) for being of one the first folks to install stackline, and for identifying several mistakes & gaps in the setup instructions. 
 
 [@pete-may](https://github.com/pete-may) for saving folks from frustration by fixing an out-of-date command in the readme ([#48](https://github.com/AdamWagner/stackline/pull/48))
 
@@ -213,6 +213,6 @@ Thanks to the creators & maintainers of the lua utility libaries [underscore.lua
 
 stackline is licensed under the [&nearr;&nbsp;MIT&nbsp;License](stackline-license), the same license used by [yabai](https://github.com/koekeishiya/yabai/blob/master/LICENSE.txt) and [hammerspoon](https://github.com/Hammerspoon/hammerspoon/blob/master/LICENSE).
 
-MIT is a simple permissive license with conditions only requiring preservation of copyright and license notices. Licensed works, modifications, and larger works may be distributed under different terms and without source code.
+MIT is a simple permissive license with conditions only requiring the preservation of copyright and license notices. Licensed works, modifications, and larger works may be distributed under different terms and without source code.
 
 [MIT](LICENSE) © Adam Wagner
