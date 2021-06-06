@@ -1,4 +1,7 @@
 local u = require 'stackline.lib.utils'
+local log   = hs.logger.new('window', 'info')
+log.i('Loading module: window')
+
 local Window = {}
 
 function Window:new(hsWin) -- {{{
@@ -17,6 +20,9 @@ function Window:new(hsWin) -- {{{
     }
     setmetatable(ws, self)
     self.__index = self
+
+    log.i( ('Window:new(%s)'):format(ws.id) )
+
     return ws
 end -- }}}
 
@@ -34,7 +40,7 @@ function Window:isStackFocused() -- {{{
 end -- }}}
 
 function Window:setupIndicator() -- {{{
-    -- Config
+    log.d('setupIndicator for', self.id)
     self.config = stackline.config:get('appearance')
     local c = self.config
     self.showIcons = c.showIcons
@@ -71,9 +77,11 @@ function Window:setupIndicator() -- {{{
         w = self.indicator_rect.w - (c.iconPadding * 2),
         h = self.indicator_rect.h - (c.iconPadding * 2),
     }
+    return self
 end -- }}}
 
 function Window:drawIndicator(overrideOpts) -- {{{
+    log.i('drawIndicator for', self.id)
     -- should there be a dedicated "Indicator" class to perform the actual drawing?
     local opts = u.extend(self.config, overrideOpts or {})
     local radius = self.showIcons and self.iconRadius or opts.radius
@@ -117,9 +125,11 @@ function Window:drawIndicator(overrideOpts) -- {{{
 
     self.indicator:clickActivating(false) -- clicking on a canvas elment should NOT bring Hammerspoon wins to front
     self.indicator:show(fadeDuration)
+    return self
 end -- }}}
 
 function Window:redrawIndicator() -- {{{
+    log.i('redrawIndicator for', self.id)
     local isWindowFocused = self:isFocused()
     local isStackFocused = self:isStackFocused()
 
@@ -136,7 +146,7 @@ function Window:redrawIndicator() -- {{{
     -- TODO: Refactor to reduce complexity
     -- LOGIC: Redraw according to what changed.
     -- Supports indicating the *last-active* window in an unfocused stack.
-    -- TODO: Fix bug causing stack to continue appearing focused when switching to a non-stacked window from the same app as the focused stack window. Another casualtiy of HS #2400 :< 
+    -- TODO: Fix bug causing stack to continue appearing focused when switching to a non-stacked window from the same app as the focused stack window. Another casualtiy of HS #2400 :<
     if noChange then
         -- bail early if there's nothing to do
         return false
@@ -213,23 +223,23 @@ function Window:getScreenSide() -- {{{
 
 end -- }}}
 
-function Window:getIndicatorPosition()  -- {{{ 
-    -- Display indicators on left edge of windows on the left side of the screen, 
-    -- & right edge of windows on the right side of the screen 
-    local xval 
-    local c = self.config 
-    self.screenFrame = self.screen:frame() 
-    self.side = self:getScreenSide() 
+function Window:getIndicatorPosition() -- {{{
+    -- Display indicators on left edge of windows on the left side of the screen,
+    -- & right edge of windows on the right side of the screen
+    local xval
+    local c = self.config
+    self.screenFrame = self.screen:frame()
+    self.side = self:getScreenSide()
 
-    -- DONE: Limit stack left/right side to screen boundary to prevent drawing offscreen https://github.com/AdamWagner/stackline/issues/21 
-    if self.side == 'right' then xval = (self.frame.x + self.frame.w) + c.offset.x   -- position indicators on right edge 
-        if xval + self.width > self.screenFrame.w then           -- don't go beyond the right screen edge 
-            xval = self.screenFrame.w - self.width 
-        end 
-    else   -- side is 'left' 
-        xval = self.frame.x - (self.width + c.offset.x)     -- position indicators on left edge 
+    -- DONE: Limit stack left/right side to screen boundary to prevent drawing offscreen https://github.com/AdamWagner/stackline/issues/21
+    if self.side == 'right' then xval = (self.frame.x + self.frame.w) + c.offset.x   -- position indicators on right edge
+        if xval + self.width > self.screenFrame.w then           -- don't go beyond the right screen edge
+            xval = self.screenFrame.w - self.width
+        end
+    else   -- side is 'left'
+        xval = self.frame.x - (self.width + c.offset.x)     -- position indicators on left edge
         xval = math.max(xval, 0)                            -- don't go beyond left screen edge
-    end 
+    end
     return xval
 end -- }}}
 
@@ -299,7 +309,7 @@ function Window:getShadowAttrs() -- {{{
 
     -- TODO [just for fun]: Dust off an old Geometry textbook and try get the shadow's angle to rotate around a point at the center of the screen (aka, 'light source')
     -- Here's a super crude POC that uses the indicator's stack index such that
-    -- higher indicators have a negative Y offset and lower indicators have a positive Y offset 
+    -- higher indicators have a negative Y offset and lower indicators have a positive Y offset
     --   h = (self.focus and 3.0 or 2.0 - (2 + (self.stackIdx * 5))) * -1.0,
 
     return {
@@ -334,15 +344,22 @@ function Window:makeStackId(hsWin) -- {{{
 end -- }}}
 
 function Window:deleteIndicator() -- {{{
+    log.d('deleteIndicator for', self.id)
     if self.indicator then
         self.indicator:delete(self.config.fadeDuration)
     end
 end -- }}}
 
 function Window:unfocusOtherAppWindows() -- {{{
+    log.i('unfocusOtherAppWindows for', self.id)
     u.each(self.otherAppWindows, function(w)
         w:redrawIndicator()
     end)
+end -- }}}
+
+function Window:setLogLevel(lvl) -- {{{
+    log.setLogLevel(lvl)
+    log.i( ('Window.log level set to %s'):format(lvl) )
 end -- }}}
 
 return Window

@@ -1,26 +1,28 @@
 -- https://github.com/erento/lua-schema-validation
-local log = hs.logger.new('sline.conf')
-log.setLogLevel('info')
-log.i('Loading module')
-
-local M = {}
-
--- Validators & type lookup
-local v = require 'stackline.lib.valid'
+local log = hs.logger.new('configmgr', 'info')
+local v = require 'stackline.lib.valid' -- Validators & type lookup
 local o = v.optional
-local is_color = v.is_table { -- {{{
+
+local is_color = v.is_table {
     white = o(v.is_number()),
     red   = o(v.is_number()),
     green = o(v.is_number()),
     blue  = o(v.is_number()),
     alpha = o(v.is_number()),
-} -- }}}
-local function unknownTypeValidator(val) -- {{{
+}
+
+local function unknownTypeValidator(val)
     log.i('Not validating: ', val)
     return true
-end -- }}}
+end
 
-M.types = { -- {{{
+-- === Config module ===
+log.i('Loading module: stackline.configmanager')
+
+local Config = {}
+
+Config.types = { -- {{{
+    -- validator & coerce mthods for each type found in stackline config
     ['string'] = {
         validator = v.is_string,
         coerce = tostring,
@@ -51,14 +53,14 @@ M.types = { -- {{{
     },
 } -- }}}
 
-local defaultOnChangeEvt = {   -- {{{
+local defaultOnChangeEvt = { -- {{{
     __index = function() stackline.queryWindowState:start() end
 }  -- }}}
 
-M.events = setmetatable({ -- {{{
-    appearance = {
-        onChange = function() stackline.manager:resetAllIndicators() end,
-    },
+Config.events = setmetatable({ -- {{{
+    -- Map stackline actions to config keys
+    -- If config key changes, perform action
+    appearance = function() stackline.manager:resetAllIndicators() end,
     features = {
         clickToFocus      = function() return stackline:refreshClickTracker() end,
         maxRefreshRate    = nil,
@@ -71,10 +73,9 @@ M.events = setmetatable({ -- {{{
     },
 }, defaultOnChangeEvt) -- }}}
 
-M.schema = { -- {{{
+Config.schema = { -- {{{
+    -- Set type for each stackline config key
     paths = {
-      getStackIdxs        = 'string',
-      jq                  = 'string',
       yabai               = 'string'
     },
     appearance = {
@@ -101,12 +102,18 @@ M.schema = { -- {{{
         fzyFrameDetect    = { enabled = 'boolean', fuzzFactor = 'number' },
     },
     advanced = {
-        maxRefreshRate = 0.3,
-
+        maxRefreshRate = 'number',
     }
 } -- }}}
 
-function M:getPathSchema(path) -- {{{
+function Config:init(conf) -- {{{
+    log.i('Initializing configmanager…')
+    self:validate(conf)
+    self.__index = self
+    return self
+end -- }}}
+
+function Config:getPathSchema(path) -- {{{
     local _type = u.getfield(path, self.schema) -- lookup type in schema
     if not _type then return false end
     local validator = self.types[_type].validator()
@@ -114,29 +121,21 @@ function M:getPathSchema(path) -- {{{
     return _type, validator
 end -- }}}
 
-function M.generateValidator(schemaType) -- {{{
-    if type(schemaType)=='table' then -- recursively build validator
-        local children = u.map(schemaType, M.generateValidator)
+function Config.generateValidator(schemaType) -- {{{
+    if u.istable(schemaType) then -- recursively build validator
+        local children = u.map(schemaType, Config.generateValidator)
         log.d('validator children:\n', hs.inspect(children))
         return v.is_table(children)
     end
 
     -- otherwise, return validation fn forgiven type
-    log.i('schemaType:', schemaType)
-    return M.types[schemaType]                  -- if schemaType is a known config type..
-            and M.types[schemaType].validator() -- then return validation fn
+    log.d('schemaType:', schemaType)
+    return Config.types[schemaType]                  -- if schemaType is a known config type..
+            and Config.types[schemaType].validator() -- then return validation fn
             or unknownTypeValidator             -- otherwise, unknown types are assumed valid
 end -- }}}
 
--- Config manager
-function M:init(conf) -- {{{
-    log.i('Initializing configmanager…')
-    self:validate(conf)
-    self.__index = self
-    return self
-end -- }}}
-
-function M:validate(conf) -- {{{
+function Config:validate(conf) -- {{{
     local c            = conf or self.conf
     local validate     = self.generateValidator(self.schema)
     local isValid, err = validate(c)
@@ -144,9 +143,9 @@ function M:validate(conf) -- {{{
     if isValid then
         log.i('✓ Conf validated successfully')
         self.conf = conf
-        self.autosuggestions = u.keys(u.flatten(self.conf))
+        self.autosuggestions = u.keys(u.flattenPath(self.conf))
     else
-        local invalidKeys = table.concat(u.keys(u.flatten(err)), ', ')
+        local invalidKeys = table.concat(u.keys(u.flattenPath(err)), ', ')
         log.e('Invalid stackline config:\n', hs.inspect(err))
         hs.notify.new(nil, {
             title           = 'Invalid stackline config!',
@@ -159,58 +158,32 @@ function M:validate(conf) -- {{{
     return isValid, err
 end -- }}}
 
-function M:autosuggest(path) -- {{{
-    local dist = u.partial(u.levenshteinDistance, path) -- lev.d fn that can be mapped over list of candidates
-    local scores = u.zip(
-            u.map(self.autosuggestions, dist),          -- list of scores {0.2024, 0.182, 0.991, …}
-            self.autosuggestions                        -- list of strings
-        )
-    local function asc(a, b)
-        return a[1] < b[1]
-    end
-
-    table.sort(scores, asc)
-
-    log.d(hs.inspect(scores))
-
-    local result1, result2 = scores[1][2], scores[2][2] -- return the best 2 matches
-
-    hs.notify.new(nil, {
-        title = 'Did you mean?',
-        subTitle =  string.format('"%s"', result1),
-        informativeText = string.format('"%s" is not a default stackline config path', path),
-        withdrawAfter = 10
-    }):send()
+function Config:getOrSet(path, val) -- {{{
+   return (path and val)
+      and self:set(path, val)
+      or self:get(path)
 end -- }}}
 
-function M:getOrSet(path, val) -- {{{
-    if path and val then
-        return self:set(path, val)
+function Config:get(path) -- {{{
+    -- path is a dot-separated string, e.g., 'appearance.color'
+    -- returns value at path or full config if path not provided
+    if path==nil then return self.conf end
+    local val = u.getfield(path, self.conf)
+
+    if val==nil then
+        return log.w( ('config.get("%s") not found'):format(path) )
     end
 
-    return self:get(path)
+    log.d(('get(%s) found: %s'):format(path, val))
+    return val
 end -- }}}
 
-function M:get(path) -- {{{
-    -- @path is a dot-separated string (e.g., 'appearance.color')
-    -- return full config if no path provided
-    if path == nil then return self.conf end
-
-    local ok, val = pcall(u.getfield, path, self.conf)
-
-    if ok then return val
-    else self:autosuggest(path)
-    end
-end -- }}}
-
-function M:set(path, val) -- {{{
-    --[[ @path is a dot-separated string (e.g., 'appearance.color')
-       @val is the value to set at path
-       non-existent path segments will be set to an empty table ]]
-
+function Config:set(path, val) -- {{{
+    -- path is a dot-separated string, e.g., 'appearance.color'
+    -- val is the value to set at path
+    -- non-existent path segments will be set to an empty table
     local _type, validator = self:getPathSchema(path) -- lookup type in schema
-
-    if _type == nil then
+    if not _type then
         self:autosuggest(path)
         return self
     end
@@ -218,30 +191,33 @@ function M:set(path, val) -- {{{
     local typedVal = self.types[_type].coerce(val)
     local isValid, err = validator(typedVal)           -- validate val is appropriate type
 
-    log.d('\nval:', typedVal, '\nval type:', type(typedVal))
-
     if not isValid then
-        log.e(hs.inspect(err))
+        log.e('Set', path, 'to invalid value.', hs.inspect(err))
         return self
     end
-
-    log.d('Setting', path, 'to', typedVal)
 
     u.setfield(path, typedVal, self.conf)
 
     local onChange = u.getfield(path, self.events, true)
-    if type(onChange) == 'function' then onChange() end
+    if u.isfunc(onChange) then onChange() end
+
     return self, val
-
 end -- }}}
 
-function M:toggle(key) -- {{{
+function Config:toggle(key) -- {{{
     local val = self:get(key)
-    if type(val)~='boolean' then log.w(key, 'cannot be toggled because it is not boolean') end
+    if not u.isbool(val) then
+        log.w(key, 'cannot be toggled because it is not boolean')
+        return self
+    end
     local toggledVal = not val
-    log.d('Toggling', key, 'from ', val, 'to ', toggledVal)
+    log.i('Toggling', key, 'from ', val, 'to ', toggledVal)
     self:set(key, toggledVal)
-    return self
 end -- }}}
 
-return M
+function Config:setLogLevel(lvl) -- {{{
+    log.setLogLevel(lvl)
+    log.i( ('Window.log level set to %s'):format(lvl) )
+end -- }}}
+
+return Config

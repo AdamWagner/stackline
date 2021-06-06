@@ -11,7 +11,7 @@ function Stack:new(stackedWindows) -- {{{
     return stack
 end -- }}}
 
-function  Stack:get() -- {{{
+function Stack:get() -- {{{
     return self.windows
 end -- }}}
 
@@ -22,9 +22,9 @@ function Stack:getHs() -- {{{
 end -- }}}
 
 function Stack:frame() -- {{{
-   -- All stacked windows have the same dimensions, 
+   -- All stacked windows have the same dimensions,
    -- so the 1st Hs window's frame is ~= to the stack's frame
-   -- TODO: Incorrect when the 1st window has min-size < stack width. See ./query.lua:104
+   -- TODO: Incorrect when the 1st window has min-size < stack width. See ./query.lua:105
    return self.windows[1]._win:frame()
 end -- }}}
 
@@ -48,9 +48,8 @@ function Stack:anyFocused() -- {{{
 end -- }}}
 
 function Stack:resetAllIndicators() -- {{{
-   self:eachWin(function(win)
-       win:setupIndicator()
-       win:drawIndicator()
+   self:eachWin(function(w)
+       w:setupIndicator():drawIndicator()
    end)
 end -- }}}
 
@@ -70,10 +69,9 @@ end -- }}}
 
 function Stack:getWindowByPoint(point) -- {{{
    local foundWin = u.filter(self.windows, function(w)
-       if not w.indicator then return false end
-       local indicatorEls = w.indicator:canvasElements()
-       local wFrame = hs.geometry.rect(indicatorEls[1].frame)
-       return point:inside(wFrame)
+       local frame = w.indicator and w.indicator:canvasElements()[1].frame
+       if not frame then return false end
+       return point:inside(frame) -- NOTE: frame *must* be a hs.geometry.rect instance
    end)
 
    if #foundWin > 0 then

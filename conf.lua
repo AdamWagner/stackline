@@ -8,8 +8,6 @@ c.features = {}
 c.advanced = {}
 
 -- Paths
-c.paths.getStackIdxs                  = hs.configdir .. '/stackline/bin/yabai-get-stack-idx'
-c.paths.jq                            = '/usr/local/bin/jq'
 c.paths.yabai                         = '/usr/local/bin/yabai'
 
 -- Appearance
@@ -43,6 +41,6 @@ c.features.fzyFrameDetect.fuzzFactor  = 30                  -- Window frame dime
 c.features.winTitles                 = 'not_implemented'    -- Valid options: false, true, 'when_switching', 'not_implemented'
 c.features.dynamicLuminosity         = 'not_implemented'    -- Valid options: false, true, 'not_implemented'
 
-c.advanced.maxRefreshRate             = 0.3                 -- How aggressively to refresh Stackline. Higher = slower response time + less battery drain
+c.advanced.maxRefreshRate             = 0.5                 -- How aggressively to refresh Stackline. Higher = slower response time + less battery drain
 
 return c
