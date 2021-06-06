@@ -1,32 +1,31 @@
-local Query = require 'stackline.stackline.query'
-local Stack = require 'stackline.stackline.stack'
+local log   = hs.logger.new('stackmanager', 'info')
 
 local Stackmanager = {}
+
+Stackmanager.query = require 'stackline.stackline.query'
 
 function Stackmanager:init() -- {{{
     self.tabStacks = {}
     self.showIcons = stackline.config:get('appearance.showIcons')
-    -- self.__index = self
+    self.__index = self
     return self
 end -- }}}
 
-function Stackmanager:update() -- {{{
-    Query:windowsCurrentSpace() -- calls Stack:ingest when ready
+function Stackmanager:update(opts) -- {{{
+    log.i('Running update()')
+    self.query.run(opts) -- calls Stack:ingest when ready
     return self
 end -- }}}
 
-function Stackmanager:ingest(windowGroups, appWindows, shouldClean) -- {{{
-    local stacksCount = u.length(windowGroups)
-    if shouldClean or (stacksCount == 0) then
-        self:cleanup()
-    end
+function Stackmanager:ingest(stacks, appWins, shouldClean) -- {{{
+    if shouldClean then self:cleanup() end
 
-    for stackId, groupedWindows in pairs(windowGroups) do
-        local stack = Stack:new(groupedWindows) -- instantiate new instance of Stack()
+    for stackId, groupedWindows in pairs(stacks) do
+        local stack = require 'stackline.stackline.stack':new(groupedWindows)
         stack.id = stackId
         u.each(stack.windows, function(win)
             -- win.otherAppWindows needed to workaround Hammerspoon issue #2400
-            win.otherAppWindows = u.filter(appWindows[win.app], function(w)
+            win.otherAppWindows = u.filter(appWins[win.app], function(w)
                 -- exclude self and other app windows from other others
                 return (w.id ~= win.id) and (w.screen == win.screen)
             end)
@@ -117,6 +116,11 @@ function Stackmanager:getClickedWindow(point) -- {{{
             return clickedWindow
         end
     end
+end -- }}}
+
+function Stackmanager:setLogLevel(lvl) -- {{{
+    log.setLogLevel(lvl)
+    log.i( ('Window.log level set to %s'):format(lvl) )
 end -- }}}
 
 return Stackmanager

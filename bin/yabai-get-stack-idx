@@ -1,5 +1,0 @@
-#!/bin/sh
-
-"$1" -m query --windows \
-        | "$2" --raw-output --compact-output --monochrome-output  'map({"\(.id)": .["stack-index"]}) | reduce .[] as $item ({}; . + $item)'
-

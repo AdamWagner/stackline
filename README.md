@@ -1,7 +1,7 @@
 <!-- vim: set tw=0 :-->
 ![stackline-logo](https://user-images.githubusercontent.com/1683979/90966915-1f9b1400-e48d-11ea-8cbb-0ceea6fcfc39.png)
 <p>
-  <img alt="Version" src="https://img.shields.io/badge/version-0.1.60-blue.svg?cacheSeconds=2592000" />
+  <img alt="Version" src="https://img.shields.io/badge/version-0.1.61-blue.svg?cacheSeconds=2592000" />
   <a href="#" target="_blank">
     <img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-yellow.svg" />
   </a>
@@ -11,42 +11,39 @@
 
 **Latest update**
 
-[📣 Update: improved configuration: please review docs for 💔️ breaking changes!](https://github.com/AdamWagner/stackline/issues/33)
+2021-06-06: Fixes & cleanup (`v0.1.61`)
 
-See changes in more detail in the [changelog](https://github.com/AdamWagner/stackline/wiki/Changelog).
+- Fixed: Icons don't change when toggling showIcons (#68)
+- Fixed: Failure to parse json output from `yabai` that contains `inf` values (might fix #46)
+- Removed external dependency on `jq`
+- Removed shell script used to call out to `yabai`
+- Replaced third-party json library with `hs.json`
+- Refactored unnecessary object-orientation out of `stackline.query`
+- Cleaned up `stackline.lib.utils`
 
-**Up next**
+See [changelog](https://github.com/AdamWagner/stackline/wiki/Changelog).
 
-[🛠️ In progress: Refactoring for testability → Unit tests](https://github.com/AdamWagner/stackline/issues/26)
-
-You can find all the info below and more in the [wiki](https://github.com/AdamWagner/stackline/wiki/Install-dependencies).
-
+Everything below & more is in the [wiki](https://github.com/AdamWagner/stackline/wiki/Install-dependencies).
 
 ## What is stackline & why would I want to use it?
 
-`stackline` adds simple, unobtrusive visual indicators to complement `yabai`'s window stacking functionality.
+`stackline` adds unobtrusive visual indicators to complement `yabai`'s window stacking functionality.
 
-A 'stack' is a generalized subset of a tabbed UI that enables multiple macOS windows to occupy the same screen space and behave as a single unit. A stack lets a user…
+A 'stack' enables multiple macOS windows to occupy the same screen space and behave as a single unit. 
 
-- add & remove windows from a stack
-- navigate between stacked windows
-- _understand the contents of a stack at a glance_
+Stacks are a recent addition (June 2020) to the (_excellent!_) macOS tiling window manager [koekeishiya/yabai](https://github.com/koekeishiya/yabai). See [yabai #203](https://github.com/koekeishiya/yabai/issues/203) for more info about `yabai`'s stacking feature. Currently, there's no built-in UI for stacks, which makes it easy to forget about stacked windows that aren't visible or get disoriented.
 
-
-Stacks are a recent addition (June 2020) to the (_excellent!_) macOS tiling window manager [koekeishiya/yabai](https://github.com/koekeishiya/yabai). See [yabai #203](https://github.com/koekeishiya/yabai/issues/203) for more info about `yabai`'s stacking feature. Currently, `yabai` does not provide a visual indication of a stack's active window or the inactive windows below. This makes it easy to forget about the stacked windows that aren't visible.
-
-Enter `stackline`: simple, unobtrusive visual indicators that complement `yabai` window stacks.
-
+Enter `stackline`: unobtrusive visual indicators that complement `yabai` window stacks.
 
 ![stackline-demo](https://user-images.githubusercontent.com/1683979/90967233-08f6bc00-e491-11ea-9b0a-d75f248ce4b1.gif)
 
 ### Features
 
-- 🚦 **See your stacks**. Window indicators show you which BSP leaves are stacks & how many windows each stack contains
-- 🔦 **App icons**. Toggle icons on to know exactly which apps are stacked where. Toggle icons off and get a slim minimalistic indicator that doesn't get in the way.
-- 🧘‍♂️️ **Smart positioning**. Whichever mode you prefer, indicators always stay out of the way on the outside edge of the window (nearest the screen edge). `stackline v0.1.55` has full support for multi-monitor setups, too.
-- 🧮 **Always in sync**. stackline keeps track of stacks as you move between spaces, resize windows, and add or remove stacks.
-- 🕹️ **Flexible control**. Control stackline via shell commands, or access the instance directly via Hammerspoon.
+- 🚦 **Window indicators** show the position and window count of stacks
+- 🔦 Use **app icons** to show apps inside stacks or slim indicators to save space
+- 🧘 **Smart positioning**. Indicators stay on the outside edge of the window nearest the screen edge
+- 🕹️ **Flexible control**. Control stackline via shell commands, or access the instance directly via hammerspoon.
+- 🖥️ **Multi-monitor support** introduced in `stackline v0.1.55`
 
 <table>
 <tbody>
@@ -66,17 +63,16 @@ Enter `stackline`: simple, unobtrusive visual indicators that complement `yabai`
 </table>
 
 
-## Getting started with stackline
+## Quickstart
 
 ### Prerequisites
 
 - https://github.com/koekeishiya/yabai ([install guide](https://github.com/koekeishiya/yabai/wiki/Installing-yabai-(latest-release)))
 - https://github.com/Hammerspoon/hammerspoon ([getting started guide](https://www.hammerspoon.org/go/))
-- https://github.com/stedolan/jq (`brew install jq`)
 
 See [wiki](https://github.com/AdamWagner/stackline/wiki/Install-&-configure-dependencies#user-content-configure-yabai-stacks) for example keybindings to create and navigate between stacks.
 
-### Installing stackline
+### Installation
 
 1. [Clone the repo into ~/.hammerspoon/stackline](https://github.com/AdamWagner/stackline/wiki/Install-stackline#1-clone-the-repo-into-hammerspoonstackline)
 2. [Install the hammerspoon cli tool](https://github.com/AdamWagner/stackline/wiki/Install-stackline#2-install-the-hammerspoon-cli-tool)
@@ -89,18 +85,15 @@ git clone https://github.com/AdamWagner/stackline.git ~/.hammerspoon/stackline
 
 # Make stackline run when hammerspoon launches
 cd ~/.hammerspoon
-echo 'stackline = require "stackline.stackline.stackline"' >> init.lua
+echo 'stackline = require "stackline"' >> init.lua
 echo 'stackline:init()' >> init.lua
 ```
 
 Now your `~/.hammerspoon` directory should look like this:
 
-
 ```
 ├── init.lua
 └── stackline
-  ├── bin
-  │   └── yabai-get-stack-idx
   ├── conf.lua
   ├── stackline
   │   ├── configmanager.lua
@@ -116,9 +109,21 @@ Now your `~/.hammerspoon` directory should look like this:
 
 #### 2. Install the hammerspoon cli tool
 
+This is an optional step. It's required to send configuration commands to `stackline` from scripts, for example:
+
+```sh
+# Toggle boolean values with the hs cli
+hs -c "stackline.config:toggle('appearance.showIcons')"
+```
 1. Ensure Hammerspoon is running
 2. Open the hammerspoon console via the menu bar
 3. Type `hs.ipc.cliInstall()` and hit return
+4. Confirm that `hs` is available by entering the following in your terminal (shell):
+
+```sh
+❯ which hs
+/usr/local/bin/hs
+```
 
 <table>
 <tbody>
@@ -137,27 +142,14 @@ Now your `~/.hammerspoon` directory should look like this:
 </tbody>
 </table>
 
+### Usage
 
-Finally, confirm that `hs` is now available by entering the following in your terminal (shell):
+- Launch `yabai` (or make sure it's running) (`brew services start yabai`)
+- Launch `hammerspoon` (or make sure it's running) (`open -a "Hammerspoon"`)
 
-```sh
-❯ which hs
-/usr/local/bin/hs
-```
+**Create a window stack**
 
-### RETRO? GO! FIDO? GO! GUIDANCE…
-
-We're almost there!
-
-```sh
-# Launch yabai (or make sure it's running)
-brew services start yabai
-
-# Launch hammerspoon (or make sure it's running)
-open -a "Hammerspoon"
-```
-
-Now, assuming you've been issuing these commands from a terminal and _also_ have a browser window open  on the same space, make sure your terminal is positioned immediately to the _left_ of Safari and issue the following command (or use [keybindings](https://github.com/AdamWagner/stackline/wiki/Install-dependencies)) to create a stack:
+Now, assuming you've been issuing these commands from a terminal and _also_ have a browser window open on the same space, make sure your terminal is positioned immediately to the _left_ of your browser and issue the following command (or use [keybindings](https://github.com/AdamWagner/stackline/wiki/Install-dependencies)) to create a stack:
 
 ```sh
 yabai -m window --stack next
@@ -167,27 +159,20 @@ Did the terminal window expand to cover the area previously occupied by Safari? 
 
 <img width="50%" src="https://user-images.githubusercontent.com/1683979/90969027-53376780-e4a8-11ea-88c9-354f43b0a4ef.png" />
 
-If the icons are a bit too heavy for you, you can toggle minimalist mode by turning the icons off:
+You can toggle minimalist mode by turning the icons off:
 
 ```sh
 hs -c 'stackline.config:toggle("appearance.showIcons")'
 ```
 
-
 <img width="50%" src="https://user-images.githubusercontent.com/1683979/90969026-52063a80-e4a8-11ea-885d-9dd5b1409f20.png" />
 
-The minimalist stack indicator style is shown here ↑
+See the wiki to [for details about how to do this with a key binding](https://github.com/AdamWagner/stackline/wiki/Keybindings).
 
-See the wiki to [for details about how to do this with a key binding!](https://github.com/AdamWagner/stackline/wiki/Keybindings).
-
-
-## Help us get to v1.0.0!
-
-Give a ⭐️ if you think (a more fully-featured version of) stackline would be useful!
 
 ## Thanks to contributors!
 
-All are welcome (actually, _please_ help us, 🤣️)! Feel free to dive in by opening an [issue](https://github.com/AdamWagner/stackline/issues/new) or submitting a PR.
+All are welcome. Feel free to dive in by opening an [issue](https://github.com/AdamWagner/stackline/issues/new) or submitting a PR.
 
 [@alin23](https://github.com/alin23) initially proposed the [concept for stackline here](https://github.com/koekeishiya/yabai/issues/203#issuecomment-652948362) and encouraged [@AdamWagner](https://github.com/AdamWagner) to share the mostly-broken proof-of-concept publicly. Since then, [@alin23](https://github.com/alin23) dramatically improved upon the initial proof-of-concept with [#13](https://github.com/AdamWagner/stackline/pull/13), has some pretty whiz-bang functionality on deck with [#17](https://github.com/AdamWagner/stackline/pull/17), and has been a great thought partner/reviewer.  
 
@@ -199,13 +184,15 @@ All are welcome (actually, _please_ help us, 🤣️)! Feel free to dive in by o
 
 [@AdamWagner](https://github.com/AdamWagner) wrote the initial proof-of-concept (POC) for stackline.
 
+Give a ⭐️ if you think (a more fully-featured version of) stackline would be useful!
+
 ### …on the shoulders of giants
 
 Thanks to [@koekeishiya](gh-koekeishiya) without whom the _wonderful_ [yabai](https://github.com/koekeishiya/yabai) would not exist, and projects like this would have no reason to exist.
 
 Similarly, thanks to [@dominiklohmann](https://github.com/dominiklohmann), who has helped _so many people_ make chunkwm/yabai "do the thing" they want and provides great feedback on new and proposed yabai features.
 
-Thanks to [@cmsj](https://github.com/cmsj), [@asmagill](https://github.com/asmagill), and all of the contributors to [hammerspoon](https://github.com/Hammerspoon/hammerspoon) for making macOS APIs accessible to the rest of us!
+Thanks to [@cmsj](https://github.com/cmsj), [@asmagill](https://github.com/asmagill), and all of the contributors to [hammerspoon](https://github.com/Hammerspoon/hammerspoon) for making macos APIs accessible to the rest of us!
 
 Thanks to the creators & maintainers of the lua utility libaries [underscore.lua](https://github.com/mirven/underscore.lua), [lume.lua](https://github.com/rxi/lume), and [self.lua](https://github.com/M1que4s/self).
 
