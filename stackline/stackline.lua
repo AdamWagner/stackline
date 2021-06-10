@@ -1,12 +1,13 @@
 -- luacheck: globals table.merge
 -- luacheck: globals u
---luacheck: ignore 112
+-- luacheck: ignore 112
 local wf    = hs.window.filter
 local timer = hs.timer.delayed
 local log   = hs.logger.new('stackline', 'info')
 local click = hs.eventtap.event.types['leftMouseDown'] -- fyi, print hs.eventtap.event.types to see all event types
 
 log.i'Loading module: stackline'
+_G.u = require 'lib.utils'
 _G.stackline = {} -- access stackline under global 'stackline'
 stackline.config = require'stackline.configmanager'
 stackline.window = require'stackline.window'
