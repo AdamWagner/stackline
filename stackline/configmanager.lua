@@ -1,6 +1,6 @@
 -- https://github.com/erento/lua-schema-validation
 local log = hs.logger.new('configmgr', 'info')
-local v = require 'stackline.lib.valid' -- Validators & type lookup
+local v = require 'lib.valid' -- Validators & type lookup
 local o = v.optional
 
 local is_color = v.is_table {
