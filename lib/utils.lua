@@ -2,10 +2,15 @@
 local log = hs.logger.new('utils', 'info')
 log.i('Loading module: utils')
 
-local function length(t) -- {{{
-    if type(t)~='table' then return 0 end
+--[[ REFERENCE:
+      - https://github.com/CommandPost/CommandPost/blob/develop/src/extensions/cp/tools/init.lua
+]]
+
+local function length(x) -- {{{
+    if type(x)~='table' then return #x end
+    if next(x)==nil then return 0 end
     local count = 0
-    for _ in pairs(t) do
+    for _ in pairs(x) do
         count = count + 1
     end
     return count
@@ -46,6 +51,42 @@ function string:trim() -- {{{
         :gsub('^%s+', '') -- trim leading whitespace
         :gsub('%s+$', '') -- trim trailing whitespace
 end -- }}}
+
+-- === interpolate === {{{
+-- FROM: https://github.com/CommandPost/CommandPost/blob/develop/src/extensions/cp/interpolate.lua
+-- Provides a function that will interpolate values into a string.
+-- It also augments the standard `string` to override the "mod" (`%`) operator so that
+-- any string can be easily interpolated, like so:
+--    "Hello ${world}" % { world = "Earth" }
+
+-- Can also format how numbers are displayed:
+--    "Hello ${world:04d}", { world = 512 }
+local TOKEN_PATTERN = "(%$%b{})"
+local KEY_PATTERN = "^%$%{(%a%w*)%}$"
+local KEY_FORMAT_PATTERN = "^%$%{(%a%w*)[:]([-0-9%.]*[cdeEfgGiouxXsq])%}$"
+
+local function interpolate(s, values)
+    return (s:gsub(TOKEN_PATTERN,
+        function(token)
+            local key, fmt = token:match(KEY_PATTERN), "s"
+            print(key, fmt)
+            -- if not key then
+                key, fmt = token:match(KEY_FORMAT_PATTERN)
+                print(key, fmt)
+            -- end
+
+            if not key then
+                error("Invalid replacement token: " .. token)
+            end
+
+            local value = values[key]
+            return ("%" .. fmt):format(value)
+        end
+    ))
+end
+
+getmetatable("").__mod = interpolate
+-- }}}
 
 table.rawinsert = table.insert -- Store the OG fn just in case
 
@@ -110,13 +151,14 @@ u.reduce       = hs.fnutils.reduce
 u.partial      = hs.fnutils.partial
 u.each         = hs.fnutils.each
 u.contains     = hs.fnutils.contains
-u.some         = hs.fnutils.some
-u.any          = hs.fnutils.some -- alias 'some()' as 'any()'
-u.all          = hs.fnutils.every -- alias 'every()' as 'all()'
 u.concat       = hs.fnutils.concat
 u.copy         = hs.fnutils.copy
 u.sortByKeys   = hs.fnutils.sortByKeys
 u.sortByValues = hs.fnutils.sortByKeyValues
+
+u.any          = hs.fnutils.some -- alias 'some()' as 'any()'
+u.all          = hs.fnutils.every -- alias 'every()' as 'all()'
+u.none         = function(t, fn) return u.any(t, fn)==false end
 
 function u.reverse(tbl) -- {{{
     -- Reverses values in a given array. The passed-in array should not be sparse.
@@ -135,6 +177,7 @@ function u.flip(func) -- {{{
 end -- }}}
 
 function u.pipe(f, g, ...) -- {{{
+  -- Alternative: https://github.com/EvandroLG/pipe.lua/blob/master/pipe.lua
   local function simpleCompose(f1, g1)
     return function(...)
       return f1(g1(...))
@@ -146,6 +189,9 @@ function u.pipe(f, g, ...) -- {{{
 
   return u.pipe(nextFn, ...)
 end -- }}}
+
+-- {{{ Type helpers: u.is[type], u.is.all[type](), u.is.none[type]()
+-- See: https://github.com/CommandPost/CommandPost/blob/develop/src/extensions/cp/is.lua
 
 function u.isnum(x) -- {{{
     return type(x) == 'number'
@@ -168,12 +214,58 @@ function u.isfunc(x) -- {{{
 end -- }}}
 
 function u.isarray(x) -- {{{
-    return u.istable(x) and x[1]~=nil and x[u.length(x)]~=nil
+    -- Reference: https://stackoverflow.com/questions/7526223/how-do-i-know-if-a-table-is-an-array
+    -- Alternative: detect type: array, dict, mixed: https://github.com/HuotChu/ArrayForLua/blob/master/Array.lua#L24
+    --[[ TEST
+    u.isarray{}                             --> true
+    u.isarray{1, 2, 3}                      --> true
+    u.isarray{a = 1, b = 2, c = 3}          --> false
+    u.isarray{1, 2, 3, a = 1, b = 2, c = 3} --> false
+    u.isarray{1, 2, 3, nil, 5}              --> true
+    ]]
+
+    if u.length(x)==0 then
+        return true             -- consider empty tables arrays
+    end
+
+    return u.istable(x)         -- must be type table
+        and x[1]~=nil           -- must have value at *first* numeric index
+        and x[u.length(x)]~=nil -- must have value at *last* numeric index
+        and #u.keys(x)==#x      -- length of keys must equal length of array (rejects sparse arrays)
 end -- }}}
 
 function u.isjson(x) -- {{{
     return u.isstring(x) and x:find('{') and x:find('}')
 end -- }}}
+
+function u.isempty(x) -- {{{
+    -- NOTE: u.length(x) returns 0 when next(x)==nil
+    return u.length(x)==0
+end -- }}}
+
+function u.istruthy(x) -- {{{
+    return x~=nil and x~=false
+end -- }}}
+
+u.is = {
+    bool = u.isbool,
+    num = u.isnum,
+    string = u.isstring,
+    table = u.istable,
+    array = u.isarray,
+    func = u.isfunc,
+    empty = u.isempty,
+    truthy = u.istruthy,
+}
+
+u.is.all, u.is.none = {}, {}
+
+for k in pairs(u.is) do
+    u.is.all[k] = function(...) return u.all({...}, u.is[k]) end
+    u.is.none[k] = function(...) return u.none({...}, u.is[k]) end
+end
+
+-- }}}
 
 function u.getiter(x) -- {{{
     if u.isarray(x) then
@@ -214,6 +306,19 @@ function u.values(t) -- {{{
     return values
 end -- }}}
 
+function u.tbl_separate(t)  -- {{{
+    local array_components = {}
+    local dict_components = {}
+    for k,v in pairs(t) do
+        if u.isnum(k) then
+            table.insert(array_components, v)
+        else
+            dict_components[k] = v
+        end
+    end
+    return array_components, dict_components
+end  -- }}}
+
 function u.from_iter(it)  -- {{{
     if u.istable(it) then
         return it
@@ -235,7 +340,7 @@ end -- }}}
 
 function table.merge(t1, t2) -- {{{
     --[[ TEST
-    y = {blocks = { 'adam', 1, 2,'3', 99, 3 }, 7, 8, 9}
+    y = {blocks = { 'Jane', 1, 2,'3', 99, 3 }, 7, 8, 9}
     z = {'a', 'b', 'c', name = 'JohnDoe', blocks = { 'test',2,3} }
     a = table.merge(y, z)
     ]]
@@ -258,7 +363,9 @@ end -- }}}
 
 function u.extend(t1, t2) -- {{{
     for k, v in u.getiter(t2) do
-        t1[k] = v
+        if t1[k]==nil then
+            t1[k] = v
+        end
     end
     return t1
 end -- }}}
@@ -271,6 +378,20 @@ function u.include(tbl, val) -- {{{
     end
     return false
 end -- }}}
+
+function u.pick(keys, tbl)  -- {{{
+    --[[ TEST
+        tbl = { a = 1, b = 2, c = 3}
+        keys = { 'a', 'b' }
+        r = u.pick(keys, tbl)
+    ]]
+
+	local res = {}
+	for _, v in ipairs(keys) do
+		res[v] = tbl[v]
+	end
+	return res
+end  -- }}}
 
 function u.cb(fn) -- {{{
     return function()
@@ -430,22 +551,18 @@ function u.zip(a, b) -- {{{
     return rv
 end -- }}}
 
-function u.copyShallow(t) -- {{{
+function u.copyShallow(t, noMeta) -- {{{
     -- FROM: https://github.com/XavierCHN/go/blob/master/game/go/scripts/vscripts/utils/table.lua
-    local copy
-
-    if not u.istable(t) then
-        copy = t
-        return copy
-    end
-
+    if not u.istable(t) then return t end
+    local copy = {}
     for k, v in u.getiter(t) do
         copy[k] = v
     end
-    return copy
+    if noMeta then return copy end
+    return setmetatable(copy, getmetatable(t))
 end -- }}}
 
-function u.deepCopy(obj, seen) -- {{{
+function u.dcopy(obj, seen) -- {{{
     -- from https://gist.githubusercontent.com/tylerneylon/81333721109155b2d244/raw/5d610d32f493939e56efa6bebbcd2018873fb38c/copy.lua
     -- The issue here is that the following code will call itself
     -- indefinitely and ultimately cause a stack overflow:
@@ -462,7 +579,7 @@ function u.deepCopy(obj, seen) -- {{{
     -- which tables it has already started to copy.
     --
     -- Thanks to @mnemnion for pointing out that we should not call
-    -- setmetatable() until we're doing copying values; otherwise we
+    -- setmetatable() until we're done copying values; otherwise we
     -- may accidentally trigger a custom __index() or __newindex()!
 
     -- Handle non-tables and previously-seen tables.
@@ -473,9 +590,10 @@ function u.deepCopy(obj, seen) -- {{{
     local s = seen or {}
     local res = {}
     s[obj] = res
-    for k, v in u.getiter(obj) do
-        res[u.deepCopy(k, s)] = u.deepCopy(v, s)
-    end
+
+    -- avoid triggering a __pairs metamethod.
+    for k, v in next, obj do res[u.dcopy(k, s)] = u.dcopy(v, s) end
+
     return setmetatable(res, getmetatable(obj))
 end -- }}}
 
@@ -488,28 +606,28 @@ function u.safeSort(tbl, fn) -- {{{
     return tbl
 end -- }}}
 
-function u.equal(a, b) -- {{{
-    if a==b then
-        return true
+function u.equal(t1, t2) -- {{{
+    -- See: https://github.com/CommandPost/CommandPost/blob/develop/src/extensions/cp/tools/init.lua#L1806
+    local ty1, mt1 = type(t1), getmetatable(t1)
+    local ty2, mt2 = type(t2), getmetatable(t2)
+
+    if ty1 ~= ty2 then return false end
+
+    -- If non-table types or table with mt.__eq method,
+    -- t1 and t2 can be compared directly.
+    if (mt1 and mt1.__eq) or not u.is.all.table(t1,t2) then
+        return t1==t2 -- If this condition met, we *will* return here
     end
 
-    local all_tbls = u.all({a,b}, u.istable)
-
-    if all_tbls and (u.length(a) ~= u.length(b))
-        or a==nil
-        or b==nil
-    then
-        return false
+    -- …okay, we'll deep compare tables the hard way
+    for k1,v1 in pairs(t1) do
+        local v2 = t2[k1]
+        if v2==nil or not u.equal(v1,v2) then return false end
     end
-
-    u.each({a,b}, u.safeSort)
-
-    for k in u.getiter(a) do
-        if b[k]~=a[k] then
-            return false
-        end
+    for k2,v2 in pairs(t2) do
+        local v1 = t1[k2]
+        if v1==nil or not u.equal(v1,v2) then return false end
     end
-
     return true
 end -- }}}
 
@@ -584,6 +702,59 @@ function u.flattenPath(tbl) -- {{{
     local circularRef = {[tostring(tbl)] = true}
 
     return flatten(tbl, maxdepth, 1, prefix, result, circularRef)
+end -- }}}
+
+function u.rawpairs(tbl) -- {{{
+ return next, tbl, nil
+end -- }}}
+
+-- Metatable helpers -----------------------------------------------------------
+-- see for more: https://github.com/nsimplex/wicker/blob/master/init/init_modules/metatablelib.lua
+function u.isMetamethodName(key) -- {{{
+  return u.isstring(key) and key:find('^__')
+end -- }}}
+function u.getmetamethod (a, f) -- {{{
+    local mt = getmetatable(a)
+    return mt and rawget(mt,f)
+end -- }}}
+function u.setmetatablekey(t,k,v) -- {{{
+  local m = getmetatable(t)
+  if not m then
+    m = { }
+    setmetatable(t,m)
+  end
+  m[k] = v
+  return t
+end -- }}}
+function u.filterMt(tbl) -- {{{
+  local mt = {}
+  local not_mt = {}
+  for k,v in pairs(tbl) do
+    if u.isMetamethodName(k) then
+      mt[k] = v
+    else
+      not_mt[k] = v
+    end
+  end
+  return mt, not_mt
+end -- }}}
+function u.rejectMt(tbl) -- {{{
+  local res = {}
+  for k,v in pairs(tbl) do
+    if not u.isMetamethodName(k) then
+      res[k] = v
+    end
+  end
+  return res
+end -- }}}
+function u.extend_mt(tbl, additional_mt) -- {{{
+  for k,v in pairs(additional_mt) do
+    if k ~= '__index' then -- only want to copy class metamethods OTHER than index
+      getmetatable(tbl)[k] = v
+    end
+  end
+
+  return tbl
 end -- }}}
 
 return u
