@@ -1,5 +1,3 @@
-local u = require 'stackline.lib.utils'
-
 local Stack = {}
 
 function Stack:new(stackedWindows) -- {{{
