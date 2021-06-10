@@ -2,20 +2,6 @@
 local log = hs.logger.new('utils', 'info')
 log.i('Loading module: utils')
 
---[[ REFERENCE:
-      - https://github.com/CommandPost/CommandPost/blob/develop/src/extensions/cp/tools/init.lua
-]]
-
-local function length(x) -- {{{
-    if type(x)~='table' then return #x end
-    if next(x)==nil then return 0 end
-    local count = 0
-    for _ in pairs(x) do
-        count = count + 1
-    end
-    return count
-end -- }}}
-
 -- === Extend builtins ===
 function string:split(p) -- {{{
     -- Splits the string [s] into substrings wherever pattern [p] occurs.
@@ -52,68 +38,6 @@ function string:trim() -- {{{
         :gsub('%s+$', '') -- trim trailing whitespace
 end -- }}}
 
--- === interpolate === {{{
--- FROM: https://github.com/CommandPost/CommandPost/blob/develop/src/extensions/cp/interpolate.lua
--- Provides a function that will interpolate values into a string.
--- It also augments the standard `string` to override the "mod" (`%`) operator so that
--- any string can be easily interpolated, like so:
---    "Hello ${world}" % { world = "Earth" }
-
--- Can also format how numbers are displayed:
---    "Hello ${world:04d}", { world = 512 }
-local TOKEN_PATTERN = "(%$%b{})"
-local KEY_PATTERN = "^%$%{(%a%w*)%}$"
-local KEY_FORMAT_PATTERN = "^%$%{(%a%w*)[:]([-0-9%.]*[cdeEfgGiouxXsq])%}$"
-
-local function interpolate(s, values)
-    return (s:gsub(TOKEN_PATTERN,
-        function(token)
-            local key, fmt = token:match(KEY_PATTERN), "s"
-            print(key, fmt)
-            -- if not key then
-                key, fmt = token:match(KEY_FORMAT_PATTERN)
-                print(key, fmt)
-            -- end
-
-            if not key then
-                error("Invalid replacement token: " .. token)
-            end
-
-            local value = values[key]
-            return ("%" .. fmt):format(value)
-        end
-    ))
-end
-
-getmetatable("").__mod = interpolate
--- }}}
-
-table.rawinsert = table.insert -- Store the OG fn just in case
-
-table.insert = function(tbl, key, val) -- luacheck: ignore 122 {{{
-    if (tbl==nil) then return {} end -- bail right away if tbl is nil
-
-    local insert      = table.rawinsert -- luacheck: ignore 143
-    local no_val      = val==nil
-    local numeric_key = type(key)=='number'
-    local is_array    = type(tbl)=='table' and tbl[1]~=nil and tbl[length(tbl)]~=nil
-
-    if no_val then
-        val = key      -- We must only have *two* args,so val is actually *key*
-        key = #tbl + 1 -- set a sequntial numeric key to append to array-like tbl
-    end
-
-    if is_array or numeric_key then
-        key = (key < 0) and (#tbl+2+key) or key -- table.insert(x,0,'val') -> insert last
-        key = math.min(key, #tbl+1)             -- handle key that's out of bounds
-        insert(tbl, key, val)                   -- insert via OG table.insert
-    else
-        tbl[key] = val
-    end
-
-    return tbl -- unlike OG table.insert, you get the table back
-end -- }}}
-
 function table.slice(t, from, to) -- {{{
     -- Returns a partial table sliced from t, equivalent to t[x:y] in certain languages.
     -- Negative indices will be used to access the table from the other end.
@@ -140,9 +64,7 @@ function table.slice(t, from, to) -- {{{
 end -- }}}
 
 -- === utils module ===
-_G.u = {} -- access utils under global 'u'
-
-u.length = length
+local u = {}
 
 -- Alias hs.fnutils methods
 u.map          = hs.fnutils.map
@@ -155,10 +77,18 @@ u.concat       = hs.fnutils.concat
 u.copy         = hs.fnutils.copy
 u.sortByKeys   = hs.fnutils.sortByKeys
 u.sortByValues = hs.fnutils.sortByKeyValues
-
 u.any          = hs.fnutils.some -- alias 'some()' as 'any()'
 u.all          = hs.fnutils.every -- alias 'every()' as 'all()'
 u.none         = function(t, fn) return u.any(t, fn)==false end
+
+function u.length(t) -- {{{
+    if type(t)~='table' then return 0 end
+    local count = 0
+    for _ in next, t do
+        count = count + 1
+    end
+    return count
+end -- }}}
 
 function u.reverse(tbl) -- {{{
     -- Reverses values in a given array. The passed-in array should not be sparse.

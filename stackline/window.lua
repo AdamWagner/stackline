@@ -1,4 +1,3 @@
-local u = require 'stackline.lib.utils'
 local log   = hs.logger.new('window', 'info')
 log.i('Loading module: window')
 
