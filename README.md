@@ -13,6 +13,7 @@
 
 2021-06-06: Fixes & cleanup (`v0.1.61`)
 
+- Fixed: offset indicators when menubar is not hidden (#80)
 - Fixed: Icons don't change when toggling showIcons (#68)
 - Fixed: Failure to parse json output from `yabai` that contains `inf` values (might fix #46)
 - Removed external dependency on `jq`
