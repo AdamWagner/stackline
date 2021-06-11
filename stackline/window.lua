@@ -227,7 +227,7 @@ function Window:getIndicatorPosition() -- {{{
     -- & right edge of windows on the right side of the screen
     local xval
     local c = self.config
-    self.screenFrame = self.screen:frame()
+    self.screenFrame = self.screen:fullFrame()
     self.side = self:getScreenSide()
 
     -- DONE: Limit stack left/right side to screen boundary to prevent drawing offscreen https://github.com/AdamWagner/stackline/issues/21
