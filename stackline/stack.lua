@@ -65,16 +65,36 @@ function Stack:deleteAllIndicators() -- {{{
    end)
 end -- }}}
 
-function Stack:getWindowByPoint(point) -- {{{
-   local foundWin = u.filter(self.windows, function(w)
-       local frame = w.indicator and w.indicator:canvasElements()[1].frame
-       if not frame then return false end
-       return point:inside(frame) -- NOTE: frame *must* be a hs.geometry.rect instance
-   end)
+function Stack:getWindowByPoint(p)
+   if p.x < 0 or p.y < 0 then
+      -- FIX: https://github.com/AdamWagner/stackline/issues/62
+      -- NOTE: Window indicator frame coordinates are relative to the window's screen.
+      -- So, if click point has negative X or Y vals, then convert its coordinates
+      -- to relative to the clicked screen before comparing to window indicator frames.
+      -- TODO: Clean this up after fix is confirmed
 
-   if #foundWin > 0 then
-       return foundWin[1]
+      -- Get the screen with frame that contains point 'p'
+      local function findClickedScreen(_p) -- {{{
+         return table.unpack(
+            u.filter(hs.screen.allScreens(), function(s)
+               return _p:inside(s:frame())
+            end)
+         )
+      end -- }}}
+
+      local clickedScren = findClickedScreen(p)
+      p = clickedScren
+         and clickedScren:absoluteToLocal(p)
+         or p
    end
+
+   return table.unpack(
+         u.filter(self.windows, function(w)
+          local indicatorFrame = w.indicator and w.indicator:canvasElements()[1].frame
+          if not indicatorFrame then return false end
+          return p:inside(indicatorFrame) -- NOTE: frame *must* be a hs.geometry.rect instance
+      end)
+   )
 end
 
 return Stack
