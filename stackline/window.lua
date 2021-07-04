@@ -25,6 +25,21 @@ function Window:new(hsWin) -- {{{
     return ws
 end -- }}}
 
+function Window:setStack(stack) -- {{{
+   self.stack = stack
+   return self
+end -- }}}
+
+function Window:setOtherAppWindows(appWins) --[[ {{{
+   win.otherAppWindows needed to workaround Hammerspoon issue #2400
+   Exclude self & windows from other screens ]]
+   self.otherAppWindows = u.filter(
+      appWins[self.app],
+      function(w) return (w.id ~= self.id) and (w.screen == self.screen) end
+   )
+   return self
+end -- }}}
+
 function Window:isFocused() -- {{{
     local focusedWin = hs.window.focusedWindow()
     if focusedWin == nil then

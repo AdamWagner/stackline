@@ -17,6 +17,16 @@ function Stackmanager:update(opts) -- {{{
     return self
 end -- }}}
 
+function Stackmanager:ingest(stacks, appWins, shouldRefresh) -- {{{
+    if shouldRefresh then self:cleanup() end
+    for _, s in pairs(stacks) do
+        table.insert(self.stacks,
+            Stack:new(s):setupWindows(appWins)
+        )
+        self:resetAllIndicators()
+    end
+end -- }}}
+
 function Stackmanager:ingest(stacks, appWins, shouldClean) -- {{{
     if shouldClean then self:cleanup() end
 

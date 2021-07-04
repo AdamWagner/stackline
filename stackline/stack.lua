@@ -9,6 +9,14 @@ function Stack:new(stackedWindows) -- {{{
     return stack
 end -- }}}
 
+function Stack:setupWindows(appWins) -- {{{
+  self:eachWin(function(win)
+    win:setStack(self)
+    win:setOtherAppWindows(appWins)
+  end)
+  return self
+end -- }}}
+
 function Stack:get() -- {{{
     return self.windows
 end -- }}}
