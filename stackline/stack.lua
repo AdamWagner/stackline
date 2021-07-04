@@ -73,13 +73,21 @@ function Stack:deleteAllIndicators() -- {{{
    end)
 end -- }}}
 
-function Stack:getWindowByPoint(p)
-   if p.x < 0 or p.y < 0 then
+function Stack:getWindowByPoint(p) -- {{{
+
+   local function ensureRelativeClickPoint(clickPoint) -- {{{
+      local function isNotRelative(_clickPoint)
+         return _clickPoint.x < 0 or _clickPoint.y < 0
+      end
+
+      if not isNotRelative(clickPoint) then
+         return clickPoint -- as is
+      end
+
       -- FIX: https://github.com/AdamWagner/stackline/issues/62
       -- NOTE: Window indicator frame coordinates are relative to the window's screen.
       -- So, if click point has negative X or Y vals, then convert its coordinates
       -- to relative to the clicked screen before comparing to window indicator frames.
-      -- TODO: Clean this up after fix is confirmed
 
       -- Get the screen with frame that contains point 'p'
       local function findClickedScreen(_p) -- {{{
@@ -90,19 +98,23 @@ function Stack:getWindowByPoint(p)
          )
       end -- }}}
 
-      local clickedScren = findClickedScreen(p)
-      p = clickedScren
-         and clickedScren:absoluteToLocal(p)
-         or p
-   end
+      local clickedScren = findClickedScreen(clickPoint)
 
-   return table.unpack(
-         u.filter(self.windows, function(w)
-          local indicatorFrame = w.indicator and w.indicator:canvasElements()[1].frame
-          if not indicatorFrame then return false end
-          return p:inside(indicatorFrame) -- NOTE: frame *must* be a hs.geometry.rect instance
-      end)
-   )
-end
+      return clickedScren
+         and clickedScren:absoluteToLocal(clickPoint)
+         or clickPoint
+   end -- }}}
+
+   local windowsContainingClickPoint = u.filter(self.windows, function(w)
+      return w:indicatorEnclosesPoint( ensureRelativeClickPoint(p) )
+   end)
+
+   -- Unwrap the filtered list of windows containing click point before returning
+   -- (we want the *result*, not a list of windows)
+   -- This could technically return multiple windows, but there *should* only
+   -- be one window, and additional retvals will be discarded by the caller
+   -- anyway.
+   return table.unpack(windowsContainingClickPoint)
+end -- }}}
 
 return Stack

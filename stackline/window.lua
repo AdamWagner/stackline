@@ -53,6 +53,13 @@ function Window:isStackFocused() -- {{{
     return self.stack:anyFocused()
 end -- }}}
 
+function Window:indicatorEnclosesPoint(point)
+   -- NOTE: frame *must* be a hs.geometry.rect instance
+   local indicatorFrame = self.indicator and self.indicator:canvasElements()[1].frame
+   if not indicatorFrame then return false end
+   return point:inside(indicatorFrame) -- NOTE: frame *must* be a hs.geometry.rect instance
+end
+
 function Window:setupIndicator() -- {{{
     log.d('setupIndicator for', self.id)
     self.config = stackline.config:get('appearance')
