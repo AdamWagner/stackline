@@ -1,16 +1,18 @@
--- luacheck: globals table.merge
 -- luacheck: globals u
 -- luacheck: ignore 112
-local wf    = hs.window.filter
+hs.logger.historySize(500) -- save 500 log lines to history
+
 local timer = hs.timer.delayed
 local log   = hs.logger.new('stackline', 'info')
-local click = hs.eventtap.event.types['leftMouseDown'] -- fyi, print hs.eventtap.event.types to see all event types
+local click = hs.eventtap.event.types['leftMouseDown'] -- fyi, print `hs.eventtap.event.types` to see all event types
 
-log.i'Loading module: stackline'
+log.i 'Loading module: stackline'
+
 _G.u = require 'lib.utils'
-_G.stackline = {} -- access stackline under global 'stackline'
-stackline.config = require'stackline.configmanager'
-stackline.window = require'stackline.window'
+
+stackline = {} -- access stackline under global 'stackline'
+stackline.config = require 'stackline.configmanager'
+stackline.window = require 'stackline.window'
 
 function stackline:init(userConfig) -- {{{
     log.i'Initializing stackline'
@@ -24,128 +26,91 @@ function stackline:init(userConfig) -- {{{
     -- init stackmanager, & run update right away
     -- NOTE: Requires self.config to be initialized first
     self.manager = require'stackline.stackmanager':init()
-    self.manager:update({forceRedraw=true})
+    self.manager.query.run({forceRedraw=true})
 
     -- Reuseable update fn that runs at most once every maxRefreshRate (default 0.3s)
     -- NOTE: yabai is only called if query.shouldRestack() returns true (see ./stackline/query.lua:104)
     self.queryWindowState = timer.new(
       self.config:get'advanced.maxRefreshRate',
       function()
-         self.manager:update({forceRedraw=self.forceRedraw})
+         self.manager.query.run({forceRedraw=self.forceRedraw})
          if(self.forceRedraw) then self.forceRedraw = false end
       end,
       true -- continue on error
    )
 
-    self:setupListeners()
-
     self:setupClickTracker()
     return self
 end -- }}}
 
-stackline.wf = wf.new():setOverrideFilter{ -- {{{
-    -- Default window filter controls what hs.window 'sees'
-    visible = true, -- i.e., neither hidden nor minimized
-    fullscreen = false,
-    currentSpace = true,
-    allowRoles = 'AXStandardWindow',
-} -- }}}
+function stackline:setupClickTracker() --[[ {{{
+    Listen for left mouse click events
+    If indicator containing the clickAt position can be found, focus that indicator's window
+    SEE: https://github.com/Hammerspoon/hammerspoon/issues/2425
+    --------
+    To debug live mouse location:
+        hs.eventtap.new(
+            { hs.eventtap.event.types.mouseMoved }, 
+            function(event)
+                u.p(event)
+                u.p(event:location())
+            end
+        ):start()
+    ]]
 
-stackline.events = { -- {{{
-    checkOn = {
-        wf.windowCreated,
-        wf.windowUnhidden,
+    -- local function initialize()
+    --     internalData.watcher = hs.eventtap.new({
+    --         hs.eventtap.event.types.leftMouseDown,
+    --         hs.eventtap.event.types.leftMouseUp,
+    --         hs.eventtap.event.types.leftMouseDragged
+    --     },dragDropEvent)
+    -- end
+    -- local moved = hs.eventtap.event.types.mouseMoved
 
-        wf.windowMoved,   -- NOTE: winMoved includes move AND resize evts
-        wf.windowUnminimized,
+    -- -- self.clickTracker = hs.eventtap.new({click, moved}, function(e)
+    -- self.clickTracker = hs.eventtap.new({click, moved}, function(e)
+    --     local evt = e:getType()
+    --     local clickAt = hs.geometry.point(e:location().x, e:location().y)
 
-        wf.windowFullscreened,
-        wf.windowUnfullscreened,
+    --     if evt ~= click then 
+    --         u.p(clickAt)
+    --         return false
+    --     end
 
-        wf.windowDestroyed,
-        wf.windowHidden,
-        wf.windowMinimized,
-        wf.windowsChanged,   -- NOTE: pseudo-event for any change in list of windows. Addresses missing windowCreated events :/
-    },
-    forceCheckOn = {
-        wf.windowCreated,
-        wf.windowsChanged,
-        wf.windowMoved,
-    },
-    redrawOn = {
-        wf.windowFocused,
-        wf.windowNotVisible,
-        wf.windowUnfocused,
-    }
-} -- }}}
+    --     local clickedWin = self.manager:getClickedWindow(clickAt)
 
-function stackline:setupListeners() -- {{{
-    -- On each win evt above, run update at most once every maxRefreshRate (defaults to 0.3s))
-    -- update = query window state & check if redraw needed
-    self.wf:subscribe(self.events.checkOn, function(_win, _app, evt)
-        self.forceRedraw = u.contains( -- forceRedraw depending on the type of event
-            self.events.forceCheckOn,
-            evt
-        )
+    --     if clickedWin then
+    --         log.i('Clicked window at', clickAt)
+    --         clickedWin._win:focus()
+    --         return true   -- stop propogation
+    --     end
+    -- end)
 
-        log.i('Window event:', evt, 'force:', self.forceRedraw)
-        self.queryWindowState:start()
-    end)
-
-    -- On each win evt listed, simply *redraw* indicators
-    -- No need for heavyweight query + refresh
-    self.wf:subscribe(
-        self.events.redrawOn,
-        self.redrawWinIndicator
-    )
-end -- }}}
-
-function stackline:setupClickTracker() -- {{{
-      -- Listen for left mouse click events
-      -- If indicator containing the clickAt position can be found, focus that indicator's window
-    self.clickTracker = hs.eventtap.new({click}, function(e)
-        local clickAt = hs.geometry.point(e:location().x, e:location().y)
-        local clickedWin = self.manager:getClickedWindow(clickAt)
-        if clickedWin then
-            log.i('Clicked window at', clickAt)
-            clickedWin._win:focus()
-            return true   -- stop propogation
-        end
-    end)
-
-    -- Activate clickToFocus if feature turned on
-    if self.config:get'features.clickToFocus' then
-        log.i'ClickTracker starting'
-        self.clickTracker:start()
-    end
+    -- -- Activate clickToFocus if feature turned on
+    -- if self.config:get'features.clickToFocus' then
+    --     log.i'ClickTracker starting'
+    --     self.clickTracker:start()
+    -- end
 end -- }}}
 
 function stackline:refreshClickTracker() -- {{{
-    self.clickTracker:stop()                         -- always stop if running
+    self.clickTracker:stop() -- always stop if running
     if self.config:get'features.clickToFocus' then -- only start if feature is enabled
         log.i'features.clickToFocus is enabled — starting clickTracker for current space'
         self.clickTracker:start()
     end
 end -- }}}
 
-function stackline.redrawWinIndicator(hsWin, _app, _evt) -- {{{
-    --[[ Dedicated redraw method to *adjust* the existing canvas element is WAY
-       faster than deleting the entire indicator & rebuilding it from scratch,
-       particularly since this skips querying the app icon & building the icon image.
-    ]]
-    local stackedWin = stackline.manager:findWindow(hsWin:id())
-    if not stackedWin then return end -- if non-existent, the focused win is not stacked
-    stackedWin:redrawIndicator()
-end -- }}}
-
 function stackline:setLogLevel(lvl) -- {{{
     log.setLogLevel(lvl)
-    log.i( ('Window.log level set to %s'):format(lvl) )
+    self.window:setLogLevel(lvl)
+    self.manager:setLogLevel(lvl)
+    log.i( ('stackline log level set to %s'):format(lvl) )
 end -- }}}
 
 stackline.spaceWatcher = hs.spaces.watcher.new( -- {{{
     function(spaceIdx)
-        -- QUESTION: do I need to clean this up? If so, how?
+        -- QUESTION: do I need to clean up (i.e., manuallygarbage collect) this watcher? If so, how?
         -- Update stackline when switching spaces
         -- NOTE: hs.spaces.watcher uses deprecated macos APIs, so this may break in an upcoming macos release
         log.i(('hs.spaces.watcher -> changed to space %d'):format(spaceIdx))

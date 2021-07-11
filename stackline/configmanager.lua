@@ -60,13 +60,13 @@ local defaultOnChangeEvt = { -- {{{
 Config.events = setmetatable({ -- {{{
     -- Map stackline actions to config keys
     -- If config key changes, perform action
-    appearance = function() stackline.manager:resetAllIndicators() end,
+    appearance = function() stackline.manager:eachWin('resetIndicator') end,
     features = {
         clickToFocus      = function() return stackline:refreshClickTracker() end,
         maxRefreshRate    = nil,
         hsBugWorkaround   = nil,
-        winTitles         = nil,
-        dynamicLuminosity = nil,
+        winTitles         = function() log.w('"winTitles" not implemented') end,
+        dynamicLuminosity = function() log.w('"dynamicLuminosity" not implemented') end,
     },
     advanced = {
         maxRefreshRate = function() print('Needs implemented') end,
@@ -82,10 +82,10 @@ Config.schema = { -- {{{
         color             = 'color',
         alpha             = 'number',
         dimmer            = 'number',
-        iconDimmer        = 'number',
         showIcons         = 'boolean',
         size              = 'number',
         radius            = 'number',
+        iconRadius        = 'number',
         iconPadding       = 'number',
         pillThinness      = 'number',
 
@@ -159,7 +159,7 @@ function Config:validate(conf) -- {{{
 end -- }}}
 
 function Config:getOrSet(path, val) -- {{{
-   return (path and val)
+   return (path~=nil and val~=nil)
       and self:set(path, val)
       or self:get(path)
 end -- }}}
@@ -220,4 +220,6 @@ function Config:setLogLevel(lvl) -- {{{
     log.i( ('Window.log level set to %s'):format(lvl) )
 end -- }}}
 
-return Config
+Config.__call = Config.getOrSet
+
+return setmetatable(Config, Config)

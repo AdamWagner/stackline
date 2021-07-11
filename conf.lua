@@ -13,13 +13,14 @@ c.paths.yabai                         = '/usr/local/bin/yabai'
 -- Appearance
 c.appearance.color                    = { white = 0.90 }    -- Indicator background color, e.g., {red = 0.5, blue = 0 }
 c.appearance.alpha                    = 1                   -- Opacity of active indicators
-c.appearance.dimmer                   = 2.5                 -- Higher numbers increase contrast b/n focused & unfocused state
-c.appearance.iconDimmer               = 1.1                 -- Higher numbers dim inactive icons *less* than the non-icon indicators
-c.appearance.showIcons                = true                -- Window indicator style ('lozenge'-shaped when false)
+c.appearance.dimmer                   = 2.5                 -- Higher numbers dim inactive indicators *more*
 c.appearance.size                     = 32                  -- Size of window indicators (height when icons off)
-c.appearance.radius                   = 3                   -- Indicator roundness. Higher numbers → *less* roundness… I'm sorry
-c.appearance.iconPadding              = 4                   -- Space between icon & indicator edge. Higher numbers → smaller, more inset icons
+c.appearance.radius                   = 3                   -- Roundness of indicators when showIcons = false
 c.appearance.pillThinness             = 6                   -- Aspect ratio of pill-style icons (width = size / pillThinness)
+
+c.appearance.showIcons                = true                -- Window indicator style ('lozenge'-shaped when false)
+c.appearance.iconPadding              = 4                   -- Space between icon & indicator edge. Higher numbers → smaller, more inset icons
+c.appearance.iconRadius               = 10                  -- Roundness of indicators when showIcons = true
 
 c.appearance.vertSpacing              = 1.2                 -- Amount of vertical space between indicators
 

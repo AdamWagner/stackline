@@ -1,50 +1,63 @@
-local log   = hs.logger.new('stackmanager', 'info')
+local wf    = hs.window.filter
+local delay = hs.fnutils.partial(hs.timer.doAfter, 0.1)
+local Stack = require 'stackline.stack'
+local uiElement = require'stackline.modules.ui-element'
 
-local Stackmanager = {}
+local Stackmanager = uiElement:extend('Stackmanager')
+
+Stackmanager.__len = function(s) return #s.stacks end
+Stackmanager.showIcons = stackline.config:get('appearance.showIcons')
 
 Stackmanager.query = require 'stackline.stackline.query'
 
-function Stackmanager:init() -- {{{
+Stackmanager.wf = wf.new():setOverrideFilter{ -- Window filter ('wf') controls what hs.window 'sees'
+    visible = true, -- i.e., neither hidden nor minimized
+    fullscreen = false,
+    currentSpace = true,
+    allowRoles = 'AXStandardWindow',
+}
+
+Stackmanager.events = {}
+Stackmanager.events.create       = { wf.windowCreated, wf.windowInCurrentSpace, wf.windowUnhidden, wf.windowUnminimized }
+Stackmanager.events.moveOrResize = { wf.windowMoved --[[NOTE: includes move AND resize evts]] }
+Stackmanager.events.destroy      = { wf.windowDestroyed, wf.windowHidden, wf.windowMinimized }
+-- wf.windowFullscreened, wf.windowUnfullscreened,
+
+function Stackmanager:init()  -- {{{
     self.stacks = {}
-    self.showIcons = stackline.config:get('appearance.showIcons')
-    self.__index = self
+    self:setupListeners()
     return self
-end -- }}}
+end  -- }}}
 
-function Stackmanager:update(opts) -- {{{
-    log.i('Running update()')
-    self.query.run(opts) -- calls Stack:ingest when ready
-    return self
-end -- }}}
-
-function Stackmanager:ingest(stacks, appWins, shouldRefresh) -- {{{
+function Stackmanager:ingest(winGroups, shouldRefresh)  -- {{{
     if shouldRefresh then self:cleanup() end
-    for _, s in pairs(stacks) do
-        table.insert(self.stacks,
-            Stack:new(s):setupWindows(appWins)
+    for _, wins in pairs(winGroups) do
+        table.insert(
+            self.stacks,
+            Stack:new(wins):setupWindows()
         )
-        self:resetAllIndicators()
+    end
+end  -- }}}
+
+function Stackmanager:setupListeners() -- {{{
+    for group, events in pairs(Stackmanager.events) do
+        self:listen(events, group)
     end
 end -- }}}
 
-function Stackmanager:ingest(stacks, appWins, shouldClean) -- {{{
-    if shouldClean then self:cleanup() end
-
-    for stackId, groupedWindows in pairs(stacks) do
-        local stack = require 'stackline.stackline.stack':new(groupedWindows)
-        stack.id = stackId
-        u.each(stack.windows, function(win)
-            -- win.otherAppWindows needed to workaround Hammerspoon issue #2400
-            win.otherAppWindows = u.filter(appWins[win.app], function(w)
-                -- exclude self and other app windows from other others
-                return (w.id ~= win.id) and (w.screen == win.screen)
-            end)
-            -- TODO: fix error with nil stack field (??): window.lua:32: attempt to index a nil value (field 'stack')
-            win.stack = stack -- enables calling stack methods from window
+function Stackmanager:onCreate(hswin, _app, evt) -- {{{
+    -- If new window belongs to an existing stack, *insert* window into stack instead of reloading everything
+    -- Delay allows window's size & position to stabilize
+    delay(function()
+        local w = stackline.window:new(hswin)
+        self:eachStack(function(s)
+            if s == w then s:push(w) end
         end)
-        table.insert(self.stacks, stack)
-        self:resetAllIndicators()
-    end
+    end)
+end -- }}}
+
+function Stackmanager:onMoveOrResize(hswin, _app, evt) -- {{{
+    -- Only redraw if the indicatorAnchor has changed
 end -- }}}
 
 function Stackmanager:get() -- {{{
@@ -52,15 +65,30 @@ function Stackmanager:get() -- {{{
 end -- }}}
 
 function Stackmanager:eachStack(fn) -- {{{
-    for _stackId, stack in pairs(self.stacks) do
-        fn(stack)
+    for _, stack in pairs(self.stacks) do
+        return fn(stack)
+    end
+end -- }}}
+
+function Stackmanager:eachWin(fn) -- {{{
+    for _, stack in pairs(self.stacks) do
+        stack:eachWin(fn)
+    end
+end -- }}}
+
+function Stackmanager:findWindow(wid) -- {{{ A window must be *in* a stack to be found with this method!
+    for _, stack in ipairs(self.stacks) do
+        return stack:findWindow(wid)
     end
 end -- }}}
 
 function Stackmanager:cleanup() -- {{{
-    self:eachStack(function(stack)
-        stack:deleteAllIndicators()
+    self:eachWin(function(w)
+        u.p(w)
+        w.indicator:delete()
     end)
+
+    self:eachWin('unlisten')
     self.stacks = {}
 end -- }}}
 
@@ -68,6 +96,8 @@ function Stackmanager:getSummary(external) -- {{{
     -- Summarizes all stacks on the current space, making it easy to determine
     -- what needs to be updated (if anything)
     local stacks = external or self.stacks
+    -- u.pheader('getSummary | external = ' .. tostring(external~=nil) .. ' num stacks = ' .. #stacks)
+    -- u.p(stacks)
     return {
         numStacks = #stacks,
         topLeft = u.map(stacks, function(s)
@@ -86,51 +116,15 @@ function Stackmanager:getSummary(external) -- {{{
 end -- }}}
 
 function Stackmanager:resetAllIndicators() -- {{{
-    self:eachStack(function(stack)
-        stack:resetAllIndicators()
-    end)
+    self:eachWin('resetIndicator')
 end -- }}}
 
-function Stackmanager:findWindow(wid) -- {{{
-    -- NOTE: A window must be *in* a stack to be found with this method!
-    for _stackId, stack in pairs(self.stacks) do
-        for _idx, win in pairs(stack.windows) do
-            if win.id == wid then
-                return win
-            end
-        end
+function Stackmanager:getClickedWindow(point) --[[ {{{
+    Given the coordinates of a mouse click, return the first window whose
+    indicator element encompasses the point, or nil if none. ]]
+    for _, stack in pairs(self.stacks) do
+        return stack:getWindowByPoint(point)
     end
-end -- }}}
-
-function Stackmanager:findStackByWindow(win) -- {{{
-    -- NOTE: may not need when Hammerspoon #2400 is closed
-    -- NOTE 2: Currently unused, since reference to "otherAppWindows" is sstored
-    -- directly on each window. Likely to be useful, tho, so keeping it around.
-    for _stackId, stack in pairs(self.stacks) do
-        if stack.id == win.stackId then
-            return stack
-        end
-    end
-end -- }}}
-
-function Stackmanager:getShowIconsState() -- {{{
-    return self.showIcons
-end -- }}}
-
-function Stackmanager:getClickedWindow(point) -- {{{
-    -- given the coordinates of a mouse click, return the first window whose
-    -- indicator element encompasses the point, or nil if none.    
-    for _stackId, stack in pairs(self.stacks) do
-        local clickedWindow = stack:getWindowByPoint(point)
-        if clickedWindow then
-            return clickedWindow
-        end
-    end
-end -- }}}
-
-function Stackmanager:setLogLevel(lvl) -- {{{
-    log.setLogLevel(lvl)
-    log.i( ('Window.log level set to %s'):format(lvl) )
 end -- }}}
 
 return Stackmanager
