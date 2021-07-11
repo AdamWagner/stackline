@@ -84,7 +84,6 @@ end -- }}}
 
 function Stackmanager:cleanup() -- {{{
     self:eachWin(function(w)
-        u.p(w)
         w.indicator:delete()
     end)
 
@@ -96,8 +95,6 @@ function Stackmanager:getSummary(external) -- {{{
     -- Summarizes all stacks on the current space, making it easy to determine
     -- what needs to be updated (if anything)
     local stacks = external or self.stacks
-    -- u.pheader('getSummary | external = ' .. tostring(external~=nil) .. ' num stacks = ' .. #stacks)
-    -- u.p(stacks)
     return {
         numStacks = #stacks,
         topLeft = u.map(stacks, function(s)

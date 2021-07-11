@@ -2,6 +2,12 @@ local class = require 'lib.class'
 
 local UiElement = class('UiElement')
 
+function UiElement:init(...)
+    name = self.__name
+    self.log = hs.logger.new(name, 'info')
+    self.log.i(string.format('New Class: %s', name))
+end
+
 function UiElement:__eq(other, fuzz)-- {{{
     if (self==nil or other==nil)
         or (self.frame==nil or other.frame==nil) then 
@@ -29,15 +35,9 @@ end -- }}}
 
 UiElement.frameFzyEqual = __eq
 
-function UiElement:rawpairs()   
+function UiElement:rawpairs() -- {{{
     return u.rawpairs(self)
-end   
-
-function UiElement:onExtend(name, ...)
-    name = name or self.__name
-    self.log = hs.logger.new(name, 'info')
-    self.log.i(string.format('New Class: %s', name))
-end
+end -- }}}
 
 function UiElement:raw() -- {{{
     local c = {}

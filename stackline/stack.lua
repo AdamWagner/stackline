@@ -19,23 +19,22 @@ s:push({1,2,3,33,3,3})
 local uiElement = require'stackline.modules.ui-element'
 local Stack = uiElement:extend('Stack')
 
-function Stack:new(winGroup) 
-   self.id        = winGroup[1].stackId
+function Stack:new(winGroup)
    self.windows   = winGroup or {}
+   self.id        = self.windows.stackId
    self.frame     = function() return self.windows[1]:frame() end
    self.screen    = function() return self.windows[1]._win:screen() end
    self.focusHist = {}
 
    -- TODO: try setting a *region* on the stack's window filter to automatically pick up new windows added to stack!
-   self._wf = hs.window.filter.new(function(w) 
-        return u.contains(u.map(self.windows, 'id'), w:id()) 
+   self._wf = hs.window.filter.new(function(w)
+        return u.contains(u.map(self.windows, 'id'), w:id())
     end)
-end 
+end
 
-
-function Stack:__len() -- {{{
-   return #self.windows 
-end -- }}}
+function Stack:__len()
+   return #self.windows
+end
 
 function Stack:push(...) -- {{{
    table.insert(self.windows, ...)
@@ -57,7 +56,7 @@ end -- }}}
 
 function Stack:sort()
     local byStackIdx = function(a,b) return a.stackIdx < b.stackIdx end
-    self.windows = u.sort(self.windows, byStackIdx) 
+    self.windows = u.sort(self.windows, byStackIdx)
 end
 
 function Stack:setupWindows() -- {{{
@@ -85,7 +84,7 @@ function Stack:buildCanvas() -- {{{
       w = c.size,
       h = (#self * c.size * c.vertSpacing),
    }:appendElements({
-      action = "fill", 
+      action = "fill",
       type = "rectangle",
       fillColor = { alpha = 0.5, blue = 0.2 },
    }):show()
@@ -106,7 +105,7 @@ end -- }}}
 function Stack:eachWin(fn, ...) --[[ {{{
    Given a Window method name as string and optional varargs
    E.g., stack.eachWin('resetIndicator'), stack.eachWin('setup', aStack) ]]
-   for _idx, win in pairs(self.windows) do
+   for _, win in ipairs(self.windows) do
       if type(fn)=='function' then
          fn(win)
       else
