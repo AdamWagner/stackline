@@ -45,7 +45,7 @@ function UiElement:raw() -- {{{
     return c
 end -- }}}
 
--- function UiElement:__pairs(self) -- {{{ omit keys that start with underscore when iterating
+-- function UiElement:__pairs() -- {{{ omit keys that start with underscore when iterating
 --    return u.rawpairs(u.filterKeys(self, function(_, k) 
 --         return k:sub(1,1)~='_' 
 --     end))
@@ -93,37 +93,5 @@ function UiElement:setLogLevel(lvl) -- {{{
     self.log.i( ('stackline.indow log level set to %s'):format(lvl) )
 end -- }}}
 
---[[ 
-   2 retvals: module, metatable 
-
-   Build an instance of the UiElement base module for use enriching higher-level classes.
-   The consuming class typically extends itself with `UiElement`, and either
-   sets the UiElement's metatable outright, or extends its `self` with the
-   UiElement metatable before assigning to __index.outright, or extends its
-   `self` with the UiElement metatable before assigning to __index.
-
-   Example 1:
-         local UiElement, mt = require'stackline.modules.ui-element'('Window')
-         local Window = u.extend({}, mt)
-         Window.__index = u.extend(Window, UiElement)
-
-   Example 2:
-         local Stackmanager = u.extend({}, mt)
-         setmetatable(Stackmanager, {
-            __index = UiElement,
-            __len = function(s) return #s.stacks end
-         })
-
-]]
-
 return UiElement
--- return function(name)
---     UiElement.__name = name
---     UiElement.log = hs.logger.new(UiElement.__name, 'info')
---     UiElement.log.i('Loading module', name)
 
---     local metatable = {__eq=__eq, __pairs=__pairs}
-
---     return UiElement, metatable
---     return UiElement, metatable
--- end

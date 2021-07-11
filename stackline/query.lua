@@ -85,6 +85,7 @@ local function run(opts) --[[ {{{
 
         yabai('query --windows', function(yabaiRes)
             local winGroups = mergeYabaiOntoGroups(yabaiRes, listOfWinGroups)
+            _G.ws = winGroups
             sm:ingest(winGroups, spaceHasStacks) -- hand over to stackmanager
         end)
 

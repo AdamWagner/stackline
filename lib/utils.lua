@@ -202,7 +202,7 @@ function u.isfunc(x) -- {{{
 end -- }}}
 
 function u.isarray(x) -- {{{
-   if not (type(x)=='table') then return false end
+   if x==nil or type(x)~='table' then return false end
    local i = 0
    for k in pairs(x) do
       i = i + 1
@@ -401,7 +401,7 @@ function u.safeExtend(t1, t2) -- {{{
     if not type(t2)=='table' then return t1 end
     t1 = type(t1)=='table' and t1 or {}
     for k, v in pairs(t2 or {}) do
-        if t1[k]==nil then
+        if t1[k]==nil and v~=nil then
             t1[k] = v
         end
     end
