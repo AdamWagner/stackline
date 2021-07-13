@@ -122,7 +122,7 @@ function Config:getPathSchema(path) -- {{{
 end -- }}}
 
 function Config.generateValidator(schemaType) -- {{{
-    if u.istable(schemaType) then -- recursively build validator
+    if u.is.tbl(schemaType) then -- recursively build validator
         local children = u.map(schemaType, Config.generateValidator)
         log.d('validator children:\n', hs.inspect(children))
         return v.is_table(children)
@@ -168,7 +168,7 @@ function Config:get(path) -- {{{
     -- path is a dot-separated string, e.g., 'appearance.color'
     -- returns value at path or full config if path not provided
     if path==nil then return self.conf end
-    local val = u.getfield(path, self.conf)
+    local val = u.path.get(self.conf, path)
 
     if val==nil then
         return log.w( ('config.get("%s") not found'):format(path) )
@@ -196,7 +196,7 @@ function Config:set(path, val) -- {{{
         return self
     end
 
-    u.setfield(path, typedVal, self.conf)
+    u.path.set(self.conf, path, typedVal)
 
     local onChange = u.getfield(path, self.events, true)
     if u.isfunc(onChange) then onChange() end

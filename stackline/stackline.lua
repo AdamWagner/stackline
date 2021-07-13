@@ -8,7 +8,7 @@ local click = hs.eventtap.event.types['leftMouseDown'] -- fyi, print `hs.eventta
 
 log.i 'Loading module: stackline'
 
-_G.u = require 'lib.utils'
+_G.u = require 'stackline.lib.utils'
 
 stackline = {} -- access stackline under global 'stackline'
 stackline.config = require 'stackline.configmanager'

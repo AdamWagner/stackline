@@ -45,11 +45,11 @@ function UiElement:raw() -- {{{
     return c
 end -- }}}
 
--- function UiElement:__pairs() -- {{{ omit keys that start with underscore when iterating
---    return u.rawpairs(u.filterKeys(self, function(_, k) 
---         return k:sub(1,1)~='_' 
---     end))
--- end  -- }}}
+function UiElement:__pairs() -- {{{ omit keys that start with underscore when iterating
+   return u.rawpairs(u.filterKeys(self, function(_, k) 
+        return k:sub(1,1)~='_' 
+    end))
+end  -- }}}
 
 function UiElement:call(m)   -- {{{
     return u.partial(self[m], self)

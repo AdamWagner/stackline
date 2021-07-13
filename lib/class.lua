@@ -289,7 +289,7 @@ function Object:extend(...)
     end
 
     subclass.__index = subclass
-    subclass.__name = u.isstring(mixins[1]) and table.remove(mixins,1) or 'Anonymous Class'
+    subclass.__name = u.is.str(mixins[1]) and table.remove(mixins,1) or 'Anonymous Class'
 
     if self.init then self.init(subclass) end
 
@@ -307,7 +307,7 @@ end
 function Object:__newindex(k,v) --[[ {{{
     On attempt to assign a fn to "new", rename it to "__constructor"
     to be called from within the builtin "new" fn. ]]
-    if k=='new' and u.iscallable(v) then
+    if k=='new' and u.is.callable(v) then
         self._constructor = v
     else
         rawset(self, k, v)
@@ -389,6 +389,18 @@ function Object:use(...) --[[
   return self
 end
 
+function Object:is(class) -- {{{
+  if class == nil then return false end
+  classname = type(class)=='string' and class or class.__name
+
+  -- Short circuit on the common case for efficiency.
+  if classname == self.__name then return true end
+
+  return u(self:supers())
+    :map('__name')
+    :contains(classname)
+    :value()
+end -- }}}
 
 function Object:__call(...) -- {{{
     -- TODO: update `extend()` to accept input
