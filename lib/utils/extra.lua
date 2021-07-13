@@ -11,7 +11,7 @@ function M.inject(t, mt_index) --[[ {{{
     u.inject(x, {type = 'Person'})
   }}} ]]
 
-  assert(u.istable(mt_index), "u.inject(t, mtidx): invalid metatable: " .. tostring(mt_index))
+  assert(u.is.tbl(mt_index), "u.inject(t, mtidx): invalid metatable: " .. tostring(mt_index))
 
   -- This works b/c the metatable is being mutated below
   -- It's not necessary to setmetatable(t, mt) again afterward.
@@ -127,7 +127,7 @@ function M.task_cb(fn) -- wrap callback given to hs.task {{{
     local is_hstask = function(x) -- {{{
       return #x==3
         and tonumber(x[1])
-        and u.isstring(x[2])
+        and u.is.str(x[2])
     end -- }}}
 
     if is_hstask(out) then

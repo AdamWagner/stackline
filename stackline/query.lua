@@ -22,7 +22,7 @@ local function groupWindows(ws) -- {{{
         :value() 
 end -- }}}
 
-local function mergeYabaiOntoGroups(yabaiRes, listOfWinGroups) --[[ {{{
+function mergeYabaiOntoGroups(yabaiRes, listOfWinGroups) --[[ {{{
     Merge ['stack-index'] from yabai into window in `listOfWinGroups`
     @param yabaiRes: flat output from `yabai -m query --windows`. List of tables representing window data.
     @param listOfWinGroups: list of lists of <stackline.window> objects occupying the same position on screen
@@ -77,6 +77,7 @@ local function run(opts) --[[ {{{
     opts = opts or {}
     local sm = stackline.manager
     local listOfWinGroups = groupWindows(sm.wf:getWindows()) -- set listOfWinGroups & self.appWindows
+    _G.list = listOfWinGroups
     local spaceHasStacks  = sm:getSummary().numStacks > 0 -- Check if space has stacks...
     local shouldRefresh = spaceHasStacks and shouldRestack(listOfWinGroups) -- Don't even check on a space that doesn't have any stacks
 
@@ -85,6 +86,7 @@ local function run(opts) --[[ {{{
 
         yabai('query --windows', function(yabaiRes)
             local winGroups = mergeYabaiOntoGroups(yabaiRes, listOfWinGroups)
+            _G.yabaires = yabaiRes
             _G.ws = winGroups
             sm:ingest(winGroups, spaceHasStacks) -- hand over to stackmanager
         end)

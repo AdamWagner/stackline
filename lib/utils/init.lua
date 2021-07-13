@@ -23,7 +23,7 @@ local Chain = {
     return o
   end,
   tap = function(self, f)
-    if u.isarray(self.chained) then
+    if u.is.array(self.chained) then
       u.each(self.chained, f)
     else
       f(self.chained)

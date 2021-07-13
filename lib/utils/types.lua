@@ -23,9 +23,7 @@
 ]]
 
 local fn = hs.fnutils
-local u = {
-  keys = require 'lib.utils.core'.keys
-}
+local u =  require 'lib.utils.core' 
 
 local function primitive(typeName)
 	return function(value)

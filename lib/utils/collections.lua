@@ -28,7 +28,7 @@ M.all  = hs.fnutils.every -- alias 'every()' as 'all()'
 function M.sort(tbl, fn) -- {{{
   -- WANRING: Sorting mutates table
   fn = fn or function(x,y) return x < y end
-  if M.isarray(tbl) then
+  if u.is.array(tbl) then
     table.sort(tbl,fn)
   end
   return tbl

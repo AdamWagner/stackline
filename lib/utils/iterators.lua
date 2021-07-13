@@ -21,10 +21,6 @@ M.concat       = fnutils.concat
 M.sortByKeys   = fnutils.sortByKeys
 M.sortByValues = fnutils.sortByKeyValues
 
-function M.rawpairs(tbl)  -- {{{
-  return next, tbl, nil 
-end  -- }}}
-
 function M.each(t, f) -- Replaces hs.fnutils.each b/c: Passes key as 2nd param {{{
   if type(t)~='table' or type(f)~='function' then return t end
   for k, v in pairs(t) do
@@ -80,7 +76,7 @@ local function makeMapper(iter) --[[ {{{
 
   Adapted from: https://github.com/Yonaba/Moses/blob/master/moses.lua#L395
   }}} ]]
-  iter = iter or M.rawpairs -- default to 'rawpairs', but can be given custom iter
+  iter = iter or u.rawpairs -- default to 'rawpairs', but can be given custom iter
 
   return function(t, fn)
     t         = t or {}
@@ -147,7 +143,7 @@ end-- }}}
 
 function M.filterKeys(t, fn) -- {{{
   local matches = {}
-  for k, v in M.rawpairs(t or {}) do
+  for k, v in u.rawpairs(t or {}) do
     if fn(v, k) then matches[k] = v end
   end
   return matches

@@ -11,7 +11,7 @@ function M.methods(obj, ignoreMt) --[[ {{{
     methods = u.methods(w)
   ]]
   obj = obj or M
-  local res = filter(obj,u.isfunc)
+  local res = filter(obj, u.is.func)
 
   if ignoreMt then return res end
 

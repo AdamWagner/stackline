@@ -199,7 +199,7 @@ function Config:set(path, val) -- {{{
     u.path.set(self.conf, path, typedVal)
 
     local onChange = u.getfield(path, self.events, true)
-    if u.isfunc(onChange) then onChange() end
+    if u.is.func(onChange) then onChange() end
 
     return self, val
 end -- }}}

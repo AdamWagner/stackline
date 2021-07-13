@@ -2,6 +2,10 @@ local M = {}
 
 M.identity = function(val) return val end
 
+function M.rawpairs(tbl)  -- {{{
+  return next, tbl, nil 
+end  -- }}}
+
 function M.roundToNearest(roundTo, numToRound) -- {{{
     return numToRound - numToRound % roundTo
 end -- }}}
