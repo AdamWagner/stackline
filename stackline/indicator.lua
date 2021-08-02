@@ -22,25 +22,29 @@ w:destroy()
 -- * Manual action -> Click on another stack * --
  }}} ]]
 
-local pos = require 'stackline.position'
+local pos = require 'modules.position'
 
-local uiElement = require'stackline.modules.ui-element'
-local Indicator = uiElement:extend('Indicator')
+local uiElement = require'classes.UiElement'
+local Indicator = uiElement:subclass('Indicator')
 
-function Indicator:new(win)
+function Indicator:new(win)-- {{{
    local hswin = win._win
    self.log.i( ('Indicator:new(%s)'):format(hswin:id()) )
 
+   -- u.header('indicator self')
+   -- u.p(self)
+
    self._config = stackline.config:get('appearance')
-   self._screen = hswin:screen()
-   self._win    = win
+   self._screen = win._screen
+   self._winbackref    = win
    self._stack  = win._stack
    self.rectIdx = 1 -- Store  canvas elements indexes to reference via :elementAttribute()
    self.iconIdx = 2 -- hammerspoon.org/docs/hs.canvas.html#elementAttribute
    self.canvas  = nil -- Will become an hs.canvas instance of type <userdata>
-end
+   return self
+end-- }}}
 
-function Indicator:setup()
+function Indicator:setup()-- {{{
    self.log.d('setupIndicator for', self.id)
    local c = self._config
 
@@ -50,7 +54,7 @@ function Indicator:setup()
 
    self._canvas_rect = {
       x = 0,
-      y = c.size * (self._win.stackIdx - 1) * c.vertSpacing,
+      y = c.size * (self._winbackref.stackIdx - 1) * c.vertSpacing,
       w = self.width,
       h = c.size,
    }
@@ -62,11 +66,11 @@ function Indicator:setup()
       h = self._canvas_rect.h - (c.iconPadding * 2),
    }
    return self
-end
+end-- }}}
 
-function Indicator:getCanvas()
-   -- TODO: Check that self._win:frame() does the abs-to-local conversion here ↓
-   -- self.frame = self._screen:absoluteToLocal(hs.geometry(self._win._win:frame())) -- Set canvas to fill entire screen
+function Indicator:getCanvas()-- {{{
+   -- TODO: Check that self._winbackref:frame() does the abs-to-local conversion here ↓
+   -- self.frame = self._screen:absoluteToLocal(hs.geometry(self._winbackref._winbackref:frame())) -- Set canvas to fill entire screen
    local function check()
       if self.canvas:canvasElements()[1] then
          return self.canvas
@@ -75,9 +79,9 @@ function Indicator:getCanvas()
    local ok, cframe = pcall(check)
    if not ok then return false end
    return ok, cframe
-end
+end-- }}}
 
-function Indicator:redraw() --[[
+function Indicator:redraw() --[[ {{{
    Redraw with fresh styles based on current focus state of win & stack.
    ]]
    if not self:getCanvas() then
@@ -94,14 +98,14 @@ function Indicator:redraw() --[[
       local icon = self.canvas[self.iconIdx]
       icon.imageAlpha = styles.img
    end
-end
+end-- }}}
 
-function Indicator:draw()
-   self.log.i('win.indicator.draw() for', self._win.id)
+function Indicator:draw()-- {{{
+   self.log.i('win.indicator.draw() for', self._winbackref.id)
    local c = self._config
 
    if self:getCanvas() then -- if canvas exists, abort :draw()
-      self.log.w('Window:drawIndicator() -- Indicator already exists on win #', self._win.id)
+      self.log.w('Window:drawIndicator() -- Indicator already exists on win #', self._winbackref.id)
       return self
    end
 
@@ -118,17 +122,17 @@ function Indicator:draw()
    self.canvas:clickActivating(false)
    self.canvas:show(c.shouldFade and c.fadeDuration or 0)
    return self
-end
+end-- }}}
 
 function Indicator:getPosition() --[[ {{{ 
     Display indicators on the: 
        * left edge of windows when stack is on the left side of the screen
        * right edge of windows when stack is on the right side of the screen ]]
-   local w = self._win
+   local w = self._winbackref
 
    -- REVIEW: `getPosition()` may actually make more sense as a member of Indicator? 
    -- We're passing a lot of state to the non-method helper fn...
-   return pos.getPosition(w:frame(), w.stackIdx, w:_screen(), w._config)
+   return pos.getPosition(w:frame(), w.stackIdx, w._screen, w._config)
 
    --[=[
    local function getX() 
@@ -142,12 +146,12 @@ function Indicator:getPosition() --[[ {{{
          return math.max(xval, 0)
       end
 
-      local side = self._win:getScreenSide()
+      local side = self._winbackref:getScreenSide()
       local xoffset = self._config.offset.x
       local xoffsetSign = side == 'left' and -1 or 1 -- Add or subtract offset depending on window's 'side'
       local widthSign = side == 'left' and -1 or 0 -- Subtract indicator width when shown on left edge. Do nothing if shown on right edge.
 
-      local xval = self._win:getIndicatorAnchor().x
+      local xval = self._winbackref:getIndicatorAnchor().x
          + (xoffsetSign * xoffset)
          + (widthSign * self.width)
 
@@ -158,8 +162,8 @@ function Indicator:getPosition() --[[ {{{
       NOTE: self._stackIdx comes from yabai. Indicator is stacked if stackIdx > 0
       vertCascade example: `stackIdx=1` at top & `stackIdx=len(stack)` at bottom
       Increase `config.vertSpacing` to add more vertical space between indicators ]]
-      local vertCascade = self._config.vertSpacing * self._config.size * (self._win.stackIdx - 1)
-      return self._win:frame().y + self._config.offset.y + vertCascade
+      local vertCascade = self._config.vertSpacing * self._config.size * (self._winbackref.stackIdx - 1)
+      return self._winbackref:frame().y + self._config.offset.y + vertCascade
    end 
 
    return getX(), getY()
@@ -190,7 +194,7 @@ function Indicator:buildIcon() -- {{{
 end -- }}}
 
 function Indicator:getStyle() -- {{{
-   local c, w = self._config, self._win
+   local c, w = self._config, self._winbackref
    local bg, img = c.alpha, c.alpha
    local iconDimmer = c.dimmer / 2 -- dim inactive icons less than indicator BGs are dimmed
 
@@ -203,14 +207,14 @@ function Indicator:getStyle() -- {{{
    end)
 
    return {
-      bg = u.extend(c.color, {alpha = bg}), -- color obj, e.g., {alpha=0.4, white=0.9, red=0, blue=0, green=0}
+      bg = u.assign(c.color, {alpha = bg}), -- color obj, e.g., {alpha=0.4, white=0.9, red=0, blue=0, green=0}
       img = img,                            -- alpha float, e.g., 0.45
    }
 end -- }}}
 
 function Indicator:getShadowAttrs() -- {{{
   local iconsDisabledDimmer = self._config.showIcons and 1 or 5 -- less opaque & blurry when iconsDisabled
-  local focus = self._win:isFocused()                           -- ...and even less opaque & blurry when unfocused
+  local focus = self._winbackref:isFocused()                           -- ...and even less opaque & blurry when unfocused
   local alphaDimmer = (focus and 6 or 7) * iconsDisabledDimmer
   local blurDimmer = (focus and 15.0 or 7.0) / iconsDisabledDimmer
 
@@ -225,7 +229,7 @@ function Indicator:getShadowAttrs() -- {{{
   -- TODO [just for fun]: Dust off an old Geometry textbook and try get the shadow's angle to rotate around a point at the center of the screen (aka, 'light source')
   -- Here's a super crude POC that uses the indicator's stack index such that
   -- higher indicators have a negative Y offset and lower indicators have a positive Y offset
-  --   h = (self._win.focus and 3.0 or 2.0 - (2 + (self._stackIdx * 5))) * -1.0,
+  --   h = (self._winbackref.focus and 3.0 or 2.0 - (2 + (self._stackIdx * 5))) * -1.0,
   return {
     blurRadius = blurDimmer,
     color = {alpha = 1 / alphaDimmer}, -- TODO align all alpha values to be defined like this (1/X)
@@ -235,29 +239,29 @@ end -- }}}
 
 function Indicator:iconFromAppName() -- {{{
     return hs.image.imageFromAppBundle(
-      hs.appfinder.appFromName(self._win.app):bundleID()
+      hs.appfinder.appFromName(self._winbackref.app):bundleID()
    )
 end -- }}}
 
-function Indicator:deleteIndicator()
+function Indicator:deleteIndicator()-- {{{
   local fadeDuration = stackline.config:get('appearance.fadeDuration')
   if self.canvas then
     self.canvas:delete(fadeDuration)
   end
   return self
-end
+end-- }}}
 
-function Indicator:reset()
+function Indicator:reset()-- {{{
    return self
       :deleteIndicator()
       :setup()
       :draw()
-end
+end-- }}}
 
-function Indicator:destroy()
+function Indicator:destroy()-- {{{
     self:deleteIndicator()
-    self = nil
-end
+    -- self = nil
+end-- }}}
 
 function Indicator:contains(point) -- {{{ NOTE: `frame` & `point` *must* be a hs.geometry.rect instance
    local ok, canvasFrame = self:getCanvas()

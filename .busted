@@ -1,0 +1,7 @@
+local useTap = false
+
+return {
+  _all = {
+    output = (useTap and 'TAP') or 'utfTerminal',
+  }
+}

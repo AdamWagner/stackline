@@ -19,7 +19,7 @@ local function groupWindows(ws) -- {{{
         :map(stackline.window:call('new'))
         :groupBy(groupKey)
         :filter(u.greaterThan(1)) -- stacks have >1 window, so ignore 'groups' of 1
-        :value() 
+        :value()
 end -- }}}
 
 function mergeYabaiOntoGroups(yabaiRes, listOfWinGroups) --[[ {{{
@@ -42,8 +42,8 @@ local function shouldRestack(new) --[[ {{{
        • change num windows (win added / removed)
     }}} ]]
 
-    -- Get a summary report of current (old) state and build a second 
-    -- summary using the brand new query results. Compare these to determine 
+    -- Get a summary report of current (old) state and build a second
+    -- summary using the brand new query results. Compare these to determine
     -- if we need to do a 'full restack' (call out to `yabai`, destroy & redraw everything)
     local curr = stackline.manager:getSummary()
     new = stackline.manager:getSummary(u.values(new))
@@ -66,7 +66,7 @@ local function shouldRestack(new) --[[ {{{
     log.i('Should not redraw.')
 end -- }}}
 
-local function run(opts) --[[ {{{ 
+local function run(opts) --[[ {{{
     == TEST == {{{
     query = require 'stackline.query'
     ws = hs.window.filter()
@@ -76,8 +76,8 @@ local function run(opts) --[[ {{{
 
     opts = opts or {}
     local sm = stackline.manager
-    local listOfWinGroups = groupWindows(sm.wf:getWindows()) -- set listOfWinGroups & self.appWindows
-    _G.list = listOfWinGroups
+    local listOfWinGroups = groupWindows(sm._wf:getWindows()) -- set listOfWinGroups & self.appWindows
+    -- _G.list = listOfWinGroups
     local spaceHasStacks  = sm:getSummary().numStacks > 0 -- Check if space has stacks...
     local shouldRefresh = spaceHasStacks and shouldRestack(listOfWinGroups) -- Don't even check on a space that doesn't have any stacks
 
@@ -86,8 +86,9 @@ local function run(opts) --[[ {{{
 
         yabai('query --windows', function(yabaiRes)
             local winGroups = mergeYabaiOntoGroups(yabaiRes, listOfWinGroups)
-            _G.yabaires = yabaiRes
-            _G.ws = winGroups
+            _G.ys = yabaiRes
+            _G.ws = listOfWinGroups
+            _G.ws2 = winGroups
             sm:ingest(winGroups, spaceHasStacks) -- hand over to stackmanager
         end)
 
@@ -96,6 +97,5 @@ end -- }}}
 
 return {
     run = run,
-    setLogLevel = log.setLogLevel,
     groupWindows = groupWindows,
 }

@@ -3,19 +3,16 @@
          https://github.com/haberdashPI/preferences/blob/main/hs.init.lua
 ]]
 
-
 local socket = require("hs.socket")
 
 local module = {}
 
-module.sockFile    = string.format("/tmp/yabai_%s.socket", os.getenv("USER"))
+module.sockFile = string.format("/tmp/yabai_%s.socket", os.getenv("USER"))
+
 module.sockTimeout = 5
 
 module.send = function(fn, ...)
-    assert(
-        type(fn) == "function" or (getmetatable(fn) or {}).__call,
-        "callback must be a function or object with __call metamethod"
-    )
+    assert(u.is.callable(fn), "callback must be a function or object with __call metamethod")
 
     local args = table.pack(...)
     local message = ""
@@ -30,8 +27,6 @@ module.send = function(fn, ...)
         mySocket:write(message, function(_)
             mySocket:setCallback(function(data, _)
                 results = results .. data
-                -- having to do this is annoying; investigate module to see if we can
-                -- add a method to get bytes of data waiting to be read
                 if mySocket:connected() then
                     mySocket:read("\n")
                 else

@@ -2,81 +2,89 @@ local M = {}
 
 M.identity = function(val) return val end
 
-function M.rawpairs(tbl)  -- {{{
-  return next, tbl, nil 
-end  -- }}}
+function M.rawpairs(tbl)
+  return next, tbl, nil
+end
 
-function M.roundToNearest(roundTo, numToRound) -- {{{
-    return numToRound - numToRound % roundTo
-end -- }}}
+function M.roundToNearest(roundTo, numToRound) 
+  return numToRound - numToRound % roundTo
+end 
 
-function M.length(t) -- {{{
-   local len, ty = 0, type(t)
-   local countable = (ty=='table' or ty=='string')
-   if not countable then return 0 end
+function M.unwrap(tbl) 
+  -- Recurseively flatten 'redundant' tables
+  -- Distinct from `M.flatten()` as it preserves non-redundant tables
+  while type(tbl)=='table' and #tbl==1 do
+    tbl = tbl[1]
+  end
+  return tbl
+end 
 
-   for _ in next, t do
-      len = len + 1
-   end
+function M.wrap(...) 
+  -- Ensure that all arguments are wrapped in a table
+  -- If the 1st and only arg is a table itself, it will be returned as-is
+  return M.unwrap({...})
+end 
 
-   return len
+function M.length(x) -- {{{
+  local len, ty = 0, type(x)
+  local countable = (ty=='table' or ty=='string')
+  if not countable then return 0 end
+  local meta_len = getmetatable(x) and getmetatable(x).__len
+
+  -- Fallback to builtin operator if input is array, string, or has a __len metamethod
+  if u.is.array(x) or u.is.str(x) or meta_len then
+    return #x
+  end
+
+  for _ in next, x do
+    len = len + 1
+  end
+
+  return len
 end
 M.len = M.length -- alias as M.len
 -- }}}
 
-function M.unwrap(tbl) --[=[ {{{
-  Recurseively flatten 'redundant' tables
-  Distinct from `M.flatten()` as it preserves non-redundant tables
-  = TESTS = {{{
-  M.unwrap( {1,2} )   -> { 1, 2 } · Does nothing when there's more than 1 element
-  M.unwrap( {1} )     -> 1        · Returns plain-old '1'
-  M.unwrap( {{1}} )   -> 1        · Same; The wrapping table is 'redundant'
-  M.unwrap( {{1,2}} ) -> 1        · {1,2}; The 1st wrapping table is redundant, but the inner table is the desired value, and so not unpacked into multiple retvals.
-
-  M.unwrap( {{name='me'}} )   -> {name='me'}
-  M.unwrap( {{name='me'},2} ) -> {{name='me'},2}
-  }}} ]=]
-
-  -- Use M.len (vs #tbl) to count non-sequential keys
-  -- type(...) only checks the 1st arg. E.g., type(1, {}) == 'number'
-  while M.len(tbl)==1 and type(tbl)=='table' do
-    tbl = tbl[1]
+function M.keys(t, iter) -- {{{
+  local res = {}
+  iter = iter or pairs
+  for k in iter(t or {}) do
+    res[#res + 1] = k
   end
-  return tbl -- otherwise return the original tbl
+  return res
 end -- }}}
 
-function M.wrap(...) --[[ {{{
-   Ensure that all arguments are wrapped in a table
-   If the 1st and only arg is a table itself, it will be returned as-is
-   == TESTS == {{{
-     a = M.wrap(1,2,3,4)                                -> { 1, 2, 3, 4 }
-     b = M.wrap({1,2,3,4})                              -> { 1, 2, 3, 4 }
-     c = M.wrap({name = 'johnDoe'}, {name = 'janeDoe'}) -> { { name = "johnDoe" }, { name = "janeDoe" } }
-     d = M.wrap({ name = 'johnDoe' }, 1,2,3)            -> { { name = "johnDoe" }, 1, 2, 3 }
-   }}} ]]
-   return M.unwrap({...})
-end -- }}}
-
-function M.keys(t) -- {{{
-  local rtn = {}
-  for k in pairs(t or {}) do
-    rtn[#rtn + 1] = k
+function M.values(t, iter) -- {{{
+  local res = {}
+  iter = iter or pairs
+  for _k, v in iter(t or {}) do
+    res[#res + 1] = v
   end
-  return rtn
-end -- }}}
-
-function M.values(t) -- {{{
-  local values = {}
-  for _k, v in pairs(t) do
-    values[#values + 1] = v
-  end
-  return values
+  return res
 end -- }}}
 
 function M.cb(fn) -- {{{
-    return function()
-        return fn
-    end
+  return function()
+    return fn
+  end
+end -- }}}
+
+function M.prepareJsonEncode(t) -- {{{
+  -- Remove un-encodable values from a lua table (hs.json.encode fails silently when asked to encode functions or userdata)
+  --[[ == TEST ==
+  query = require 'stackline.query'
+  r = query.groupWindows(hs.window.filter())
+  encodable = u.prepareJsonEncode(r)
+  hs.json.encode(encodable)
+  ]]
+  return hs.fnutils.map(t, function(v)
+    if type(v)=='function' or type(v)=='userdata' then return end
+    if type(v)=='boolean' then return tostring(v) end
+    if type(v)=='nil' then return 'null' end
+    return type(v)=='table'
+      and M.prepareJsonEncode(v)
+      or v
+  end)
 end -- }}}
 
 return M

@@ -16,14 +16,14 @@ s:push({1,2,3,33,3,3})
 
  }}} ]]
 
-local uiElement = require'stackline.modules.ui-element'
-local Stack = uiElement:extend('Stack')
+local uiElement = require'classes.UiElement'
+local Stack = uiElement:subclass('Stack')
 
 function Stack:new(winGroup)
    self.windows   = winGroup or {}
    self.id        = self.windows.stackId
    self.frame     = function() return self.windows[1]:frame() end
-   self.screen    = function() return self.windows[1]._win:screen() end
+   self.screen    = function() return self.windows[1]._screen end
    self.focusHist = {}
 
    -- TODO: try setting a *region* on the stack's window filter to automatically pick up new windows added to stack!
@@ -33,7 +33,10 @@ function Stack:new(winGroup)
 end
 
 function Stack:__len()
-   return #self.windows
+  -- NOTE that this will create empty `nil` entries in the a stack such that
+  -- the # of entires (including nil) == #stack.windows.
+  -- This is harmless, but strange.
+  return u.len(self.windows)
 end
 
 function Stack:push(...) -- {{{
@@ -74,7 +77,7 @@ function Stack:findWindow(wid) -- {{{
 end -- }}}
 
 function Stack:buildCanvas() -- {{{
-   local pos = require 'stackline.position'
+   local pos = require 'modules.position'
    local c = stackline.config:get('appearance')
    local x, y = pos.getPosition(self:frame(), nil, self:screen(), c)
 
@@ -89,9 +92,9 @@ function Stack:buildCanvas() -- {{{
       fillColor = { alpha = 0.5, blue = 0.2 },
    }):show()
 
-      -- NOTE: Big win here by scoping mouse event detection to just the canvas tht encloses a stack's indicators
-      -- TODO: Finish the job.. This is a mere proof of concept at the moment.
-      -- TODO: How could click tracking be extracted into a plugin?
+    -- NOTE: Big win here by scoping mouse event detection to just the canvas tht encloses a stack's indicators
+    -- TODO: Finish the job.. This is a mere proof of concept at the moment.
+    -- TODO: How could click tracking be extracted into a plugin?
 	self.container:clickActivating(false)
        :canvasMouseEvents(true, true, true, true)   -- Booleans to fire events for down, up, enter/exit, move
        :level("status")

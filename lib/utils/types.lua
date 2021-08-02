@@ -16,6 +16,7 @@
 
   REFERENCE: {{{
     https://github.com/CommandPost/CommandPost/blob/develop/src/extensions/cp/M.is.lua
+    https://github.com/osyrisrblx/t/blob/master/lib/ts.lua and https://github.com/osyrisrblx/t/blob/master/lib/init.lua
 
   TODO
     Write typechecker for: Array of tables
@@ -24,6 +25,7 @@
 
 local fn = hs.fnutils
 local u =  require 'lib.utils.core' 
+local M = {}
 
 local function primitive(typeName)
 	return function(value)
@@ -42,18 +44,16 @@ local builtin = {
    tbl = 'table',
    func = 'function',
    userdata = 'userdata',
+   null = 'nil',
 }
-
-------------------------------------------------------------------------------------------------------------------------
-
-local M = {}
 
 M.is =  fn.map(builtin, primitive) -- Automatically build builtin type checkers
 
 M.is.callable = function(x) -- Add non-builtin type checkers
-    if type(x)=='function' then return true end
-    local mt = getmetatable(x)
-    return mt and mt.__call~=nil
+  if type(x)=='function' then return true end
+  local mt = getmetatable(x)
+  if mt==nil then return false end
+  return type(mt.__call)=='function'
 end
 
 M.is.empty      = function(x) return u.len(x)==0 end -- NOTE: length(x) returns 0 when next(x)==nil
@@ -97,6 +97,7 @@ M.is.array = function(x) --[[ {{{
   -- Iterate using *pairs* and increment index
   -- If a nil value is found, it's not an array
   -- This should short-circuit quite early, and so should out-perform methods that require a full iteration of the table
+  if not M.is.tbl(x) then return false end
   local i = 0
   for _ in u.rawpairs(x) do
      i = i + 1
@@ -136,18 +137,24 @@ M.is.collection = function(x, of) --[[ {{{
   return true
 end -- }}}
 
+M.is.hsInstance = function(x)
+  if not (type(x)=='table' or type(x)=='userdata') then return false end
+  return type(x.__type)=='string' and x.__type:find('hs')~=nil
+end
+
 -- Build all, none, and some collection type checkers
 M.is.all, M.is.none, M.is.any = {}, {}, {}
 M.is.no = M.is.none -- Alias 'none' to 'no' as well. E.g., u.M.is.no.tables(...)
 
-fn.ieach(u.keys(is), function(k)
-   M.is.all[k] = function(...) return u.all({...}, is[k]) end
-   M.is.any[k] = function(...) return u.any({...}, is[k]) end
-   M.is.none[k] = function(...) return u.none({...}, is[k]) end
+fn.ieach(u.keys(M.is), function(k)
+   M.is.all[k] = function(...) return fn.every({...}, M.is[k]) end
+   M.is.any[k] = function(...) return fn.some({...}, M.is[k]) end
+   M.is.none[k] = function(...) return not fn.some({...}, M.is[k]) end
 end)
 
 -- Prepare `M.is.nt`
 M.is.nt = {}
+M.isnt = M.is.nt
 
 for k,fn in pairs(M.is) do
   if M.is.func(fn) then 
@@ -160,11 +167,31 @@ function M.allTypes(t) -- FROM: https://github.com/UlisseMini/luaStruct/blob/mas
 
   for k, v in pairs(t) do
     types[k] = M.is.tbl(v) 
-      and u.allTypes(v)
+      and M.allTypes(v)
       or type(v)
   end
 
   return types
 end
+
+function M.argcheck( specTab, ... ) --[[ {{{
+  FROM: https://github.com/pocomane/luasnip/blob/master/src/argcheck.lua#L38
+  = TEST =
+  function test(...)
+    u.argcheck({'number','string','boolean'}, ...)
+    print(...)
+  end
+  }}} ]]
+  local arg = table.pack(...)
+  local argn = arg.n
+  if #specTab ~= argn then error('Invalid number of arguments. Must be '.. #specTab..' not '.. argn ..'.', 3) end
+  for a = 1, argn do
+    local argtype, exptype = type(arg[a]), specTab[a] 
+    if argtype ~= exptype then
+      error('Invalid argument #'..a..' type. Must be '..exptype..' not '..argtype..'.', 2)
+    end
+  end
+end
+
 
 return M

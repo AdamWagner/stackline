@@ -1,0 +1,65 @@
+-- luacheck: globals assert
+require 'spec.helpers'
+
+
+pending('Proxy mixin', function()
+  local class, Thing, onChangeSpy, changeEvents, defaultHandler, t
+
+  before_each(function()
+    class = require 'lib.class'
+    Thing = class('Thing'):use('Proxy')
+    onChangeSpy = spy.on(Thing, 'onChange')
+    changeEvents = {}
+    defaultHandler = function(k,v,o) table.insert(changeEvents, {key=k, new=v, old=o}) end
+  end)
+
+  after_each(function()
+    Thing = nil
+    class = nil
+    changeEvents = nil
+    defaultHandler = nil
+    onChangeSpy = nil
+    t = nil
+  end)
+
+  it('works with implicit class constructor', function() -- {{{
+    t = Thing:new{name = 'john'}
+
+    t.name = 'pam'
+
+    assert.spy(onChangeSpy).was_called_with(t, 'name', 'pam', 'john')
+    assert.equal('pam', t.name)
+  end) -- }}}
+
+  it('works with explicit class constructor', function() -- {{{
+    function Thing:new(name, age)
+      self.name = name
+      self.age = age
+    end
+
+    t = Thing:new('john', 99)
+    t.name = 'pam'
+
+    assert.spy(onChangeSpy).was_called_with(t, 'name', 'pam', 'john')
+    assert.equal('pam', t.name)
+  end) -- }}}
+
+  it('calls onChange handlers', function() -- {{{
+    Thing:addChangeListener('name', defaultHandler)
+    t = Thing:new{name = 'john'}
+    t.name = 'pam'
+    t.name = 'andy'
+    t.name = 'susan'
+
+    assert.equal(3, #changeEvents)
+    assert.equal('pam', changeEvents[1].new)
+    assert.equal('john', changeEvents[1].old)
+
+    assert.equal('andy', changeEvents[2].new)
+    assert.equal('pam', changeEvents[2].old)
+
+    assert.equal('susan', changeEvents[3].new)
+    assert.equal('andy', changeEvents[3].old)
+  end) -- }}}
+
+end)

@@ -1,456 +1,178 @@
---[[ {{{ ABOUT
-    == ADAPTED FROM ==
-        https://github.com/rxi/classic/blob/master/classic.lua
-
-    == WHEN ==
-        2021-07-06
-
-    == REF ==
-       * ~/Programming/Projects/stackline-scratchpad/June-2021/class.lua
-       * https://github.com/kartoFlane/ITB-ModLoader/blob/master/scripts/mod_loader/bootstrap/classes.lua
-       * Metamagic helpers: https://github.com/edubart/nelua-lang/blob/master/nelua/utils/metamagic.lua
-       * Iterators: https://github.com/edubart/nelua-lang/blob/master/nelua/utils/iterators.lua
-       * Memoize: https://github.com/edubart/nelua-lang/blob/master/nelua/utils/memoize.lua
-
-    == IDEAS == {{{
-
-    == BEFORE / AFTER METHOD HOOKS ==  https://github.com/xonglennao/lua-files/blob/master/oo.lua#L45
-        function Object:beforehook(method_name, hook)
-            local method = self[method_name] or glue.pass
-            rawset(self, method_name, function(self, ...)
-                return method(self, hook(self, ...))
-            end)
-        end
-
-        function Object:afterhook(method_name, hook)
-            local method = self[method_name] or glue.pass
-            rawset(self, method_name, function(self, ...)
-                return hook(method(self, ...))
-            end)
-        end
-
-    == MOVE OBJECT FIELDS WITH DUNDER TO OBJECT'S METATABLE ==
-    for k,v in pairs(self) do
-        if tostring(k):find("__") then
-            getmetatable(self)[k] = v
-            self[k] = nil
-        end
-    end
-
-
-    == ITERATE OVER NON META KEYS == FROM: https://github.com/djerius/validate.args/blob/d2ae4857681694ee0ecc2c9047191258d2c69c08/src/validate/args.lua#L34
-    local function next_notmeta( table, index )
-
-       local k, v = next( table, index )
-
-       while k do
-          if not k:find( '^__' ) then
-         return k, v
-          end
-          k, v = next( table, k )
-       end
-
-       return k, v
-
-    end
-
-    local function nmpairs( table )
-       return next_notmeta, table, nil
-    end
-
-
-    == GET ROOT OBJ FROM CHILD == FROM https://github.com/djerius/validate.args/blob/master/src/validate/args.lua#L34
-    local function getRoot(container)
-        local parent = container.parent
-        if parent then
-            while parent.parent ~= nil do
-                parent = parent.parent
-            end
-        end
-        return parent
-    end
-
-    == SINGLE FUNCTION BASE CLASS == FROM: https://github.com/djerius/validate.args/blob/master/src/validate/args.lua#L68
-    -- create child object
-    ---   1. make *shallow* copy of non-function data
-    ---   2. call datum:new() if datum is a table and has a new() method
-    function Base:new( attr )
-
-       local obj = {}
-
-       -- copy data from parent.  if a datum is an object, call its constructor
-       -- so far, all objects stored in children of Base are themselves children
-       -- of Base, so this is safe.
-       -- does a shallow copy! tables are copied by reference
-       for k, v in nmpairs( self ) do
-          if ( type(v) == 'table' and type(v.new) == 'function' ) then
-         obj[k] = v:new()
-          elseif type(v) ~= 'function' then
-         obj[k] = v
-          end
-       end
-
-       for k, v in nmpairs( attr or {} ) do
-          obj[k] = v
-       end
-
-       setmetatable( obj, self )
-
-       self.__index = self
-
-       -- inherit __newindex by crawling up the index chain. kinda magical
-       self.__newindex = self.__newindex
-
-       return obj
-
-    end
-
-
-
-  == END "IDEAS" == }}}
-
- }}} ]]
-
---[[ == TESTS == {{{
-
-class = require 'lib.class'
-
--- BASIC  -------------------------------------------------------------------------------
-Thing = class()
-function Thing:new(t) self.name = t.name self.age = t.age end
-a = Thing:new({name = 'adam', age = 33, type = 'fun'})
-
-
--- NON-TABLE INPUT TO :NEW() ------------------------------------------------------------
-Thing = class()
-function Thing:new(w) self.frame = w:frame() end
-w = stackline.manager:get()[1].windows[1]._win
-b = Thing:new(w)
-
--- CUSTOM CONSTRUCTOR -------------------------------------------------------------------
-Thing = class()
-function Thing:new(t) self.name = t.name self.age = t.age end
-t = Thing:new{name = 'adam', age = 33 }
-
-
--- DEFAULT CONSTRUCTOR WITH TABLE ARG ---------------------------------------------------
-Thing = class()
-a = Thing:new({name = 'me', age = 99})
-assert(a.name == "me")
-assert(a.age == 99)
-
-
--- DEFAULT CONSTRUCTOR WITH NON-TABLE ARGS ----------------------------------------------
-Thing = class()
-a = Thing:new('me', 99)
-assert(a[1] == "me")
-assert(a[2] == 99)
-
--- INHERITANCE ---------------------------
-Thing = class()
-function Thing:new(t) self.name = t.name self.age = t.age end
-Thing.static = {'static', 'field'}
-Child = Thing:extend()
-c = Child:new({})
-c.test = 'test'
-for k,v in c:allpairs() do print (k) end
-
--- INHERITANCE: COUNTER -----------------------------------------------------------------
-class = require 'lib.class'
-Counter = class('Counter')
-function Counter:new()
-    print("Calling 'Counter:new()'")
-    self.val = 0
-    self.isCounter = true
-    self.max = 100
-end
-function Counter:update()
-  self.val = self.val + (self.incAmt or 1)
-  return self
-end
-
-c = Counter:new()
-
-CountByTwo = Counter:extend('CountByTwo')
-CountByTwo.incAmt = 2
-
-function CountByTwo:new()
-    print("Calling 'CountByTwo:new()'")
-    -- self:super()._constructor(self)
-    self.isCountByTwo = true
-    self.val = 0
-end
-
-b = CountByTwo:new()
-b:update():update() -- -> 4
-
--- BEFORE/AFTER HOOKS -------------------------------------------------------------------
-class = require 'lib.class'
-Counter = class()
-function Counter:new() self.val = 0 end
-function Counter:update()
-  self.val = self.val + (self.incAmt or 1)
-  return self
-end
-Counter:afterhook('update', function(self)
-    self.val = self.val - 2
-    print('running after calling "update"', self.val)
-end)
-
-c = Counter:new()
-
--- MIXINS -------------------------------------------------------------------------------
-class = require 'lib.class'
-Utils = class(require 'lib.utils')
-t = Utils:new{1,2,3,4,5}
-
-res = t:map(function(x) return x * 2 end)
-res -- -> {2,4,6,8,10}
-
-
--- MIXINS WITH :new() METHOD ------------------------------------------------------------
-class = require 'lib.class'
-
-FlysWhenHavingFun = class()
-function FlysWhenHavingFun:new()
-    print('running `FlysWhenHavingFun` constructor')
-    self.FlysWhenHavingFunMixin = true
-    self.incAmt = 20
-end
-
-Counter = class('Counter', FlysWhenHavingFun)
-
-function Counter:new() self.val = 0 end
-function Counter:update()
-  self.val = self.val + (self.incAmt or 1)
-  return self
-end
-
-c = Counter:new()
-
--- INHERITANCE W/ MULTIPLE `new()` METHODS ----------------------------------------------
--- Test that ctors are called in expected order
-
-class = require 'lib.class'
-
-FlysWhenHavingFun = class()
-function FlysWhenHavingFun:new()
-    print('running `FlysWhenHavingFun` constructor')
-    self.incAmt = 20
-end
-
-Weakling = class()
-function Weakling:new()
-    self.max = self.max / 11
-end
-
-Counter = FlysWhenHavingFun:extend('Counter')
-Counter:use(Weakling)
-
-function Counter:new()
-    self.max = 100
-    self.val = 0
-    self.incAmt = self.incAmt / 3
-end
-
-function Counter:update()
-  if self.val >= self.max then
-    printf("We've hit the maximum of %s. I'm tired.", self.max)
-    return self.val
-  end
-  self.val = self.val + (self.incAmt or 1)
-  return self
-end
-
-
-c = Counter:new()
-
- }}} ]]
+--[[ 
+  == class.lua ==
+
+  == Features ==
+  Mixins:
+  A mixin is just a normal table with functions that expect to be called with some class's instance (with one exception noted below)
+  mixin.init(cls):       If the mixin has an `init` function, it will be called when the mixin is added to a class via `use`. You can add class-level attributes in `mixin.init()`
+  mixin.new(instance):   If the mixin has a `new` function, it will be called at the end of instance initialization.
+
+  == ADAPTED FROM 2021-07-06 ==
+  https://github.com/rxi/classic/blob/master/classic.lua
+
+  == TESTS ==
+  ./spec/class_spec.lua
+]]
 
 local u = require 'stackline.lib.utils'
+local is, len, assign, trycall, dcopy, bind = u.is, u.len, u.assign, u.trycall, u.dcopy, u.bind
+local concat, reverse, clear, assignMeta = u.concat, u.reverse, u.clear, u.assignMeta
 
-inspect = hs.inspect
-for _, key in ipairs({'_LICENSE', '_DESCRIPTION', '_URL', '_VERSION', 'METATABLE', 'KEY'}) do
-  inspect[key] = nil
+-- Remove unnecessary keys from `hs.inspect` so it can be assigned to Object.__tostring w/o polluting the console when printing the class
+local inspect = clear(hs.inspect, {'_LICENSE', '_DESCRIPTION', '_URL', '_VERSION', 'METATABLE', 'KEY'})
+local MIXIN_PATH = 'stackline.modules.mixins'
+local instance_base = {__isClass=false}
+
+local registry = {}
+local function register(subclass, super, mixins) -- {{{
+registry[subclass] = {}
+registry[subclass].super = super
+registry[subclass].class = subclass
+registry[subclass].mixins = mixins
+return subclass
+end -- }}}
+local function super(self) return registry[self:class()].super end 
+local function mixins(self) return registry[self:class()].mixins end 
+local function setMixins(self, newmixins) concat(registry[self].mixins, newmixins) return self end 
+
+local function cast(i, parent)-- {{{
+local mt = u.assignMeta({}, parent)
+mt.__index = parent
+if parent:isRoot() then mt.__newindex = nil end
+return setmetatable(i, mt) -- Cast instance as one of the parent class
+end-- }}}
+local function maybeAutoconstruct(args, class) --[[ {{{
+Implicit constructor sets instance to a copy of the table arg if and only if:
+   1. `args` contains a *single* *table*
+   2. the immediate parent class does not have a constructor
+While convenient, implicit construction has bitten me a couple of times:
+Setting instance to the 1st table arg given to `new` can cause lots of problems if there is also an explicit constructor on the immediate parent class.
+It might even cause problems if there are *any* explicit constructors on any of the hierarchy - I'm not sure about this.
+Copying the table arg (via assign) minimizes the problems caused, but doesn't eliminate them
+]]
+local noExplicitCtor = class._constructor==nil
+local oneTblArg = len(args)==1 and is.tbl(args[1])
+
+if noExplicitCtor and oneTblArg then
+  return assign({}, args[1])
 end
+return {}
+end -- }}}
+local function invokeConstructors(i, arr, args) --[[ {{{
+Invoke `_constructor` with instance & args
+1. for every parent (from oldest to immediate parent class)
+2. for every mixin (in order added)
+]]
+local instance = i
+u(arr)
+  :map('_constructor')
+  :each(function(ctor)
+    local res = ctor(i, unpack(args))
+    if (res==nil) then return end
+    instance = res
+  end)
+return instance
+end -- }}}
 
-local Object = {}
+local mixin = { -- {{{
+load = function(mixin) 
+  if is.str(mixin) then mixin = require(MIXIN_PATH..'.'..mixin) end
+  return dcopy(mixin) -- NOTE: it's important to copy the mixin so that `Proxy` mixin will not share state across instances
+end ,
+start = function(class, mixin) 
+  trycall(mixin.init, class) -- `mixin.init()` can initialize class-level fields & methods.
+  return mixin
+end, 
+apply = function(class, mixin) 
+  for k, v in pairs(mixin) do -- Assign all mixin keys to class
+    if rawget(class, k)==nil and k~='used' and k~='new' then
+      class[k] = v
+    end
+  end
+  return mixin
+end, 
+renameConstructor = function(mixin)
+  -- Important: must occur *after* mixin.apply() or it will overwrite the class's own constructor
+  mixin._constructor = rawget(mixin, 'new')
+  mixin.new = nil
+  return mixin
+end,
+} -- }}}
+
+local Object = register({}, nil, {})
 Object.__name = 'Object'
 Object.__index = Object
 Object.__tostring = inspect
+Object.class = function() return Object end
+Object.isRoot = function(self) return self == Object end
 
--- Create new subclass
-function Object:extend(...)
-    local super, subclass, mixins = self, {}, {...}
+function Object:subclass(name) 
+local subclass = register({}, self, {})
+assignMeta(subclass, self) -- lift metamethods from super → subclass b/c they aren't inherited via `__index`
+subclass.__index = subclass
+subclass.__name = name or 'Anonymous Class'
+subclass.class = function() return subclass end
+trycall(self.init, subclass) -- `init()` runs when class is *created*, not when instances are instantiated
 
-    -- lift super's metamethods to subclass
-    for k, v in u.rawpairs(super) do
-        if tostring(k):find('__') == 1 then subclass[k] = v end
-    end
+return setmetatable(subclass, self)
+end 
 
-    subclass.__index = subclass
-    subclass.__name = u.is.str(mixins[1]) and table.remove(mixins,1) or 'Anonymous Class'
+function Object:new(...) 
+local args = {...}
+local i = maybeAutoconstruct(args, self)
+i = cast(i, self) -- Cast instance as one of the parent class
+i = invokeConstructors(i, self:supers(), args) -- 1. Invoke all constructors set on super classes (oldest first)
+i = invokeConstructors(i, self:mixins(), args) -- 2. Then all constructors from mixins (in order added)
 
-    if self.init then self.init(subclass) end
+return i
+end 
 
-    function subclass:super() return super end
-    function subclass:class() return subclass end
-    function subclass:mixins() return mixins end
-    function subclass:setMixins(newMixins) u.concat(mixins, newMixins) return self end
+Object.super = super
+Object.mixins = mixins
+Object.setMixins = setMixins
 
-    setmetatable(subclass, self)
-    subclass:use(unpack(mixins))
-
-    return subclass
+function Object:__newindex(k,v) -- {{{
+-- Rename 'new' assignments to "__constructor" to be called from within the builtin "new" fn
+if k=='new' and is.callable(v) then
+  self._constructor = v -- print('Trapping "new" assignment to ', self.__name)
+else
+  rawset(self, k, v)
 end
-
-function Object:__newindex(k,v) --[[ {{{
-    On attempt to assign a fn to "new", rename it to "__constructor"
-    to be called from within the builtin "new" fn. ]]
-    if k=='new' and u.is.callable(v) then
-        self._constructor = v
-    else
-        rawset(self, k, v)
-    end
 end -- }}}
 
 function Object:supers() -- {{{
-    -- Get all parents & self in order from newest to oldest.
-    local lineage, super = {}, self:super()
-
-    while super do
-        table.insert(lineage, super)
-        super = super.super and super:super() or nil -- Q: why is `...or nil` required to prevent infinite loop? Shouldn't super be set to `nil` if not super.super?
-    end
-
-    lineage = u.reverse(lineage)
-    table.insert(lineage, self)
-    return lineage
+-- All parents & self (oldest to newest)
+local lineage = u({}):append(self:class())
+local super = self:super()
+while super do
+  lineage:append(super)
+  super = super:super()
+end
+return lineage:reverse():value()
 end -- }}}
 
-function Object:new(...)
-    local i = setmetatable({}, self)
-    local args = {...}
-
-    -- Invoke `_constructor` with instance & args for every:
-    --   1. parent (from oldest to immediate parent class)
-    --   2. mixin with a `new` method
-    u(self:supers()):concat(self:mixins())
-        :map('_constructor')
-        :values()
-        :reverse()
-        :each(function(ctor) 
-          ctor(i, unpack(args))
-        end)
-
-    -- If constructors and/or mixins haven't assigned instance members, simply extend with args
-    if u.len(i)==0 then u.safeExtend(i, args) end
-
-    return i
-end
-
-function Object:use(...) --[[
-  = TEST = {{{
-  class = require 'lib.class'
-  Counter = class('Counter')
-  function Counter:new()
-      print("Calling 'Counter:new()'")
-      self.val = 0
-      self.isCounter = true
-      self.max = 100
-  end
-  function Counter:update()
-    self.val = self.val + (self.incAmt or 1)
-    return self
-  end
-  mixin = {}
-  function mixin:used() self.hasMixin = true end
-  function mixin:talk() print('hi from mixin and', self.__name) end
-  function mixin:new() self.HasMixin = true end
-  Counter:use(mixin)
-  }}} ]]
-  local newMixins = {...}
-
-  for _, mix in ipairs(newMixins) do
-    -- If present, call `used` method on mixin w/ subclass as `self`
-    -- Good for initializing class-level (not instance-level) fields & methods 
-    u.trycall(mix.used, self)
-
-    -- Assign functions on mixin to subclass
-    for k, v in pairs(mix) do
-      if rawget(self, k)==nil and k~='used' then
-        self[k] = v
-      end
-    end
-
-  end
-
-  self:setMixins(newMixins)
-  return self
-end
+function Object:use(...) -- takes (mixin1, mixin2, ...) {{{
+return self:setMixins(
+  u {...}
+    :map(mixin.load)
+    :map(bind(mixin.start, self))
+    :map(bind(mixin.apply, self))
+    :map(mixin.renameConstructor)
+    :value()
+)
+end -- }}}
 
 function Object:is(class) -- {{{
-  if class == nil then return false end
-  classname = type(class)=='string' and class or class.__name
+if (class == nil) then return false end
+if (class == self) then return true end
 
-  -- Short circuit on the common case for efficiency.
-  if classname == self.__name then return true end
+classname = is.str(class) and class or class.__name
+if classname == self.__name then return true end -- Short circuit on the common case
 
-  return u(self:supers())
-    :map('__name')
-    :contains(classname)
-    :value()
+return u(self:supers())
+  :map('__name')
+  :contains(classname)
+  :value()
 end -- }}}
 
-function Object:__call(...) -- {{{
-    -- TODO: update `extend()` to accept input
-    local cls = self:extend(...)
-    return cls
-end -- }}}
-
-return setmetatable(Object, {__call = Object.__call })
-
-
---[[ Nice-to-haves {{{
-
-function Object:beforehook(method_name, hook) -- {{{
-    local method = self[method_name] or u.identity
-    rawset(self, method_name, function(self, ...)
-        return method(self, hook(self, ...))
-    end)
-end -- }}}
-
-function Object:afterhook(method_name, hook) -- {{{
-    local method = self[method_name] or u.identity
-    rawset(self, method_name, function(self, ...)
-        return hook(method(self, ...))
-    end)
-end -- }}}
-
-function Object:allpairs() -- {{{
-	local t,k,v = self, nil, nil
-	return function() -- {{{
-		k,v = next(t,k)
-		if k == nil then
-			t = t.__super
-			if t == nil then return nil end
-			k,v = next(t)
-		end
-		return k,v,t
-	end -- }}}
-end -- }}}
-
-function Object:setAttributes(attr) -- {{{
-    if attr ~= nil then
-        assert(type(attr) == "table", "table expected")
-        for k, v in pairs(attr) do
-            assert(type(k) == "string", "attribute names  must be string")
-            local setterName = "set"..upper(sub(k, 1, 1))..sub(k, 2)
-            local setter = self[setterName]
-            assert(type(setter) == "function", "unknown attribute '"..k.."'")
-            setter(self, v)
-        end
-    end
-end -- }}}
-
- }}} ]]
+return setmetatable(Object, {__call = Object.subclass })

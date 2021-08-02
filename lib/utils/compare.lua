@@ -3,6 +3,7 @@ local M = {}
 function M.equal(a, b) --[[
     Adapted from: https://github.com/Yonaba/Moses/blob/master/moses.lua#L2786
     REVIEW: explore Interesting alternative from RBXunderscore: https://github.com/dennis96411/RBXunderscore/blob/master/RBXunderscore.lua#L1489
+    SEE ALSO: https://github.com/pocomane/luasnip/blob/master/src/deepsame.lua
     == TESTS == {{{
     a = {name = 'john'}
     b = {name = 'john'}
@@ -36,7 +37,7 @@ function M.equal(a, b) --[[
     if typeA~=typeB then return false end
 
     -- If either arg is not a table, return direct comparison
-    if not u.all({a,b}, u.istable) then return (a==b) end
+    if not u.is.all.tbl(a,b) then return (a==b) end
 
     -- == NOTE: At this point, we know *both args ARE tables*
 
@@ -69,10 +70,62 @@ function M.allEqual(t, comp) --[[
     return true
 end 
 
+
+
+
 function M.greaterThan(n) 
     return function(t)
         return #t > n
     end
 end 
+
+
+function M.diffByKeys(a, b) --[[ 
+  returns table with keys present in the `a` table but not in the `b` table.
+  Only keys are considered - values are NOT checked!
+  == EXAMPLE == 
+    x = { name = 'adam', age = 33, fun = true }
+    y = { name = 'adam', age = 33, fun = false, things = {1,2,3} }
+    r = u.diffByKeys(x,y) -- -> { things = { 1, 2, 3 } }
+  ]]
+  local res = {}
+  if not a then return res end
+  if not b then
+    for k, v in pairs(a) do res[k] = v end
+    return res
+  end
+  for k, v in pairs(a) do
+    if b[k]==nil then
+      res[k] = v
+    end
+  end
+  return res
+end
+
+function M.spairs(t, order)
+  -- collect the keys
+  t = t or {}
+  local keys = u.keys(t)
+
+  -- if custom order fn given, use it
+  if order then
+    table.sort(keys, function(a,b) return order(t, a, b) end)
+
+  -- if values are arrays, sort by length
+  elseif u.is.array(t[keys[1]]) then
+    table.sort(keys, function(a,b) return u.len(t[a]) < u.len(t[b]) end)
+
+  else
+    table.sort(keys)
+  end
+
+  local i = 0
+  return function()
+    i = i + 1
+    if keys[i] then
+      return keys[i], t[keys[i]]
+    end
+  end
+end
 
 return M

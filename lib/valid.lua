@@ -321,12 +321,12 @@ function M.is_table(schema, tolerant)
 
     if type(value) ~= 'table' then
       -- Enforce errors of childs value.
-      _, err = validate_table({}, schema, tolerant)
+      _, err = M.validate_table({}, schema, tolerant)
       if not err then err = {} end
       result = false
       insert(err, error_message(value, 'a table') )
     else
-      result, err = validate_table(value, schema, tolerant)
+      result, err = M.validate_table(value, schema, tolerant)
     end
 
     return result, err
@@ -343,7 +343,7 @@ end
 -- @return
 --   String describing the error or true.
 ---
-function validate_table(data, schema, tolerant)
+function M.validate_table(data, schema, tolerant)
 
   -- Array of error messages.
   local errs = {}

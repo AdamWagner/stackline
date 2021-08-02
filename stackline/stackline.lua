@@ -21,7 +21,7 @@ function stackline:init(userConfig) -- {{{
     end
 
     -- init config with default settings + user overrides
-    self.config:init(u.extend(require 'stackline.conf', userConfig or {}))
+    self.config:init(u.assign(require 'stackline.conf', userConfig or {}))
 
     -- init stackmanager, & run update right away
     -- NOTE: Requires self.config to be initialized first
@@ -30,6 +30,7 @@ function stackline:init(userConfig) -- {{{
 
     -- Reuseable update fn that runs at most once every maxRefreshRate (default 0.3s)
     -- NOTE: yabai is only called if query.shouldRestack() returns true (see ./stackline/query.lua:104)
+    -- REVIEW is hs.timer.delayed a throttle or debounce?: https://github.com/CodeKingdomsTeam/rodash/blob/master/src/Functions.lua#L802
     self.queryWindowState = timer.new(
       self.config:get'advanced.maxRefreshRate',
       function()
@@ -39,7 +40,7 @@ function stackline:init(userConfig) -- {{{
       true -- continue on error
    )
 
-    self:setupClickTracker()
+    -- self:setupClickTracker()
     return self
 end -- }}}
 
@@ -50,7 +51,7 @@ function stackline:setupClickTracker() --[[ {{{
     --------
     To debug live mouse location:
         hs.eventtap.new(
-            { hs.eventtap.event.types.mouseMoved }, 
+            { hs.eventtap.event.types.mouseMoved },
             function(event)
                 u.p(event)
                 u.p(event:location())
@@ -72,7 +73,7 @@ function stackline:setupClickTracker() --[[ {{{
     --     local evt = e:getType()
     --     local clickAt = hs.geometry.point(e:location().x, e:location().y)
 
-    --     if evt ~= click then 
+    --     if evt ~= click then
     --         u.p(clickAt)
     --         return false
     --     end

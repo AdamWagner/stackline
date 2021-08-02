@@ -1,5 +1,6 @@
--- Simplify requiring stackline from ~/hammerspoon/init.lua
 
-package.path = os.getenv'HOME' ..'/.hammerspoon/stackline/?.lua;' .. package.path
-package.path = os.getenv'HOME' ..'/.hammerspoon/stackline/lib/utils/?.lua;' .. package.path
+-- Modifies `package.path` to simplify requiring stackline from ~/hammerspoon/init.lua
+require 'stackline.lib.packagepath'
+
+-- shortcut to the main stackline module
 return require 'stackline.stackline'

@@ -20,7 +20,7 @@ local function makeStackId(hsWin) -- {{{
 
     local x, y, w, h = frame.x, frame.y, frame.w, frame.h
     local fuzzFactor = stackline.config:get('features.fzyFrameDetect.fuzzFactor')
-    local roundToFuzzFactor = u.partial(u.roundToNearest, fuzzFactor)
+    local roundToFuzzFactor = u.bind(u.roundToNearest, fuzzFactor)
 
     local ff = u.map({x, y, w, h}, roundToFuzzFactor)
 
@@ -31,15 +31,13 @@ local function makeStackId(hsWin) -- {{{
     return topLeft, stackId, fzyFrame
 end -- }}}
 
-local uiElement = require'stackline.modules.ui-element'
-local Window = uiElement:extend('Window')
+local uiElement = require'classes.UiElement'
+local Window = uiElement:subclass('Window')
 
 function Window:new(hswin) -- {{{
     self.log.i( ('Window:new(%s)'):format(hswin:id()) )
-    local topLeft, stackId, fzyFrame = makeStackId(hswin)
 
-    -- Unfortunately, this (or something similar) needs to be *here* b/c it requires hswin to be in-scope.
-    -- I doubt that a `makeCallHs()` wrapper would be any better...
+    local topLeft, stackId, fzyFrame = makeStackId(hswin)
     local function callHs(k, ...) return u.bind(hswin[k], hswin, ...) end
 
     self.created     = os.date()                    -- window creation date/time
@@ -51,13 +49,13 @@ function Window:new(hswin) -- {{{
     self.stackIdFzy  = fzyFrame                     -- "{{x}|{y}" e.g."35|63" (string)
     self.screen      = hswin:screen():id()          -- ID of the screen containing the window
     self.frame       = callHs('frame')              -- not equivilent to `hswin.frame`, which will use a `Window` instance as self rather than `hswin`
-  
+
     self.stackIdx = nil or 1    --> Integer: Set using yabai data in query.lua
     self.indicator = nil        --> Userdata: hs.canvas instance
     self.side = nil             --> String: 'left', 'right'
- 
+
     self._win        = hswin   -- hs.window object (userdata)
-    self._screen     = hswin.screen
+    self._screen     = hswin:screen()
     self._config     = stackline.config:get('appearance')
     self._wf         = hs.window.filter.new(function(w) return w:id()==hswin:id() end)
     self._stack      = nil    -- back-reference to parent is set in self:setup()
@@ -81,6 +79,7 @@ end -- }}}
 
 function Window:handleEvent(hswin, _app, evt)  -- {{{
     if hswin:id() == self.id then
+        print('matching event')
         self['on'..evt:capitalize()](self)
     end
 end  -- }}}

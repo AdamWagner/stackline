@@ -1,16 +1,14 @@
 local wf    = hs.window.filter
 local delay = hs.fnutils.partial(hs.timer.doAfter, 0.1)
 local Stack = require 'stackline.stack'
-local uiElement = require'stackline.modules.ui-element'
+local uiElement = require'classes.UiElement'
 
-local Stackmanager = uiElement:extend('Stackmanager')
+local Stackmanager = uiElement:subclass('Stackmanager')
 
 Stackmanager.__len = function(s) return #s.stacks end
 Stackmanager.showIcons = stackline.config:get('appearance.showIcons')
-
 Stackmanager.query = require 'stackline.stackline.query'
-
-Stackmanager.wf = wf.new():setOverrideFilter{ -- Window filter ('wf') controls what hs.window 'sees'
+Stackmanager._wf = wf.new():setOverrideFilter{ -- Window filter ('wf') controls what hs.window 'sees'
     visible = true, -- i.e., neither hidden nor minimized
     fullscreen = false,
     currentSpace = true,
@@ -24,19 +22,21 @@ Stackmanager.events.destroy      = { wf.windowDestroyed, wf.windowHidden, wf.win
 -- wf.windowFullscreened, wf.windowUnfullscreened,
 
 function Stackmanager:init()  -- {{{
-    self.stacks = {}
-    self:setupListeners()
-    return self
+  self.stacks = {}
+  self:setupListeners()
+  return self
 end  -- }}}
 
 function Stackmanager:ingest(winGroups, shouldRefresh)  -- {{{
-    if shouldRefresh then self:cleanup() end
-    for _, wins in pairs(winGroups) do
-        table.insert(
-            self.stacks,
-            Stack:new(wins):setupWindows()
-        )
-    end
+  if shouldRefresh then self:cleanup() end
+  for _, wins in pairs(winGroups) do
+    table.insert(
+      self.stacks,
+      Stack:new(wins):setupWindows()
+    )
+  end
+
+  _G.w = u.dcopy(stackline.manager:get()[1].windows[1])
 end  -- }}}
 
 function Stackmanager:setupListeners() -- {{{
@@ -48,6 +48,7 @@ end -- }}}
 function Stackmanager:onCreate(hswin, _app, evt) -- {{{
     -- If new window belongs to an existing stack, *insert* window into stack instead of reloading everything
     -- Delay allows window's size & position to stabilize
+    self.log.f('onCreate()')
     delay(function()
         local w = stackline.window:new(hswin)
         self:eachStack(function(s)
