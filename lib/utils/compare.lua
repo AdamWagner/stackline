@@ -84,8 +84,8 @@ function M.diffByKeys(a, b) --[[
   returns table with keys present in the `a` table but not in the `b` table.
   Only keys are considered - values are NOT checked!
   == EXAMPLE == 
-    x = { name = 'adam', age = 33, fun = true }
-    y = { name = 'adam', age = 33, fun = false, things = {1,2,3} }
+    x = { name = 'John', age = 33, fun = true }
+    y = { name = 'John', age = 33, fun = false, things = {1,2,3} }
     r = u.diffByKeys(x,y) -- -> { things = { 1, 2, 3 } }
   ]]
   local res = {}

@@ -16,7 +16,7 @@ function M.inject(t, lookup, mutateMt) --[[ {{{
                   mutateMt true: `t` and ALL of its siblings have access to k,v pairs in `lookup`
                   mutateMt false: `t` no longer inherits changes made to original mt, but access to `lookup` is contained
   @test basic {{{
-    x = { name = 'adam', age = 33 }
+    x = { name = 'John', age = 33 }
     setmetatable(x, {__call = function() print('called "x"') end})
     u.inject(x, {job = 'farmer'})
     u.inject(x, {color = 'red'})
@@ -25,18 +25,18 @@ function M.inject(t, lookup, mutateMt) --[[ {{{
   @test class instance, mutateMt=false {{{
     w = stackline.manager:get()[1].windows[1]
     w2 = stackline.manager:get()[1].windows[2]
-    u.inject(w, { name = 'john' })
-    assert(w.name=='john')
+    u.inject(w, { name = 'John' })
+    assert(w.name=='John')
     assert(type(w)=='table') -- be sure to try to pretty-print the whole object. This is good at catching infinite __index loops
     assert(w2.name==nil)
   }}}
   @test class instance, mutateMt=true {{{
     -- use w1 and w2 from previous test
     w3 = stackline.manager:get()[1].windows[3]
-    u.inject(w2, { name = 'jane' }, true)
-    assert(w2.name=='jane')
-    assert(w3.name=='jane') -- siblings can access injected k,v's
-    assert(w.name=='john') -- ... but `w` still has its own separate metatable that maps 'name' to 'john'
+    u.inject(w2, { name = 'Jane' }, true)
+    assert(w2.name=='Jane')
+    assert(w3.name=='Jane') -- siblings can access injected k,v's
+    assert(w.name=='John') -- ... but `w` still has its own separate metatable that maps 'name' to 'John'
   }}} ]]
   -- Short circut if not given a table and a lookup table/func
   if u.isnt.tbl(t) or lookup==nil then return t end
@@ -181,6 +181,7 @@ function M.task_cb(fn) -- wrap callback given to hs.task {{{
   end
 end -- }}}
 
+-- WIP
 function M.switch()
   -- https://github.com/kitsunies/switch.lua
   local switch = {}
@@ -432,8 +433,6 @@ function M.array_of(type_)
    end
 end
 
-
-
 function M.flyweight() --[[ {{{
   Originally to save memory, the flyweight pattern is useful in lua to ensure 2 tables with same data are always equal by reference.
   See more: https://luazdf.aiq.dk/fn/flyweightstore.html
@@ -492,9 +491,9 @@ function M.tuple( ... ) -- {{{
   -- Adapted from: https://github.com/aiq/luazdf/blob/master/tab/tuple/tuple.lua#L50
   -- Improvements: Add iterator metamethods & remove `n` field
   -- == TEST ==
-  -- t1 = u.tuple('john', 'one')
-  -- t2 = u.tuple('john', 'one')
-  -- t3 = u.tuple('jane', 'three')
+  -- t1 = u.tuple('John', 'one')
+  -- t2 = u.tuple('John', 'one')
+  -- t3 = u.tuple('Jane', 'three')
 
   -- t1 == t2 -- -> true (both t1 and t2 refer to exactly the same table underneath - no need to "deep compare")
   -- t1 == t3 -- -> false
@@ -519,9 +518,9 @@ function M.distinct(tbl) -- {{{
   -- Adapted from: https://github.com/aiq/luazdf/blob/master/tab/tuple/tuple.lua#L50
   -- Improvements: Add iterator metamethods & remove `n` field
   -- == TEST ==
-  -- t1 = u.tuple('john', 'one')
-  -- t2 = u.tuple('john', 'one')
-  -- t3 = u.tuple('jane', 'three')
+  -- t1 = u.tuple('John', 'one')
+  -- t2 = u.tuple('John', 'one')
+  -- t3 = u.tuple('Jane', 'three')
 
   -- t1 == t2 -- -> true (both t1 and t2 refer to exactly the same table underneath - no need to "deep compare")
   -- t1 == t3 -- -> false

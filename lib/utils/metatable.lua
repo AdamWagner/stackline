@@ -72,33 +72,33 @@ function M.indexBy(tbl, matcher, groupVals) --[[ {{{
   When setting a table value at key, overwrite or "group" value for which matcher(key) is true
   __eq() metamethod will drive equality comparison if set on keys that are tables.
 
-  = NOTES = {{{
+  = NOTES =
   The "simple" version from before this major update:
     function indexByEquality(self, x)
       for k, v in pairs(self) do -- CAUTION 2021-02-07: u.iter(self) results in stackoverflow. [Q]: Why?
         if u.deepEqual(k, x) then return v end
       end
     end
-  }}}
+
 
   = TESTS =  {{{
 
   -- no groupVals
   g = u.indexBy({}, u.equal)
-  g[{'a'}] = 'adam'
-  g[{'a'}] = 'bob' ------- > { [{ "a" }] = "bob" }
+  g[{'a'}] = 'John'
+  g[{'a'}] = 'Jane' ------- > { [{ "a" }] = "Jane" }
 
-  -- groupVals 
+  -- groupVals
   g = u.indexBy({}, u.equal, true)
-  g[{'a'}] = 'adam'
-  g[{'a'}] = 'bob' ------- > { [{ "a" }] = { "bob", "adam" } }
+  g[{'a'}] = 'John'
+  g[{'a'}] = 'Jane' ------- > { [{ "a" }] = { "Jane", "John" } }
 
   -- groupVals does not add duplicates
   g = u.indexBy({}, u.equal, true)
-  g[{'a'}] = 'adam'------- > { [{ "a" }] = { "adam" } }
-  g[{'a'}] = 'bob' ------- > { [{ "a" }] = { "bob", "adam" } }
-  g[{'a'}] = 'bob' ------- > { [{ "a" }] = { "bob", "adam" } } ('bob' is not added again)
-  g[{'a'}] = 'bobby' ------> { [{ "a" }] = { "bob", "adam", "bobby" } }
+  g[{'a'}] = 'John'------- > { [{ "a" }] = { "John" } }
+  g[{'a'}] = 'Jane' ------- > { [{ "a" }] = { "Jane", "John" } }
+  g[{'a'}] = 'Jane' ------- > { [{ "a" }] = { "Jane", "John" } } ('Jane' is not added again)
+  g[{'a'}] = 'Bobby' ------> { [{ "a" }] = { "Jane", "John", "Bobby" } }
   }}}
 
   ]]
@@ -108,17 +108,17 @@ function M.indexBy(tbl, matcher, groupVals) --[[ {{{
   local raw = tbl
   local mt = getmetatable(raw) or {}
 
-  local function findMatchingKey(key) 
+  local function findMatchingKey(key)
     return u.find(
-      u.keys(tbl), 
+      u.keys(tbl),
       u.bind(matcher, key)
       )
   end
 
   local function indexByEquality(_, key)
     for extantKey, v in pairs(raw) do
-      if matcher(extantKey, key) then 
-        return v 
+      if matcher(extantKey, key) then
+        return v
       end
     end
   end
@@ -128,7 +128,7 @@ function M.indexBy(tbl, matcher, groupVals) --[[ {{{
     local new
 
     if groupVals then
-      if original then 
+      if original then
         table.insert(original, newval)
         return rawset(tbl, findMatchingKey(newkey), u.uniq(original))
       else
@@ -253,58 +253,6 @@ end -- }}}
 sub = string.sub
 upper = string.upper
 
--- cache the names of the property getter/setter functions
-setters = setmetatable( {}, {
-  __index = function(self, k)
-  if type(k)~="string" then return end
-  end
-})
-
-getters = setmetatable( {}, { 
-  __index = function(self, k)
-    if type(k) ~= "string" then return end; 
-  end
-})
-
-
---[[
-
-== TEST ==
-
-x = {}
-
-function CelciusToFarenheit(T)
-  return (T * (9/5)) + 32
-end
-function FarenheitToCelcius(T)
-  return ((T - 32) * 5) / 9
-end
-
-
-function x:setFarenheit(v) 
-  print('setting temperature in F') 
-  rawset(self, 'farenheit', v) 
-  rawset(self, 'celcius', FarenheitToCelcius(v))
-end
-
-function x:setCelcius(v) 
-  print('setting temperature in C') 
-  rawset(self, 'celcius', v) 
-  rawset(self, 'farenheit', CelciusToFarenheit(v))
-end
-
-
-r = u.makeAccessor(x)
-
-]]
-
-
-local function accessorLookup(kind, key, tbl)
-  local accessor = tbl[kind..key:capitalize()]
-  return u.is.callable(accessor) and accessor
-end
-
-
 M.metamethods = {
   __index = {
 
@@ -315,15 +263,6 @@ M.metamethods = {
       end
     end, -- }}}
 
-    withGetters = function(self, k) -- {{{
-      -- FROM: https://github.com/Mehgugs/tourmaline-framework/blob/master/framework/libs/oop/oo.lua
-      local getKey = 'get'..tostring(k):gsub("^.",string.upper)
-      if self[getKey] then
-        return self[getKey](self)
-      elseif self[k] then
-        return self[k]
-      end
-    end -- }}}
   },
 
   __eq = {},

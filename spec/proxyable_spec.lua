@@ -29,8 +29,8 @@ describe('proxyable', function()
 
     t.bind.name(defaultHandler)
 
-    t.name = 'adam'
-    t.name = 'bob'
+    t.name = 'John'
+    t.name = 'Jane'
 
     assert.equal(2, #changeEvents)
   end) -- }}}
@@ -47,11 +47,11 @@ describe('proxyable', function()
       proxy.last_name = names[2] 
     end
 
-    t.name = 'bob wagner'
-    t.name = 'adam wagner'
+    t.name = 'Jane Doe'
+    t.name = 'John Doe'
 
-    assert.equal('adam', t.first_name)
-    assert.equal('wagner', t.last_name)
+    assert.equal('John', t.first_name)
+    assert.equal('Doe', t.last_name)
   end) -- }}}
 
   it('supports getters', function() -- {{{
@@ -69,8 +69,8 @@ describe('proxyable', function()
 
     t.bind.name(defaultHandler)
 
-    t.name = 'bob wagner'
-    t.name = 'adam wagner'
+    t.name = 'Jane Doe'
+    t.name = 'John Doe'
 
     assert.equal(2, #changeEvents) -- there are 6 change events because "name" setter *also* sets first & last name
   end) -- }}}
@@ -79,7 +79,7 @@ describe('proxyable', function()
     t = Thing:new()
     t.bind.__all(defaultHandler)
 
-    t.name = 'bob wagner'
+    t.name = 'Jane Doe'
     t.age = 33
     t.color = 'red'
 
@@ -113,14 +113,14 @@ describe('proxyable', function()
     x = proxyable.new()
     x._validator = proxyable.validators.sameType
 
-    x.name = 'adam'
-    assert.equal('adam', x.name)
+    x.name = 'John'
+    assert.equal('John', x.name)
 
     x.name = function() end -- > 'Must set key "name" to type "string", not "nil"'
-    assert.equal('adam', x.name)
+    assert.equal('John', x.name)
 
-    x.name = 'sue'
-    assert.equal('sue', x.name)
+    x.name = 'Sue'
+    assert.equal('Sue', x.name)
   end) -- }}}
 
   it('can wrap a hammerspoon instance that is type "userdata"', function() --[[ {{{
@@ -149,4 +149,3 @@ describe('proxyable', function()
   end) -- }}}
 
 end)
-

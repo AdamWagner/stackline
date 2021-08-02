@@ -12,8 +12,8 @@ describe('Class', function()
   end) -- }}}
 
   it('supports implicit constructor with table arg', function() -- {{{
-    a = Thing:new({name = 'adam', age = 33, type = 'fun'})
-    assert.equal('adam',a.name)
+    a = Thing:new({name = 'John', age = 33, type = 'fun'})
+    assert.equal('John',a.name)
     assert.equal('fun',a.type)
     assert.equal(33,a.age)
   end) -- }}}
@@ -34,9 +34,9 @@ describe('Class', function()
   it('supports explicit constructors', function() -- {{{
     function Thing:new(t, type) self.name = t.name self.age = t.age self.type = type end
 
-    a = Thing:new({name = 'adam', age = 33}, 'type:person')
+    a = Thing:new({name = 'John', age = 33}, 'type:person')
 
-    assert.equal('adam', a.name)
+    assert.equal('John', a.name)
     assert.equal(33, a.age)
     assert.equal('type:person',  a.type)
   end) -- }}}
@@ -315,12 +315,12 @@ describe('Class', function()
     end)-- }}}
 
     it('can view :class() on both instance & class', function() -- {{{
-      a = Thing:new({name = 'adam', age = 33, type = 'fun'})
+      a = Thing:new({name = 'John', age = 33, type = 'fun'})
       assert.same('Thing', Thing:class().__name)
     end)-- }}}
 
     it('can view :super() on both instance & class', function() -- {{{
-      a = Thing:new({name = 'adam', age = 33, type = 'fun'})
+      a = Thing:new({name = 'John', age = 33, type = 'fun'})
       assert.same('Object', a:super().__name)
       assert.same('Object', Thing:super().__name)
     end)-- }}}
