@@ -182,7 +182,7 @@ All are welcome. Feel free to dive in by opening an [issue](https://github.com/A
 
 [@alin23](https://github.com/alin23) initially proposed the [concept for stackline here](https://github.com/koekeishiya/yabai/issues/203#issuecomment-652948362) and encouraged [@AdamWagner](https://github.com/AdamWagner) to share the mostly-broken proof-of-concept publicly. Since then, [@alin23](https://github.com/alin23) dramatically improved upon the initial proof-of-concept with [#13](https://github.com/AdamWagner/stackline/pull/13), has some pretty whiz-bang functionality on deck with [#17](https://github.com/AdamWagner/stackline/pull/17), and has been a great thought partner/reviewer.  
 
-[@zweck](https://github.com/zweck), who, [in the same thread](https://github.com/koekeishiya/yabai/issues/203#issuecomment-656780281), got the gears turning about how [@alin23](gh-alin23)'s idea could be implemented and _also_ urged Adam to share his POC.
+[@zweck](https://github.com/zweck), who, [in the same thread](https://github.com/koekeishiya/yabai/issues/203#issuecomment-656780281), got the gears turning about how [@alin23](https://github.com/alin23)'s idea could be implemented and _also_ urged Adam to share his POC.
 
 [@johnallen3d](https://github.com/johnallen3d) for being of one the first folks to install stackline, and for identifying several mistakes & gaps in the setup instructions. 
 
@@ -194,7 +194,7 @@ Give a ⭐️ if you think (a more fully-featured version of) stackline would be
 
 ### …on the shoulders of giants
 
-Thanks to [@koekeishiya](gh-koekeishiya) without whom the _wonderful_ [yabai](https://github.com/koekeishiya/yabai) would not exist, and projects like this would have no reason to exist.
+Thanks to [@koekeishiya](https://github.com/koekeishiya) without whom the _wonderful_ [yabai](https://github.com/koekeishiya/yabai) would not exist, and projects like this would have no reason to exist.
 
 Similarly, thanks to [@dominiklohmann](https://github.com/dominiklohmann), who has helped _so many people_ make chunkwm/yabai "do the thing" they want and provides great feedback on new and proposed yabai features.
 
