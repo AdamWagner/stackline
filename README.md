@@ -124,6 +124,8 @@ hs -c "stackline.config:toggle('appearance.showIcons')"
 1. Ensure Hammerspoon is running
 2. Open the hammerspoon console via the menu bar
 3. Type `hs.ipc.cliInstall()` and hit return
+                          
+    If Hammerspoon is installed via Brew on Apple Silicon, `hs.ipc.cliInstall("/opt/homebrew")` [#2930](https://github.com/Hammerspoon/hammerspoon/issues/2930)
 4. Confirm that `hs` is available by entering the following in your terminal (shell):
 
 ```sh
