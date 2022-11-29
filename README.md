@@ -202,7 +202,7 @@ Similarly, thanks to [@dominiklohmann](https://github.com/dominiklohmann), who h
 
 Thanks to [@cmsj](https://github.com/cmsj), [@asmagill](https://github.com/asmagill), and all of the contributors to [hammerspoon](https://github.com/Hammerspoon/hammerspoon) for making macos APIs accessible to the rest of us!
 
-Thanks to the creators & maintainers of the lua utility libaries [underscore.lua](https://github.com/mirven/underscore.lua), [lume.lua](https://github.com/rxi/lume), and [self.lua](https://github.com/M1que4s/self).
+Thanks to the creators & maintainers of the lua utility libraries [underscore.lua](https://github.com/mirven/underscore.lua), [lume.lua](https://github.com/rxi/lume), and [self.lua](https://github.com/M1que4s/self).
 
 ## License & attribution
 
