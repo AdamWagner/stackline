@@ -9,12 +9,13 @@
 
 > Visualize yabai window stacks on macOS. Works with yabai & hammerspoon.
 
-**Up next**
+**Current status**
 
-- Attempt to fix https://github.com/AdamWagner/stackline/issues/67
-- Attempt to fix https://github.com/AdamWagner/stackline/issues/74
+Unfortunately, I've haven't been able to work on this project since Q3 2021. Initially, this was due to a scary bout of RSI-esque finger pain that entirely prevented from me from typing (really – I had to use [Talon](https://talonvoice.com/) for basic computer use); The lesson I took away is that my hobbies shouldn't invovlve continuous typing (given I'm already typing all day for work). 
 
-**Latest update**
+I apologize that I won't be working on this anymore – but that doesn't mean _you_ can't fork & carry the torch ;) 
+
+**June 2021 update**
 
 2021-06-06: Fixes & cleanup (`v0.1.61`)
 
