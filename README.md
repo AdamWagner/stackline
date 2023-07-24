@@ -96,6 +96,16 @@ echo 'stackline = require "stackline"' >> init.lua
 echo 'stackline:init()' >> init.lua
 ```
 
+**Apple Silicon Users**: you need to manually specify the path to `yabai`, because homebrew switched to installing packages into `/opt/homebrew` by default. You can set the path by replacing the `stackline:init` in your `~/.hammerspoon/init.lua`:
+
+```
+stackline:init({
+  paths = {
+    yabai = "/opt/homebrew/bin/yabai"
+  }
+})
+```
+
 Now your `~/.hammerspoon` directory should look like this:
 
 ```
