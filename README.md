@@ -9,12 +9,13 @@
 
 > Visualize yabai window stacks on macOS. Works with yabai & hammerspoon.
 
-**Up next**
+**Current status**
 
-- Attempt to fix https://github.com/AdamWagner/stackline/issues/67
-- Attempt to fix https://github.com/AdamWagner/stackline/issues/74
+Unfortunately, I've haven't been able to work on this project since Q3 2021. Initially, this was due to a scary bout of RSI-esque finger pain that entirely prevented from me from typing (really – I had to use [Talon](https://talonvoice.com/) for basic computer use); The lesson I took away is that my hobbies shouldn't invovlve continuous typing (given I'm already typing all day for work). 
 
-**Latest update**
+I apologize that I won't be working on this anymore – but that doesn't mean _you_ can't fork & carry the torch ;) 
+
+**June 2021 update**
 
 2021-06-06: Fixes & cleanup (`v0.1.61`)
 
@@ -134,6 +135,8 @@ hs -c "stackline.config:toggle('appearance.showIcons')"
 1. Ensure Hammerspoon is running
 2. Open the hammerspoon console via the menu bar
 3. Type `hs.ipc.cliInstall()` and hit return
+                          
+    If Hammerspoon is installed via Brew on Apple Silicon, `hs.ipc.cliInstall("/opt/homebrew")` [#2930](https://github.com/Hammerspoon/hammerspoon/issues/2930)
 4. Confirm that `hs` is available by entering the following in your terminal (shell):
 
 ```sh
@@ -192,7 +195,7 @@ All are welcome. Feel free to dive in by opening an [issue](https://github.com/A
 
 [@alin23](https://github.com/alin23) initially proposed the [concept for stackline here](https://github.com/koekeishiya/yabai/issues/203#issuecomment-652948362) and encouraged [@AdamWagner](https://github.com/AdamWagner) to share the mostly-broken proof-of-concept publicly. Since then, [@alin23](https://github.com/alin23) dramatically improved upon the initial proof-of-concept with [#13](https://github.com/AdamWagner/stackline/pull/13), has some pretty whiz-bang functionality on deck with [#17](https://github.com/AdamWagner/stackline/pull/17), and has been a great thought partner/reviewer.  
 
-[@zweck](https://github.com/zweck), who, [in the same thread](https://github.com/koekeishiya/yabai/issues/203#issuecomment-656780281), got the gears turning about how [@alin23](gh-alin23)'s idea could be implemented and _also_ urged Adam to share his POC.
+[@zweck](https://github.com/zweck), who, [in the same thread](https://github.com/koekeishiya/yabai/issues/203#issuecomment-656780281), got the gears turning about how [@alin23](https://github.com/alin23)'s idea could be implemented and _also_ urged Adam to share his POC.
 
 [@johnallen3d](https://github.com/johnallen3d) for being of one the first folks to install stackline, and for identifying several mistakes & gaps in the setup instructions. 
 
@@ -204,13 +207,13 @@ Give a ⭐️ if you think (a more fully-featured version of) stackline would be
 
 ### …on the shoulders of giants
 
-Thanks to [@koekeishiya](gh-koekeishiya) without whom the _wonderful_ [yabai](https://github.com/koekeishiya/yabai) would not exist, and projects like this would have no reason to exist.
+Thanks to [@koekeishiya](https://github.com/koekeishiya) without whom the _wonderful_ [yabai](https://github.com/koekeishiya/yabai) would not exist, and projects like this would have no reason to exist.
 
 Similarly, thanks to [@dominiklohmann](https://github.com/dominiklohmann), who has helped _so many people_ make chunkwm/yabai "do the thing" they want and provides great feedback on new and proposed yabai features.
 
 Thanks to [@cmsj](https://github.com/cmsj), [@asmagill](https://github.com/asmagill), and all of the contributors to [hammerspoon](https://github.com/Hammerspoon/hammerspoon) for making macos APIs accessible to the rest of us!
 
-Thanks to the creators & maintainers of the lua utility libaries [underscore.lua](https://github.com/mirven/underscore.lua), [lume.lua](https://github.com/rxi/lume), and [self.lua](https://github.com/M1que4s/self).
+Thanks to the creators & maintainers of the lua utility libraries [underscore.lua](https://github.com/mirven/underscore.lua), [lume.lua](https://github.com/rxi/lume), and [self.lua](https://github.com/M1que4s/self).
 
 ## License & attribution
 
