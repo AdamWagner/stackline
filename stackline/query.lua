@@ -5,12 +5,19 @@ local function yabai(command, callback) -- {{{
     callback = callback or function(x) return x end
     command = '-m ' .. command
 
-    hs.task.new(
-        stackline.config:get'paths.yabai',
-        u.task_cb(callback),   -- wrap callback in json decoder
-        command:split(' ')
+    local task = hs.task.new(
+      stackline.config:get 'paths.yabai',
+      u.task_cb(callback),     -- wrap callback in json decoder
+      command:split(' ')
     ):start()
-end  -- }}}
+    if not task then
+      log.e(
+        "Error calling '" ..
+        stackline.config:get('paths.yabai') ..
+        " " .. command .. "'. " .. "Please check logs above this message to find out what went wrong."
+      )
+    end
+  end                                       -- }}}
 
 local function stackIdMapper(yabaiWindow) -- {{{
     -- u.p(yabaiWindow)
