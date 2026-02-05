@@ -1,4 +1,3 @@
--- luacheck: globals table.merge
 -- luacheck: globals u
 -- luacheck: ignore 112
 local wf    = hs.window.filter

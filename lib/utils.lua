@@ -38,31 +38,6 @@ function string:trim() -- {{{
         :gsub('%s+$', '') -- trim trailing whitespace
 end -- }}}
 
-function table.slice(t, from, to) -- {{{
-    -- Returns a partial table sliced from t, equivalent to t[x:y] in certain languages.
-    -- Negative indices will be used to access the table from the other end.
-    local n = #t
-    to = to or n
-    from = from or 1
-
-    -- Modulo the negative index, to get it back into range.
-    if from < 0 then from = (from % n) + 1 end
-
-
-    -- Modulo the negative index, to get it back into range.-- Modulo the negative index, to get it back into range.-- Modulo the negative index, to get it back into range.
-    if to < 0 then to = (to % n) + 1 end
-
-    -- Copy relevant elements into a blank T-Table.
-    local res, key = {}, 1
-
-    for i = from, to do
-        res[key] = t[i]
-        key = key + 1
-    end
-
-    return res
-end -- }}}
-
 -- === utils module ===
 local u = {}
 
@@ -186,46 +161,12 @@ function u.values(t) -- {{{
     return values
 end -- }}}
 
-function u.from_iter(it)  -- {{{
-    if u.istable(it) then
-        return it
-    end
-    local res = {}
-    for item in it do
-        table.insert(res, item)
-    end
-    return res
-end  -- }}}
-
 function u.uniq(tbl) -- {{{
     local res = {}
     for _, v in ipairs(tbl) do
         res[v] = true
     end
     return u.keys(res)
-end -- }}}
-
-function table.merge(t1, t2) -- {{{
-    --[[ TEST
-    y = {blocks = { 'adam', 1, 2,'3', 99, 3 }, 7, 8, 9}
-    z = {'a', 'b', 'c', name = 'JohnDoe', blocks = { 'test',2,3} }
-    a = table.merge(y, z)
-    ]]
-
-    for k,v in pairs(t2) do
-        local target = t1[k]
-        local all_tbl = u.all( {v, target}, u.istable)
-        local all_array = u.all( {v, target}, u.isarray)
-
-        if all_array then
-           t1[k] = u.concat(t1[k], v) --luacheck: ignore 143
-        elseif all_tbl then
-           t1[k] = table.merge(target, v) --luacheck: ignore 143
-        else
-            t1[k] = v
-        end
-    end
-    return t1
 end -- }}}
 
 function u.extend(t1, t2) -- {{{
@@ -247,13 +188,6 @@ end -- }}}
 function u.cb(fn) -- {{{
     return function()
         return fn
-    end
-end -- }}}
-
-function u.json_cb(fn) -- {{{
-    -- wrap fn to decode json arg
-    return function(...)
-        return u.pipe(hs.json.decode, fn, ...)
     end
 end -- }}}
 
@@ -363,13 +297,6 @@ function u.p(data, howDeep) -- {{{
     end
 end -- }}}
 
-function u.pheader(str) -- {{{
-    print('\n\n\n')
-    print("========================================")
-    print(string.upper(str), '==========')
-    print("========================================")
-end -- }}}
-
 function u.groupBy(t, f) -- {{{
     -- FROM: https://github.com/pyrodogg/AdventOfCode/blob/1ff5baa57c0a6a86c40f685ba6ab590bd50c2148/2019/lua/util.lua#L149
     local res = {}
@@ -400,21 +327,6 @@ function u.zip(a, b) -- {{{
         idx = idx + 1
     end
     return rv
-end -- }}}
-
-function u.copyShallow(t) -- {{{
-    -- FROM: https://github.com/XavierCHN/go/blob/master/game/go/scripts/vscripts/utils/table.lua
-    local copy
-
-    if not u.istable(t) then
-        copy = t
-        return copy
-    end
-
-    for k, v in u.getiter(t) do
-        copy[k] = v
-    end
-    return copy
 end -- }}}
 
 function u.deepCopy(obj, seen) -- {{{
@@ -483,27 +395,6 @@ function u.equal(a, b) -- {{{
     end
 
     return true
-end -- }}}
-
-function u.levenshteinDistance(str1, str2) -- {{{
-    str1, str2 = str1:lower(), str2:lower()
-    local len1, len2 = #str1, #str2
-    local c1, c2, dist = {}, {}, {}
-
-    str1:gsub('.', function(c) table.insert(c1, c) end)
-    str2:gsub('.', function(c) table.insert(c2, c) end)
-    for i = 0, len1 do dist[i] = {} end
-    for i = 0, len1 do dist[i][0] = i end
-    for i = 0, len2 do dist[0][i] = i end
-
-    for i = 1, len1 do
-        for j = 1, len2 do
-            dist[i][j] =
-                math.min(dist[i - 1][j] + 1,
-                dist[i][j - 1] + 1, dist[i - 1][j - 1] + (c1[i]==c2[j] and 0 or 1))
-        end
-    end
-    return dist[len1][len2] / #str2
 end -- }}}
 
 function u.flatten(t) -- {{{
