@@ -82,7 +82,7 @@ function stackline:setupListeners() -- {{{
     -- On each win evt above, run update at most once every maxRefreshRate (defaults to 0.3s))
     -- update = query window state & check if redraw needed
     self.wf:subscribe(self.events.checkOn, function(_win, _app, evt)
-        self.forceRedraw = u.contains( -- forceRedraw depending on the type of event
+        self.forceRedraw = self.forceRedraw or u.contains( -- forceRedraw depending on the type of event
             self.events.forceCheckOn,
             evt
         )
