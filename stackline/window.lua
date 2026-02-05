@@ -319,7 +319,7 @@ function Window:getShadowAttrs() -- {{{
 end -- }}}
 
 function Window:iconFromAppName() -- {{{
-    appBundle = hs.appfinder.appFromName(self.app):bundleID()
+    local appBundle = hs.appfinder.appFromName(self.app):bundleID()
     return hs.image.imageFromAppBundle(appBundle)
 end -- }}}
 
