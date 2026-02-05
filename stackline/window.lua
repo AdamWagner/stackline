@@ -252,7 +252,7 @@ function Window:getColorAttrs(isStackFocused, isWinFocused) -- {{{
             ['true'] = {
                 window = {
                     ['true'] = {
-                        bg = u.extend(opts.color, {alpha = opts.alpha}),
+                        bg = u.extend(u.copy(opts.color), {alpha = opts.alpha}),
                         img = opts.alpha,
                     },
                     ['false'] = {
