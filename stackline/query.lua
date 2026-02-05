@@ -47,7 +47,7 @@ local function groupWindows(ws) -- {{{
     end)
 
     -- See 'stackId' def @ /window.lua:233
-    local groupKey = c.features.fzyFrameDetect.enabled
+    local groupKey = stackline.config:get('features.fzyFrameDetect').enabled
         and 'stackIdFzy'
         or 'stackId'
 
