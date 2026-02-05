@@ -82,7 +82,7 @@ end -- }}}
 function Window:drawIndicator(overrideOpts) -- {{{
     log.i('drawIndicator for', self.id)
     -- should there be a dedicated "Indicator" class to perform the actual drawing?
-    local opts = u.extend(self.config, overrideOpts or {})
+    local opts = u.extend(u.copy(self.config), overrideOpts or {})
     local radius = self.showIcons and self.iconRadius or opts.radius
     local fadeDuration = opts.shouldFade and opts.fadeDuration or 0
 
