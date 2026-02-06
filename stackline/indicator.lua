@@ -54,7 +54,7 @@ function Indicator:draw() -- {{{
 
     self.canvas = hs.canvas.new(self.screenFrame)
 
-    local colorAttrs = self:getColorAttrs(self.showingStackFocused, self.showingWinFocused)
+    local colorAttrs = self:getColorAttrs()
 
     self.canvas:insertElement({
         type = "rectangle",
@@ -63,7 +63,7 @@ function Indicator:draw() -- {{{
         frame = self.indicator_rect,
         roundedRectRadii = {xRadius = radius, yRadius = radius},
         withShadow = true,
-        shadow = self:getShadowAttrs(self.showingWinFocused),
+        shadow = self:getShadowAttrs(),
     }, self.rectIdx)
 
     if self.showIcons then
@@ -112,12 +112,12 @@ function Indicator:updateFocus(isWinFocused, isStackFocused) -- {{{
     local rect = self.canvas[self.rectIdx]
     local icon = self.canvas[self.iconIdx]
 
-    local colorAttrs = self:getColorAttrs(self.showingStackFocused, self.showingWinFocused)
+    local colorAttrs = self:getColorAttrs()
     rect.fillColor = colorAttrs.bg
     if self.showIcons then
         icon.imageAlpha = colorAttrs.img
     end
-    rect.shadow = self:getShadowAttrs(self.showingWinFocused)
+    rect.shadow = self:getShadowAttrs()
 
     return {winChanged = winChanged, stackChanged = stackChanged}
 end -- }}}
@@ -129,28 +129,28 @@ function Indicator:getHitFrame() -- {{{
     return self.canvas:canvasElements()[self.rectIdx].frame
 end -- }}}
 
-function Indicator:getColorAttrs(isStackFocused, isWinFocused) -- {{{
-    -- Returns {bg = fillColor, img = imageAlpha} based on focus state.
+function Indicator:getColorAttrs() -- {{{
+    -- Returns {bg = fillColor, img = imageAlpha} based on current focus state.
     local opts = self.config
     local function withAlpha(a)
         return u.extend(u.copy(opts.color), {alpha = a})
     end
 
-    if isStackFocused and isWinFocused then
+    if self.showingStackFocused and self.showingWinFocused then
         -- focused window in focused stack: full brightness
         return {
             bg = withAlpha(opts.alpha),
             img = opts.alpha
         }
 
-    elseif isStackFocused then
+    elseif self.showingStackFocused then
         -- unfocused window in focused stack: dimmed
         return {
             bg = withAlpha(opts.alpha / opts.dimmer),
             img = opts.alpha / opts.iconDimmer
         }
 
-    elseif isWinFocused then
+    elseif self.showingWinFocused then
         -- last-active window in unfocused stack: slightly less dimmed
         return {
             bg = withAlpha(opts.alpha / (opts.dimmer / 1.2)),
@@ -167,18 +167,19 @@ function Indicator:getColorAttrs(isStackFocused, isWinFocused) -- {{{
     end
 end -- }}}
 
-function Indicator:getShadowAttrs(isWinFocused) -- {{{
-    -- Returns {blurRadius, color, offset} based on focus state.
+function Indicator:getShadowAttrs() -- {{{
+    -- Returns {blurRadius, color, offset} based on current focus state.
+    local focused = self.showingWinFocused
     local iconsDisabledDimmer = self.showIcons and 1 or 5 -- pills get much subtler shadows than icons
-    local alphaDimmer = (isWinFocused and 6 or 7) * iconsDisabledDimmer
-    local blurDimmer = (isWinFocused and 15.0 or 7.0) / iconsDisabledDimmer
+    local alphaDimmer = (focused and 6 or 7) * iconsDisabledDimmer
+    local blurDimmer = (focused and 15.0 or 7.0) / iconsDisabledDimmer
 
     -- Shadows cast outward toward screen edges, as if from a
     -- light source at the screen's center
     local xDirection = (self.side == 'left') and -1 or 1
     local offset = {
-        h = (isWinFocused and 3.0 or 2.0) * -1.0,                              -- drop shadow (negative = downward)
-        w = ((isWinFocused and 7.0 or 6.0) * xDirection) / iconsDisabledDimmer, -- cast outward toward screen edge
+        h = (focused and 3.0 or 2.0) * -1.0,                              -- drop shadow (negative = downward)
+        w = ((focused and 7.0 or 6.0) * xDirection) / iconsDisabledDimmer, -- cast outward toward screen edge
     }
 
     return {
