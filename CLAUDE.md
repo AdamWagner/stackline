@@ -43,7 +43,7 @@ Note: Yabai does have a signal system (`yabai -m signal`) that can trigger shell
 ### How stackline solves this
 1. **Frame-based grouping** (from Hammerspoon, fast, synchronous): windows with the same frame coordinates are grouped together. This gives us the *grouping* — which windows are in the same stack. The grouping key is `stackId = "x|y|w|h"` (see `window.lua:makeStackId()`).
 2. **stack-index** (from yabai, slower, async subprocess): gives us the *ordering* within each group, and confirms which windows are truly stacked (stack-index > 0) vs. just overlapping (stack-index == 0).
-3. **Merge**: `query.lua:mergeWinStackIdxs()` assigns yabai's `stackIdx` to each grouped window. Windows with `stackIdx == 0` are removed from their group (they were false positives from frame-matching).
+3. **Merge**: `queryYabai.lua:mergeWinStackIdxs()` assigns yabai's `stackIdx` to each grouped window. Windows with `stackIdx == 0` are removed from their group (they were false positives from frame-matching).
 
 ### Fuzzy frame detection
 Stacked windows *should* share identical frames, but in practice they often don't, for two reasons:
@@ -53,7 +53,7 @@ Stacked windows *should* share identical frames, but in practice they often don'
 
 `fzyFrameDetect` addresses both by rounding frame dimensions to the nearest `fuzzFactor` (default 30px) before generating the grouping key (`stackIdFzy`).
 
-This is safe to be aggressive with because **yabai corrects false positives**. Even if a large fuzzFactor incorrectly groups non-stacked windows together, `mergeWinStackIdxs()` checks each window's `stack-index` from yabai and removes any with `stack-index == 0` (query.lua:84-89). The frame grouping is just a rough first pass; yabai is the authority. False positives get pruned. The only real risk is a fuzzFactor that's *too small* — causing false negatives where truly stacked windows with different min-sizes fail to group and are never sent to yabai for confirmation.
+This is safe to be aggressive with because **yabai corrects false positives**. Even if a large fuzzFactor incorrectly groups non-stacked windows together, `mergeWinStackIdxs()` checks each window's `stack-index` from yabai and removes any with `stack-index == 0` (queryYabai.lua:84-89). The frame grouping is just a rough first pass; yabai is the authority. False positives get pruned. The only real risk is a fuzzFactor that's *too small* — causing false negatives where truly stacked windows with different min-sizes fail to group and are never sent to yabai for confirmation.
 
 ## Two Update Paths
 
@@ -90,7 +90,7 @@ init.lua                          Entry point. Adds stackline to package.path.
 ├── stackline/stackline.lua       App lifecycle. Event wiring. Click tracker. Space watcher.
 │   ├── stackline/configmanager.lua   Schema-validated config. get/set/toggle with onChange events.
 │   ├── stackline/stackmanager.lua    Manages collection of Stack objects. Coordinates updates.
-│   │   └── stackline/query.lua       Groups HS windows by frame. Queries yabai. Detects changes.
+│   │   └── stackline/queryYabai.lua       Groups HS windows by frame. Queries yabai. Detects changes.
 │   ├── stackline/stack.lua           Single stack: contains windows, iterators, hit-testing.
 │   └── stackline/window.lua          Window model + all indicator rendering. Largest module (365 lines).
 ├── conf.lua                      Default config values.
@@ -102,7 +102,7 @@ init.lua                          Entry point. Adds stackline to package.path.
 
 **stackline.lua** — Sets up `hs.window.filter` subscriptions that route events to either the slow path (`queryWindowState` timer) or fast path (`redrawWinIndicator`). Also sets up `hs.eventtap` for click-to-focus and `hs.spaces.watcher` for space changes. Uses the global `stackline` table as a singleton.
 
-**query.lua** — The `run()` function is the slow-path entry point. `groupWindows()` maps `hs.window` objects into `Window` objects and groups by `stackId`/`stackIdFzy`. `shouldRestack()` compares summary stats (num stacks, positions, window counts) against the previous state to avoid unnecessary yabai queries. When a query is needed, `stackIdMapper()` extracts the `window.id → stack-index` mapping from yabai's JSON, and `mergeWinStackIdxs()` assigns those indices onto the grouped windows.
+**queryYabai.lua** — The `run()` function is the slow-path entry point. `groupWindows()` maps `hs.window` objects into `Window` objects and groups by `stackId`/`stackIdFzy`. `shouldRestack()` compares summary stats (num stacks, positions, window counts) against the previous state to avoid unnecessary yabai queries. When a query is needed, `stackIdMapper()` extracts the `window.id → stack-index` mapping from yabai's JSON, and `mergeWinStackIdxs()` assigns those indices onto the grouped windows.
 
 **stackmanager.lua** — `ingest()` receives grouped+merged windows from query, creates `Stack` objects, wires up `otherAppWindows` (for the HS #2400 workaround), and triggers indicator rendering. `findWindow()` does a linear scan across all stacks to locate a window by ID (used by the fast path). `cleanup()` tears down all canvas elements before a full refresh.
 
@@ -215,7 +215,7 @@ The event handler unconditionally sets `self.forceRedraw = u.contains(...)` on e
 
 ### Architectural
 
-**A1. Full teardown/rebuild on every slow-path update** (query.lua:45-47, stackmanager.lua:20-38)
+**A1. Full teardown/rebuild on every slow-path update** (queryYabai.lua:45-47, stackmanager.lua:20-38)
 `groupWindows()` creates brand-new Window objects for *every* visible window on every update cycle. Old Window objects (with their canvas references, cached icons, focus state) are thrown away and rebuilt from scratch. This forces full canvas teardown/rebuild — the most expensive operation.
 
 Window IDs are stable (same in HS and yabai), so a **keyed reconciliation** could avoid this: keep a `windowsById` map, diff new state against existing state, and only create/destroy/reposition what actually changed. This would eliminate most canvas churn and icon re-lookups. Previous attempts to solve this via a deep OOP hierarchy (auto-building data tree from global → screen → space → stack → window → indicator) became too complex and buggy. A flat hash-map diff is simpler: just three cases per window ID — unchanged (keep), changed (update), gone (delete) — plus new IDs (create).
@@ -269,12 +269,12 @@ Each item gets its own commit. Provably-correct changes first, then logic restru
 - [x] **4. Fix `getColorAttrs` config mutation** (B1) — Line 255: `u.extend(opts.color, ...)` → `u.extend(u.copy(opts.color), ...)`. Matches the pattern already used on lines 259, 268, 275.
 - [x] **5. Fix `drawIndicator` config mutation** (C5) — `u.extend(self.config, ...)` → `u.extend(u.copy(self.config), ...)`. Preserves override intent without mutating shared state.
 - [x] **6. Fix `forceRedraw` clobbering** (B3) — `self.forceRedraw = u.contains(...)` → `self.forceRedraw = self.forceRedraw or u.contains(...)`. One-line change, fixes a real race condition.
-- [x] **6b. Remove `spaceHasStacks` guard in query.lua** — The `spaceHasStacks and` prefix on `shouldRestack()` creates a blind spot (0→N stacks) that forces `forceRedraw` to cover init/space-switch. Removing it lets `shouldRestack()` handle all transitions naturally via `numStacks` diff.
+- [x] **6b. Remove `spaceHasStacks` guard in queryYabai.lua** — The `spaceHasStacks and` prefix on `shouldRestack()` creates a blind spot (0→N stacks) that forces `forceRedraw` to cover init/space-switch. Removing it lets `shouldRestack()` handle all transitions naturally via `numStacks` diff.
 - [x] **7. Move `resetAllIndicators` outside ingest loop** (A2) — Move one line from inside to after the `for` loop. Same final state, eliminates N(N+1)/2 redundant calls.
 - [x] **8. Remove or stub `autosuggest`** (B2) — Either delete the call in `set()` or add a no-op method. Currently crashes on invalid config paths.
 - [x] **8c. Fix `u.find()` global leak** — Add missing `local` to `result` variable. Same class of bug as items 3-5.
 - [x] **8d. Fix comment typos and inaccuracies** — Fix typos (forgiven, WANRING, elment), wrong defaults (0.3s→0.5s), stale line-number references, stale `-- end`, incorrect stackIdFzy description, `~=` → `≈`.
-- [x] **8e. Add high-value comments** — Module-level comments, explain non-obvious patterns (stackFocus=true, string-key lookup, __index metatable fallback, globals), label slow/fast paths, document query.lua functions, clarify conf.lua values. Remove dead `self:isStackFocused()` call in setupIndicator.
+- [x] **8e. Add high-value comments** — Module-level comments, explain non-obvious patterns (stackFocus=true, string-key lookup, __index metatable fallback, globals), label slow/fast paths, document queryYabai.lua functions, clarify conf.lua values. Remove dead `self:isStackFocused()` call in setupIndicator.
 - [ ] **8f. Normalize naming conventions** — Rename per the naming scheme in Developer Guidelines. `shouldRestack`→`shouldQuery`, `forceRedraw`→`forceQuery`, `checkOn`→`queryOn`, `forceCheckOn`→`forceQueryOn`, `resetAllIndicators`→`rebuildAllIndicators`, `tabStacks`→`stacks`, `self.focus`→`self.winFocused`, `self.stackFocus`→`self.stackFocused`. Pure renames, no logic change.
 
 ### Tier 2: Extract & simplify (same behavior, clearer code)
@@ -302,7 +302,7 @@ Checked whether yabai has added a `stack-id` or any stack-grouping field since t
 
 **Result: No.** Yabai still only exposes `stack-index` (position within a stack). The `window_node` struct in yabai's BSP tree has no ID field — stacks are implicit, not first-class entities. The maintainer acknowledged the usefulness in 2020 but never implemented it. Changelog through v7.1.16 (Oct 2025) has no stack-grouping changes.
 
-**Implication:** The two-data-source architecture (Hammerspoon for grouping via frame-matching, yabai for ordering via stack-index) remains necessary. The fuzzy frame detection and the entire `groupWindows()` pipeline in `query.lua` cannot be eliminated. Any simplification work should focus on cleaning up the *implementation* of this pipeline, not replacing it.
+**Implication:** The two-data-source architecture (Hammerspoon for grouping via frame-matching, yabai for ordering via stack-index) remains necessary. The fuzzy frame detection and the entire `groupWindows()` pipeline in `queryYabai.lua` cannot be eliminated. Any simplification work should focus on cleaning up the *implementation* of this pipeline, not replacing it.
 
 ### 2025-02-05: Deep complexity review
 Audited all modules for bugs, unnecessary complexity, and dead code. Full findings written up in "Complexity Hotspots" section above (items B1-B5, A1-A4, C1-C5, D1-D3).
@@ -312,7 +312,7 @@ Key insight on **A1 (full teardown/rebuild)**: previous attempts to fix this wen
 ### Commits
 - `ef91aa9` — Item 1: Remove dead code from utils.lua. Removed 7 unused functions (table.slice, table.merge, u.from_iter, u.json_cb, u.copyShallow, u.levenshteinDistance, u.pheader). 110 lines deleted. Also removed stale `luacheck: globals table.merge` directive from stackline.lua.
 - `72ce9ec` — Add CLAUDE.md with architecture docs and refactoring plan.
-- `4629d5a` — Item 2: Fix conf.lua global leak. Made `c` local, fixed query.lua:50 to use `stackline.config:get()`.
+- `4629d5a` — Item 2: Fix conf.lua global leak. Made `c` local, fixed queryYabai.lua:50 to use `stackline.config:get()`.
 - `1f85833` — Item 3: Fix iconFromAppName global leak. Added missing `local`.
 - `bd256d6` — Item 4: Fix getColorAttrs mutating shared config color table. Added missing `u.copy()`.
 - `b2cc3ed` — Item 5: Fix drawIndicator mutating self.config via u.extend. Copy before extending.

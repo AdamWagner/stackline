@@ -104,7 +104,7 @@ Now your `~/.hammerspoon` directory should look like this:
   ├── conf.lua
   ├── stackline
   │   ├── configmanager.lua
-  │   ├── query.lua
+  │   ├── queryYabai.lua
   │   ├── stack.lua
   │   ├── stackline.lua
   │   ├── stackmanager.lua
