@@ -1,3 +1,5 @@
+-- A single stack: a group of overlapping windows sharing the same frame.
+-- Contains Window objects, iterators, indicator lifecycle, and click hit-testing.
 local Stack = {}
 
 function Stack:new(stackedWindows) -- {{{
@@ -46,12 +48,16 @@ function Stack:anyFocused() -- {{{
 end -- }}}
 
 function Stack:resetAllIndicators() -- {{{
+   -- SLOW PATH: tears down and recreates canvas elements from scratch.
+   -- Called during rebuild after a yabai query.
    self:eachWin(function(w)
        w:setupIndicator():drawIndicator()
    end)
 end -- }}}
 
 function Stack:redrawAllIndicators(opts) -- {{{
+   -- FAST PATH: updates existing canvas properties in-place (colors, shadow, opacity).
+   -- Called on focus changes — no canvas teardown, no icon lookups.
    self:eachWin(function(win)
        if win.id ~= opts.except then
            win:redrawIndicator()

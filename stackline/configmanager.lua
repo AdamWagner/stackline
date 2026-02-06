@@ -53,13 +53,15 @@ Config.types = { -- {{{
     },
 } -- }}}
 
+-- Metatable fallback: any config key NOT explicitly listed in Config.events
+-- falls through to this default handler, which triggers a full query cycle.
 local defaultOnChangeEvt = { -- {{{
     __index = function() stackline.queryWindowState:start() end
 }  -- }}}
 
 Config.events = setmetatable({ -- {{{
-    -- Map stackline actions to config keys
-    -- If config key changes, perform action
+    -- onChange callbacks: when a config value is set(), the matching callback fires.
+    -- Keys not listed here fall through to defaultOnChangeEvt (triggers a query cycle).
     appearance = function() stackline.manager:resetAllIndicators() end,
     features = {
         clickToFocus      = function() return stackline:refreshClickTracker() end,
@@ -197,6 +199,7 @@ function Config:set(path, val) -- {{{
 
     u.setfield(path, typedVal, self.conf)
 
+    -- isSafe=true: if exact path has no handler, return nearest ancestor handler
     local onChange = u.getfield(path, self.events, true)
     if u.isfunc(onChange) then onChange() end
 

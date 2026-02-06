@@ -6,8 +6,10 @@ local log   = hs.logger.new('stackline', 'info')
 local click = hs.eventtap.event.types['leftMouseDown'] -- fyi, print hs.eventtap.event.types to see all event types
 
 log.i'Loading module: stackline'
+-- Globals: u and stackline are global so every module can access them
+-- without circular require chains. Set once here, used everywhere.
 _G.u = require 'lib.utils'
-_G.stackline = {} -- access stackline under global 'stackline'
+_G.stackline = {}
 stackline.config = require'stackline.configmanager'
 stackline.window = require'stackline.window'
 

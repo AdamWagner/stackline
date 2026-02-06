@@ -2,6 +2,7 @@ local log   = hs.logger.new('query', 'info')
 log.i('Loading module: query')
 
 local function yabai(command, callback) -- {{{
+    -- Run a yabai CLI command asynchronously. Callback receives parsed JSON response.
     callback = callback or function(x) return x end
     command = '-m ' .. command
 
@@ -13,7 +14,8 @@ local function yabai(command, callback) -- {{{
 end  -- }}}
 
 local function stackIdMapper(yabaiWindow) -- {{{
-    -- u.p(yabaiWindow)
+    -- Build a {[winId_string] = stack_index} map from yabai's JSON response.
+    -- Windows with stack-index == 0 are not stacked and are excluded.
     local res = {}
     if type(yabaiWindow)~='table' then u.p(yabaiWindow) end
     for _,win in pairs(yabaiWindow or {}) do
@@ -131,6 +133,9 @@ local function shouldRestack(new) -- {{{
 end -- }}}
 
 local function run(opts) -- {{{
+    -- Main slow-path entry point, called by stackmanager:update().
+    -- Groups HS windows by frame, checks if anything changed, and if so
+    -- queries yabai for stack indices and hands off to stackmanager:ingest().
     opts = opts or {}
     local byStack, byApp = groupWindows(stackline.wf:getWindows()) -- set byStack & self.appWindows
 

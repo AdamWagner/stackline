@@ -57,6 +57,7 @@ u.sortByKeys   = hs.fnutils.sortByKeys
 u.sortByValues = hs.fnutils.sortByKeyValues
 
 function u.length(t) -- {{{
+    -- Counts all keys (including string keys). Lua's # only counts the array part.
     if type(t)~='table' then return 0 end
     local count = 0
     for _ in next, t do
@@ -82,6 +83,7 @@ function u.flip(func) -- {{{
 end -- }}}
 
 function u.pipe(f, g, ...) -- {{{
+  -- Left-to-right function composition: pipe(f, g)(x) = g(f(x))
   local function simpleCompose(f1, g1)
     return function(...)
       return f1(g1(...))
@@ -119,6 +121,7 @@ function u.isarray(x) -- {{{
 end -- }}}
 
 function u.isjson(x) -- {{{
+    -- Rough heuristic, not a real JSON parser — just checks for braces.
     return u.isstring(x) and x:find('{') and x:find('}')
 end -- }}}
 
@@ -186,13 +189,16 @@ function u.include(tbl, val) -- {{{
 end -- }}}
 
 function u.cb(fn) -- {{{
+    -- Wraps a value in a thunk: returns a no-arg function that returns fn.
+    -- Used by configmanager for deferred validator construction.
     return function()
         return fn
     end
 end -- }}}
 
 function u.task_cb(fn) -- {{{
-    -- wrap callback given to hs.task
+    -- Wrap callback for hs.task. hs.task passes (exitCode, stdout, stderr);
+    -- this decodes JSON from stdout (if present) and passes parsed result to fn.
     return function(...)
       local out = {...}
 

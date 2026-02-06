@@ -1,3 +1,6 @@
+-- Manages the collection of Stack objects for the current space.
+-- Coordinates the slow-path update cycle: receives grouped windows from query.lua,
+-- creates Stack objects, wires up workaround data, and triggers indicator rendering.
 local log   = hs.logger.new('stackmanager', 'info')
 
 local Stackmanager = {}

@@ -1,3 +1,6 @@
+-- Window model AND all indicator rendering logic.
+-- Each Window wraps an hs.window and owns a single hs.canvas (the indicator).
+-- This is the largest module — rendering, focus state, color, shadow, positioning all live here.
 local log   = hs.logger.new('window', 'info')
 log.i('Loading module: window')
 
@@ -44,8 +47,6 @@ function Window:setupIndicator() -- {{{
     local c = self.config
     self.showIcons = c.showIcons
 
-    self:isStackFocused()
-
     -- computed from config
     self.width = self.showIcons and c.size or (c.size / c.pillThinness)
     self.iconRadius = self.width / self.config.radius
@@ -87,6 +88,9 @@ function Window:drawIndicator(overrideOpts) -- {{{
     local fadeDuration = opts.shouldFade and opts.fadeDuration or 0
 
     self.focus = self:isFocused()
+    -- drawIndicator is only called during rebuild (slow path), at which point
+    -- we always consider the stack focused. The fast path (redrawIndicator)
+    -- will correct this if needed on the next focus event.
     self.stackFocus = true
 
     if self.indicator then
@@ -248,6 +252,8 @@ function Window:getColorAttrs(isStackFocused, isWinFocused) -- {{{
     -- Lookup bg color and image alpha based on stack + window focus
     -- e.g., fillColor = self:getColorAttrs(self.stackFocus, self.focus).bg
     --       iconAlpha = self:getColorAttrs(self.stackFocus, self.focus).img
+    -- Uses string keys ('true'/'false') because Lua doesn't allow boolean table keys
+    -- in this nested lookup pattern. tostring() on the boolean args gives us the key.
     local colorLookup = {
         stack = {
             ['true'] = {
@@ -273,6 +279,9 @@ function Window:getColorAttrs(isStackFocused, isWinFocused) -- {{{
                         img = opts.alpha,
                     },
                     ['false'] = {
+                        -- When icons are shown, bg is invisible (alpha=0) for unfocused windows
+                        -- in unfocused stacks — only the icon itself provides visual presence.
+                        -- For pill mode, a faint bg (0.2) remains so the pill is still visible.
                         bg = u.extend(u.copy(opts.color), {
                             alpha = stackline.manager:getShowIconsState() and 0 or
                                 0.2,
@@ -349,6 +358,8 @@ function Window:deleteIndicator() -- {{{
 end -- }}}
 
 function Window:unfocusOtherAppWindows() -- {{{
+    -- Part of the HS #2400 workaround: when focusing a window, manually redraw
+    -- other windows from the same app since HS may not fire unfocus events for them.
     log.i('unfocusOtherAppWindows for', self.id)
     u.each(self.otherAppWindows, function(w)
         w:redrawIndicator()
