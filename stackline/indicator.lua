@@ -119,11 +119,11 @@ end -- }}}
 
 function Indicator:applyAppearance() -- {{{
     -- Apply colors and shadow to canvas elements based on current render state.
-    local colorAttrs = self:computeColorAttrs()
-    self.canvas[RECT].fillColor = colorAttrs.bg
+    local bg, imgAlpha = self:computeColorAttrs()
+    self.canvas[RECT].fillColor = bg
     self.canvas[RECT].shadow = self:computeShadowAttrs()
     if self.showIcons then
-        self.canvas[ICON].imageAlpha = colorAttrs.img
+        self.canvas[ICON].imageAlpha = imgAlpha
     end
 end -- }}}
 
@@ -157,10 +157,7 @@ function Indicator:computeColorAttrs() -- {{{
     local bg = u.copy(opts.color)
     bg.alpha = bgAlpha
 
-    return {
-        bg = bg,
-        img = imgAlpha
-    }
+    return bg, imgAlpha
 end -- }}}
 
 function Indicator:computeShadowAttrs() -- {{{
@@ -201,12 +198,9 @@ function Indicator:buildRects() -- {{{
     local c = self.config
 
     -- Position indicator just outside the window edge
-    local xval
-    if self.side == 'right' then
-        xval = self.frame.x + self.frame.w + c.offset.x
-    else
-        xval = self.frame.x - self.width - c.offset.x
-    end
+    local xval = self.side == 'right'
+        and self.frame.x + self.frame.w + c.offset.x
+        or  self.frame.x - self.width - c.offset.x
 
     -- Clamp to screen bounds
     xval = math.max(0, math.min(xval, self.screenFrame.w - self.width))
