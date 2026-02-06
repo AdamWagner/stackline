@@ -107,7 +107,7 @@ function Window:drawIndicator(overrideOpts) -- {{{
         frame = self.indicator_rect,
         roundedRectRadii = {xRadius = radius, yRadius = radius},
         withShadow = true,
-        shadow = self:getShadowAttrs(),
+        shadow = self:getShadowAttrs(self.winFocused),
         -- trackMouseEnterExit = true,
         -- trackMouseByBounds = true,
         -- trackMouseDown = true,
@@ -186,7 +186,7 @@ function Window:redrawIndicator() -- {{{
     if self.showIcons then
         icon.imageAlpha = colorAttrs.img
     end
-    rect.shadow = self:getShadowAttrs()
+    rect.shadow = self:getShadowAttrs(self.winFocused)
 end -- }}}
 
 function Window:getScreenSide() -- {{{
@@ -277,19 +277,19 @@ function Window:getColorAttrs(isStackFocused, isWinFocused) -- {{{
     end
 end -- }}}
 
-function Window:getShadowAttrs() -- {{{
-    -- less opaque & blurry when iconsDisabled
-    -- even less opaque & blurry when unfocused
+function Window:getShadowAttrs(isWinFocused) -- {{{
+    -- Returns {blurRadius, color, offset} based on focus state.
+    -- Called by drawIndicator (slow path) and redrawIndicator (fast path).
     local iconsDisabledDimmer = stackline.manager:getShowIconsState() and 1 or 5 -- pills get much subtler shadows than icons
-    local alphaDimmer = (self.winFocused and 6 or 7) * iconsDisabledDimmer
-    local blurDimmer = (self.winFocused and 15.0 or 7.0) / iconsDisabledDimmer
+    local alphaDimmer = (isWinFocused and 6 or 7) * iconsDisabledDimmer
+    local blurDimmer = (isWinFocused and 15.0 or 7.0) / iconsDisabledDimmer
 
-    -- Shadows should cast outwards toward screen edges as if 
-    -- from a light source originating from the screen's center
+    -- Shadows cast outward toward screen edges, as if from a
+    -- light source at the screen's center
     local xDirection = (self.side == 'left') and -1 or 1
     local offset = {
-        h = (self.winFocused and 3.0 or 2.0) * -1.0,                              -- drop shadow (negative = downward)
-        w = ((self.winFocused and 7.0 or 6.0) * xDirection) / iconsDisabledDimmer, -- cast outward toward screen edge
+        h = (isWinFocused and 3.0 or 2.0) * -1.0,                              -- drop shadow (negative = downward)
+        w = ((isWinFocused and 7.0 or 6.0) * xDirection) / iconsDisabledDimmer, -- cast outward toward screen edge
     }
 
     -- TODO [just for fun]: Dust off an old Geometry textbook and try get the shadow's angle to rotate around a point at the center of the screen (aka, 'light source')
