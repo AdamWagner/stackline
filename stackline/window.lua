@@ -135,60 +135,48 @@ end -- }}}
 
 function Window:redrawIndicator() -- {{{
     log.i('redrawIndicator for', self.id)
-    local isWindowFocused = self:isFocused()
+
+    -- Compare live focus against render state to detect changes.
+    -- Render state (self.winFocused, self.stackFocused) persists between calls
+    -- so that each call can detect what changed since the last redraw.
+    local isWinFocused = self:isFocused()
     local isStackFocused = self:isStackFocused()
 
-    -- has stack, window focus changed?
-    local stackFocusChange = isStackFocused ~= self.stackFocused
-    local windowFocusChange = isWindowFocused ~= self.winFocused
+    local winChanged = isWinFocused ~= self.winFocused
+    local stackChanged = isStackFocused ~= self.stackFocused
 
-    -- permutations of stack, window change combos
-    local noChange = not stackFocusChange and not windowFocusChange
-    local bothChange = stackFocusChange and windowFocusChange
-    local onlyStackChange = stackFocusChange and not windowFocusChange
-    local onlyWinChange = not stackFocusChange and windowFocusChange
+    if not winChanged and not stackChanged then return false end
 
-    -- TODO: Refactor to reduce complexity
-    -- LOGIC: Redraw according to what changed.
-    -- Supports indicating the *last-active* window in an unfocused stack.
-    -- TODO: Fix bug causing stack to continue appearing focused when switching to a non-stacked window from the same app as the focused stack window. Another casualtiy of HS #2400 :<
-    if noChange then
-        -- bail early if there's nothing to do
-        return false
-
-    elseif bothChange then
-        -- If both change, it means a *focused* window's stack is now unfocused.
+    -- Update render state for this redraw (and as baseline for the next call).
+    -- stackFocused always tracks reality.
+    if stackChanged then
         self.stackFocused = isStackFocused
+    end
+    -- winFocused tracks reality when changing focus *within* a stack.
+    -- When leaving a focused stack (both change), winFocused intentionally
+    -- stays true — the "last-active window" renders slightly brighter,
+    -- showing which window was last used in the now-unfocused stack.
+    if winChanged and not stackChanged then
+        self.winFocused = isWinFocused
+    end
+
+    -- Trigger sibling redraws on stack focus transitions.
+    if stackChanged and (winChanged or isWinFocused) then
         self.stack:redrawAllIndicators({except = self.id})
-        -- Despite the window being unfocused, do *not* update self.winFocused
-        -- (unfocused stack + focused window = last-active window)
+    end
 
-    elseif onlyWinChange then
-        -- changing window focus within a stack
-        self.winFocused = isWindowFocused
-
-        local enableTmpFix = stackline.config:get('features.hsBugWorkaround')
-        if self.winFocused and enableTmpFix then
+    -- HS #2400 workaround: manually redraw same-app windows on focus gain
+    if winChanged and not stackChanged and isWinFocused then
+        if stackline.config:get('features.hsBugWorkaround') then
             self:unfocusOtherAppWindows()
-        end
-
-    elseif onlyStackChange then
-        -- aka, already unfocused window's stack is now unfocused, too
-        -- so update stackFocus
-        self.stackFocused = isStackFocused
-
-        -- if only stack changed *and* win is focused, it means a previously
-        -- unfocused stack is now focused, so redraw other window indicators
-        if isWindowFocused then
-            self.stack:redrawAllIndicators({except = self.id})
         end
     end
 
+    -- Update canvas
     if not self.indicator then           -- safety net: create indicator if it doesn't exist yet
         self:setupIndicator()
     end
 
-    -- ACTION: Update canvas values
     local rect = self.indicator[self.rectIdx]
     local icon = self.indicator[self.iconIdx]
 

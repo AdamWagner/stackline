@@ -261,8 +261,8 @@ Calls `hs.window.focusedWindow()` every time. During a single `redrawIndicator()
 
 ### Unnecessary Complexity
 
-**C1. `redrawIndicator` focus state machine** (window.lua:136-201)
-4-way branch (`noChange`, `bothChange`, `onlyWinChange`, `onlyStackChange`) with side effects scattered across branches. Some update `self.focus`, some update `self.stackFocus`, some trigger sibling redraws. The "last-active window" behavior — `bothChange` updates `stackFocus` but intentionally does *not* update `self.focus` — is a non-obvious design decision buried in a branch. Sibling redraw trigger is duplicated in two branches. The inline TODO says "Refactor to reduce complexity."
+**C1. `redrawIndicator` focus state machine** (window.lua:136-191) — **FIXED**
+Replaced 4-way branch (`noChange`, `bothChange`, `onlyWinChange`, `onlyStackChange`) with direct conditions. Separated three concerns sequentially: update render state → trigger side effects → update canvas. Sibling redraw consolidated into one condition. "Last-active window" rule expressed as `if winChanged and not stackChanged` with explanatory comment. Added comments explaining why render state persists between calls (change detection + intentional divergence from live state).
 
 **C2. `getColorAttrs` rebuilds a nested lookup on every call** — **FIXED**
 Replaced 50-line deeply nested string-keyed lookup with flat if/else + `withAlpha` helper. 4 branches with early returns, each self-documenting. Only the needed branch computes (was building all 4 `u.copy`/`u.extend` every call).
@@ -318,7 +318,7 @@ Each item gets its own commit. Provably-correct changes first, then logic restru
 - [ ] **12. Inline `getShowIconsState`** (D3) — Replace `stackline.manager:getShowIconsState()` calls with `stackline.config:get('appearance.showIcons')`. Fixes stale-cache bug and removes indirection.
 - [x] **13. Simplify `getSummary` dual data shape** (C4) — Normalize data shape at the top of the function instead of branching in every callback. Unwrap `Stack.windows` via `u.map` so the body is branch-free. Simpler than splitting into two functions.
 - [ ] **14. Pass focused window ID through update cycle** (A4) — Resolve `hs.window.focusedWindow()` once at the top of `redrawIndicator`, pass the ID down. Eliminates N+1 redundant HS API calls per focus event. (Can be done as part of item 9 or standalone.)
-- [ ] **15. Simplify `redrawIndicator` state machine** (C1) — Restructure the 4-way branch to make the "last-active window" behavior explicit and deduplicate the sibling-redraw trigger. Same logic, clearer intent.
+- [x] **15. Simplify `redrawIndicator` state machine** (C1) — Replaced 4-way branch with direct conditions. Separated concerns: render state → side effects → canvas update. "Last-active window" rule is now `if winChanged and not stackChanged`. Sibling redraws consolidated. Added comments explaining render state persistence.
 
 ### Tier 3: Architectural (higher risk, higher reward)
 
@@ -388,3 +388,4 @@ Key insight on **A1 (full teardown/rebuild)**: previous attempts to fix this wen
 - `d013c23` — Fix internal require paths. 3 requires used wrong paths that only worked when the parent directory happened to be on `package.path`: `stackline.stackline.queryYabai` → `stackline.queryYabai`, `stackline.stackline.stack` → `stackline.stack`, `stackline.conf` → `conf`. All requires now resolve through the single stackline root path, working in both standard (`~/.hammerspoon/stackline/`) and dev (`~/Programming/stackline/`) installs.
 - `71306a7` — Update default yabai path to Apple Silicon (`/opt/homebrew/bin/yabai`). Clean up CLAUDE.md: mark fixed hotspots, update stale line numbers, add manual test plan and behavior improvements section.
 - `3f8dc7e` — Item 8f: Normalize naming conventions. `shouldRestack`→`shouldQuery`, `forceRedraw`→`forceQuery`, `resetAllIndicators`→`rebuildAllIndicators`, `tabStacks`→`stacks`, `self.focus`→`self.winFocused`, `self.stackFocus`→`self.stackFocused`. Pure renames across 6 files, no logic change.
+- `PENDING` — Item 15: Simplify `redrawIndicator` state machine. Replace 4-way branch with direct conditions, separate concerns (render state → side effects → canvas), consolidate sibling redraws, explain render state persistence.
