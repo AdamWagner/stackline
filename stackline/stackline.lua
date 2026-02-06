@@ -28,7 +28,7 @@ function stackline:init(userConfig) -- {{{
     end
 
     -- init config with default settings + user overrides
-    self.config:init(u.extend(require 'stackline.conf', userConfig or {}))
+    self.config:init(u.extend(require 'conf', userConfig or {}))
 
     -- init stackmanager, & run update right away
     -- NOTE: Requires self.config to be initialized first

@@ -8,7 +8,7 @@ local log   = hs.logger.new('stackmanager', 'info')
 
 local Stackmanager = {}
 
-Stackmanager.query = require 'stackline.stackline.queryYabai'
+Stackmanager.query = require 'stackline.queryYabai'
 
 function Stackmanager:init() -- {{{
     self.tabStacks = {}
@@ -27,7 +27,7 @@ function Stackmanager:ingest(stacks, appWins) -- {{{
     self:cleanup()
 
     for stackId, groupedWindows in pairs(stacks) do
-        local stack = require 'stackline.stackline.stack':new(groupedWindows)
+        local stack = require 'stackline.stack':new(groupedWindows)
         stack.id = stackId
         u.each(stack.windows, function(win)
             -- win.otherAppWindows needed to workaround Hammerspoon issue #2400
