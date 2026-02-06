@@ -143,7 +143,6 @@ function Config:validate(conf) -- {{{
     if isValid then
         log.i('✓ Conf validated successfully')
         self.conf = conf
-        self.autosuggestions = u.keys(u.flattenPath(self.conf))
     else
         local invalidKeys = table.concat(u.keys(u.flattenPath(err)), ', ')
         log.e('Invalid stackline config:\n', hs.inspect(err))
@@ -184,7 +183,7 @@ function Config:set(path, val) -- {{{
     -- non-existent path segments will be set to an empty table
     local _type, validator = self:getPathSchema(path) -- lookup type in schema
     if not _type then
-        self:autosuggest(path)
+        log.w(('config.set("%s") not found in schema'):format(path))
         return self
     end
 

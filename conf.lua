@@ -1,5 +1,4 @@
 -- default stackline config
--- TODO: Experiment with setting __index() metatable to leverage autosuggest when keys not found
 
 local c = {}
 c.paths = {}
