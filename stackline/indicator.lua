@@ -54,7 +54,7 @@ function Indicator:draw() -- {{{
 
     self.canvas = hs.canvas.new(self.screenFrame)
 
-    local colorAttrs = self:getColorAttrs()
+    local colorAttrs = self:computeColorAttrs()
 
     self.canvas:insertElement({
         type = "rectangle",
@@ -63,7 +63,7 @@ function Indicator:draw() -- {{{
         frame = self.indicator_rect,
         roundedRectRadii = {xRadius = radius, yRadius = radius},
         withShadow = true,
-        shadow = self:getShadowAttrs(),
+        shadow = self:computeShadowAttrs(),
     }, self.rectIdx)
 
     if self.showIcons then
@@ -112,12 +112,12 @@ function Indicator:updateFocus(isWinFocused, isStackFocused) -- {{{
     local rect = self.canvas[self.rectIdx]
     local icon = self.canvas[self.iconIdx]
 
-    local colorAttrs = self:getColorAttrs()
+    local colorAttrs = self:computeColorAttrs()
     rect.fillColor = colorAttrs.bg
     if self.showIcons then
         icon.imageAlpha = colorAttrs.img
     end
-    rect.shadow = self:getShadowAttrs()
+    rect.shadow = self:computeShadowAttrs()
 
     return {winChanged = winChanged, stackChanged = stackChanged}
 end -- }}}
@@ -129,7 +129,7 @@ function Indicator:getHitFrame() -- {{{
     return self.canvas:canvasElements()[self.rectIdx].frame
 end -- }}}
 
-function Indicator:getColorAttrs() -- {{{
+function Indicator:computeColorAttrs() -- {{{
     -- Returns {bg = fillColor, img = imageAlpha} based on current focus state.
     local opts = self.config
     local function withAlpha(a)
@@ -167,7 +167,7 @@ function Indicator:getColorAttrs() -- {{{
     end
 end -- }}}
 
-function Indicator:getShadowAttrs() -- {{{
+function Indicator:computeShadowAttrs() -- {{{
     -- Returns {blurRadius, color, offset} based on current focus state.
     local focused = self.showingWinFocused
     local iconsDisabledDimmer = self.showIcons and 1 or 5 -- pills get much subtler shadows than icons
