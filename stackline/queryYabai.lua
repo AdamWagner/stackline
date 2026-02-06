@@ -34,16 +34,6 @@ local function stackIdMapper(yabaiWindow) -- {{{
     return res
 end  -- }}}
 
-local function getStackedWinIds(byStack) -- {{{
-    local stackedWinIds = {}
-    for _, group in pairs(byStack) do
-        for _, win in pairs(group) do
-            stackedWinIds[win.id] = true
-        end
-    end
-    return stackedWinIds
-end  -- }}}
-
 local function groupWindows(ws) -- {{{
     -- Given windows from hs.window.filter:
     --    1. Create stackline window objects
@@ -64,49 +54,26 @@ local function groupWindows(ws) -- {{{
 
     local byApp
     if u.length(byStack) > 0 then
-        local stackedWinIds = getStackedWinIds(byStack)
-        local stackedWins = u.filter(windows, function(w)
-            return stackedWinIds[w.id] --true if win id is in stackedWinIds
-        end)
-
-        byApp = u.groupBy(stackedWins, 'app') -- app names are keys in group
+        byApp = u.groupBy(u.flatValues(byStack), 'app')
     end
 
     return byStack, byApp
 end -- }}}
 
-local function removeGroupedWin(win, byStack) -- {{{
-    -- remove given window if it's present in byStack windows
-    return u.map(byStack, function(stack)
-        return u.filter(stack, function(w)
-            return w.id ~= win.id
+local function mergeWinStackIdxs(byStack, winStackIdxs) -- {{{
+    -- Assign yabai stack indices to frame-grouped windows, then prune any
+    -- that yabai says aren't truly stacked (absent from map → stack-index was 0).
+    u.each(byStack, function(stack)
+        u.each(stack, function(win)
+            win.stackIdx = winStackIdxs[tostring(win.id)]
         end)
     end)
-end -- }}}
 
-local function mergeWinStackIdxs(byStack, winStackIdxs) -- {{{
-    -- merge windowID <> stack-index mapping queried from yabai into window objs
-
-    local function assignStackIndex(win)
-        local stackIdx = winStackIdxs[tostring(win.id)]
-        if stackIdx == 0 then
-            -- Remove windows with stackIdx == 0. Such windows overlap exactly with
-            -- other (potentially stacked) windows, and so are grouped with them,
-            -- but they are NOT stacked according to yabai.
-            -- Windows that belong to a *real* stack have stackIdx > 0.
-            byStack = removeGroupedWin(win, byStack)
-        end
-
-        -- set the stack idx
-        win.stackIdx = stackIdx
-    end
-
-    u.each(byStack, function(stack)
-        u.each(stack, assignStackIndex)
+    return u.map(byStack, function(stack)
+        return u.filter(stack, function(win)
+            return win.stackIdx ~= nil
+        end)
     end)
-
-    return byStack
-
 end -- }}}
 
 local function shouldQuery(new) -- {{{

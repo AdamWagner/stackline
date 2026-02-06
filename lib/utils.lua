@@ -424,6 +424,18 @@ function u.flatten(t) -- {{{
     return ret
 end -- }}}
 
+function u.flatValues(t) -- {{{
+    -- Collects all elements from a table-of-arrays into a single flat array.
+    -- Unlike u.flatten, does NOT recurse into elements — safe for dict-like objects.
+    local ret = {}
+    for _, arr in pairs(t) do
+        for _, v in ipairs(arr) do
+            ret[#ret + 1] = v
+        end
+    end
+    return ret
+end -- }}}
+
 function u.flattenPath(tbl) -- {{{
     local function flatten(input, mdepth, depth, prefix, res, circ) -- {{{
         local k, v = next(input)
