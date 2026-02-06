@@ -37,13 +37,14 @@ function Indicator:new(args) -- {{{
     self.__index = self
 
     ind.side = ind:getScreenSide()
-    ind.indicator_rect, ind.icon_rect = ind:buildRects()
 
     return ind
 end -- }}}
 
 function Indicator:draw() -- {{{
     log.i('draw indicator')
+    self.indicator_rect, self.icon_rect = self:buildRects()
+
     local radius = self.showIcons and self.iconRadius or self.config.radius
     local fadeDuration = self.config.shouldFade and self.config.fadeDuration or 0
 
