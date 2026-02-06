@@ -19,7 +19,7 @@ c.paths.yabai                         = '/opt/homebrew/bin/yabai'
 c.appearance.color                    = { white = 0.90 }    -- Indicator background color, e.g., {red = 0.5, blue = 0 }
 c.appearance.alpha                    = 1                   -- Opacity of active indicators
 c.appearance.dimmer                   = 2.5                 -- Higher numbers increase contrast b/n focused & unfocused state
-c.appearance.iconDimmer               = 1.1                 -- Higher numbers dim inactive icons *less* than the non-icon indicators
+c.appearance.iconDimmer               = 1.1                 -- Divisor for inactive icon opacity (low value like 1.1 keeps icons readable)
 c.appearance.showIcons                = true                -- Window indicator style ('lozenge'-shaped when false)
 c.appearance.size                     = 32                  -- Size of window indicators (height when icons off)
 c.appearance.radius                   = 3                   -- Corner radius divisor (iconRadius = width / radius). Higher → *less* round

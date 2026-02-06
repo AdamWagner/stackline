@@ -131,41 +131,39 @@ function Indicator:getHitFrame() -- {{{
 end -- }}}
 
 function Indicator:computeColorAttrs() -- {{{
-    -- Returns {bg = fillColor, img = imageAlpha} based on current focus state.
+    -- Returns {bg = color table with alpha, img = icon opacity} for current focus state.
     local opts = self.config
-    local function withAlpha(a)
-        return u.extend(u.copy(opts.color), {alpha = a})
-    end
+    local bgAlpha, imgAlpha
 
     if self.showingStackFocused and self.showingWinFocused then
         -- focused window in focused stack: full brightness
-        return {
-            bg = withAlpha(opts.alpha),
-            img = opts.alpha
-        }
+        bgAlpha  = opts.alpha
+        imgAlpha = opts.alpha
 
     elseif self.showingStackFocused then
         -- unfocused window in focused stack: dimmed
-        return {
-            bg = withAlpha(opts.alpha / opts.dimmer),
-            img = opts.alpha / opts.iconDimmer
-        }
+        bgAlpha  = opts.alpha / opts.dimmer
+        imgAlpha = opts.alpha / opts.iconDimmer
 
     elseif self.showingWinFocused then
         -- last-active window in unfocused stack: 20% brighter than dimmed
-        return {
-            bg = withAlpha(opts.alpha * 1.2 / opts.dimmer),
-            img = opts.alpha
-        }
+        bgAlpha  = (opts.alpha / opts.dimmer) * 1.2
+        imgAlpha = opts.alpha
 
     else
         -- unfocused window in unfocused stack: most dimmed
         -- icon mode hides bg entirely; pill mode keeps a faint bg
-        return {
-            bg = withAlpha(self.showIcons and 0 or 0.2),
-            img = opts.alpha / (opts.iconDimmer * 1.7),
-        }
+        bgAlpha  = self.showIcons and 0 or 0.2
+        imgAlpha = opts.alpha / (opts.iconDimmer * 1.5)
     end
+
+    local bg = u.copy(opts.color)
+    bg.alpha = bgAlpha
+
+    return {
+        bg = bg,
+        img = imgAlpha
+    }
 end -- }}}
 
 function Indicator:computeShadowAttrs() -- {{{
