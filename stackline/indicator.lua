@@ -68,8 +68,8 @@ function Indicator:new(args) -- {{{
         iconIdx        = 2,
         appName        = args.appName,
         canvas         = nil,           -- hs.canvas, created in draw()
-        winFocused     = args.isFocused,
-        stackFocused   = args.isStackFocused,
+        showingWinFocused   = args.isFocused,
+        showingStackFocused = args.isStackFocused,
     }
 
     setmetatable(ind, self)
@@ -88,7 +88,7 @@ function Indicator:draw() -- {{{
 
     self.canvas = hs.canvas.new(self.screenFrame)
 
-    local colorAttrs = self:getColorAttrs(self.stackFocused, self.winFocused)
+    local colorAttrs = self:getColorAttrs(self.showingStackFocused, self.showingWinFocused)
 
     self.canvas:insertElement({
         type = "rectangle",
@@ -97,7 +97,7 @@ function Indicator:draw() -- {{{
         frame = self.indicator_rect,
         roundedRectRadii = {xRadius = radius, yRadius = radius},
         withShadow = true,
-        shadow = self:getShadowAttrs(self.winFocused),
+        shadow = self:getShadowAttrs(self.showingWinFocused),
     }, self.rectIdx)
 
     if self.showIcons then
@@ -122,26 +122,22 @@ function Indicator:delete() -- {{{
 end -- }}}
 
 function Indicator:updateFocus(isWinFocused, isStackFocused) -- {{{
-    -- Compare live focus against render state to detect changes.
-    -- Render state (self.winFocused, self.stackFocused) persists between calls
-    -- so that each call can detect what changed since the last redraw.
-    local winChanged = isWinFocused ~= self.winFocused
-    local stackChanged = isStackFocused ~= self.stackFocused
+    -- Compare live focus against what we're currently showing
+    local winChanged = isWinFocused ~= self.showingWinFocused
+    local stackChanged = isStackFocused ~= self.showingStackFocused
 
     if not winChanged and not stackChanged then return nil end
 
-    -- Update render state for this redraw (and as baseline for the next call).
-    -- stackFocused always tracks reality.
+    -- Update what we're showing.
+    -- showingStackFocused always tracks reality.
     if stackChanged then
-        self.stackFocused = isStackFocused
+        self.showingStackFocused = isStackFocused
     end
-    -- winFocused tracks reality when focus changes *within* a focused stack.
-    -- When the stack is unfocused (whether we just left it or a cross-stack
-    -- HS #2400 redraw triggered this), winFocused is preserved — the
-    -- "last-active window" renders slightly brighter, showing which window
-    -- was last used in the now-unfocused stack.
+    -- showingWinFocused only updates within a focused stack. When the stack
+    -- is unfocused, the old value is preserved — the "last-active window"
+    -- renders slightly brighter, showing which window was last used.
     if winChanged and isStackFocused then
-        self.winFocused = isWinFocused
+        self.showingWinFocused = isWinFocused
     end
 
     -- Update canvas properties in-place (fast path — no teardown/rebuild)
@@ -150,12 +146,12 @@ function Indicator:updateFocus(isWinFocused, isStackFocused) -- {{{
     local rect = self.canvas[self.rectIdx]
     local icon = self.canvas[self.iconIdx]
 
-    local colorAttrs = self:getColorAttrs(self.stackFocused, self.winFocused)
+    local colorAttrs = self:getColorAttrs(self.showingStackFocused, self.showingWinFocused)
     rect.fillColor = colorAttrs.bg
     if self.showIcons then
         icon.imageAlpha = colorAttrs.img
     end
-    rect.shadow = self:getShadowAttrs(self.winFocused)
+    rect.shadow = self:getShadowAttrs(self.showingWinFocused)
 
     return {winChanged = winChanged, stackChanged = stackChanged}
 end -- }}}
