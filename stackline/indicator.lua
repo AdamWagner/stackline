@@ -56,16 +56,12 @@ function Indicator:draw() -- {{{
 
     self.canvas = hs.canvas.new(self.screenFrame)
 
-    local colorAttrs = self:computeColorAttrs()
-
     self.canvas:insertElement({
         type = "rectangle",
         action = "fill",
-        fillColor = colorAttrs.bg,
         frame = indicatorRect,
         roundedRectRadii = {xRadius = radius, yRadius = radius},
         withShadow = true,
-        shadow = self:computeShadowAttrs(),
     }, RECT)
 
     if self.showIcons then
@@ -73,10 +69,10 @@ function Indicator:draw() -- {{{
             type = "image",
             image = self:iconFromAppName(),
             frame = iconRect,
-            imageAlpha = colorAttrs.img,
         }, ICON)
     end
 
+    self:applyAppearance()
     self.canvas:clickActivating(false)
     self.canvas:show(fadeDuration)
 end -- }}}
@@ -108,17 +104,8 @@ function Indicator:updateFocus(isWinFocused, isStackFocused) -- {{{
         self.showingWinFocused = isWinFocused
     end
 
-    -- Update canvas properties in-place (fast path — no teardown/rebuild)
     if not self.canvas then return nil end
-
-    local rect = self.canvas[RECT]
-
-    local colorAttrs = self:computeColorAttrs()
-    rect.fillColor = colorAttrs.bg
-    if self.showIcons then
-        self.canvas[ICON].imageAlpha = colorAttrs.img
-    end
-    rect.shadow = self:computeShadowAttrs()
+    self:applyAppearance()
 
     return {winChanged = winChanged, stackChanged = stackChanged}
 end -- }}}
@@ -128,6 +115,16 @@ function Indicator:getHitFrame() -- {{{
     -- or nil if no canvas exists.
     if not self.canvas then return nil end
     return self.canvas:canvasElements()[RECT].frame
+end -- }}}
+
+function Indicator:applyAppearance() -- {{{
+    -- Apply colors and shadow to canvas elements based on current render state.
+    local colorAttrs = self:computeColorAttrs()
+    self.canvas[RECT].fillColor = colorAttrs.bg
+    self.canvas[RECT].shadow = self:computeShadowAttrs()
+    if self.showIcons then
+        self.canvas[ICON].imageAlpha = colorAttrs.img
+    end
 end -- }}}
 
 function Indicator:computeColorAttrs() -- {{{

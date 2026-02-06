@@ -22,7 +22,7 @@ c.appearance.dimmer                   = 2.5                 -- Higher numbers in
 c.appearance.iconDimmer               = 1.1                 -- Divisor for inactive icon opacity (low value like 1.1 keeps icons readable)
 c.appearance.showIcons                = true                -- Window indicator style ('lozenge'-shaped when false)
 c.appearance.size                     = 32                  -- Size of window indicators (height when icons off)
-c.appearance.radius                   = 3                   -- Corner radius divisor (iconRadius = width / radius). Higher → *less* round
+c.appearance.radius                   = 3.5                 -- Corner radius. Higher → more square; 0 is also square
 c.appearance.iconPadding              = 4                   -- Space between icon & indicator edge. Higher numbers → smaller, more inset icons
 c.appearance.pillThinness             = 6                   -- Aspect ratio of pill-style icons (width = size / pillThinness)
 
