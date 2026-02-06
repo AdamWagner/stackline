@@ -17,8 +17,8 @@ function Stackmanager:update(opts) -- {{{
     return self
 end -- }}}
 
-function Stackmanager:ingest(stacks, appWins, shouldClean) -- {{{
-    if shouldClean then self:cleanup() end
+function Stackmanager:ingest(stacks, appWins) -- {{{
+    self:cleanup()
 
     for stackId, groupedWindows in pairs(stacks) do
         local stack = require 'stackline.stackline.stack':new(groupedWindows)

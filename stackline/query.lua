@@ -134,12 +134,7 @@ local function run(opts) -- {{{
     opts = opts or {}
     local byStack, byApp = groupWindows(stackline.wf:getWindows()) -- set byStack & self.appWindows
 
-    -- Check if space has stacks...
-    local spaceHasStacks  = stackline.manager:getSummary().numStacks > 0
-
-    local shouldRefresh = spaceHasStacks and shouldRestack(byStack) -- Don't even check on a space that doesn't have any stacks
-
-    if shouldRefresh or opts.forceRedraw then
+    if shouldRestack(byStack) or opts.forceRedraw then
         log.i('Refreshing stackline')
         -- TODO: if there's only 1 space, use 'query --windows --space' to reduce chance that parsing fails
         local yabai_cmd = 'query --windows'
@@ -148,8 +143,7 @@ local function run(opts) -- {{{
             local winStackIdxs = stackIdMapper(yabaiRes)
             stackline.manager:ingest( -- hand over to stackmanager
                 mergeWinStackIdxs(byStack, winStackIdxs), -- Add the stack indexes from yabai to byStack
-                byApp,
-                spaceHasStacks
+                byApp
             )
         end)
     end
