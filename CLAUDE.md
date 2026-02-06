@@ -343,3 +343,4 @@ Key insight on **A1 (full teardown/rebuild)**: previous attempts to fix this wen
 - `6c91a90` — Readability cleanup: collapse identical `u.p()` branches, inline `isFocused` variable, deduplicate `getColorAttrs()` call in `drawIndicator`, remove dead `local f` in `redrawIndicator`, simplify `percR` algebra, remove leftover debug print in `shouldRestack`.
 - `c42c608` — Rename `forceCheckOn` → `forceQueryOn` (what's forced is the query, not the check). Add slow/fast path comments to the events table. Keep `checkOn` as-is.
 - `6bebd41` — Item 10: Flatten `getColorAttrs` from 50-line nested string-keyed lookup to ~20-line if/else with `withAlpha` helper. Also: consistent `c.radius` in setupIndicator, hoist declarations in `groupWindows`.
+- `aeeaf95` — Format `getColorAttrs` branches for visual consistency (bg/img on separate lines in all 4 branches). Add function comment documenting return shape. Add luacheck globals hint for `hs`.
