@@ -53,7 +53,7 @@ function Stack:rebuildAllIndicators() -- {{{
    -- SLOW PATH: tears down and recreates canvas elements from scratch.
    -- Called during rebuild after a yabai query.
    self:eachWin(function(w)
-       w:setupIndicator():drawIndicator()
+       w:buildIndicator()
    end)
 end -- }}}
 
@@ -98,7 +98,7 @@ function Stack:getWindowByPoint(p)
 
    return table.unpack(
          u.filter(self.windows, function(w)
-          local indicatorFrame = w.indicator and w.indicator:canvasElements()[1].frame -- get the rectangle element's frame
+          local indicatorFrame = w.indicator and w.indicator:getHitFrame()
           if not indicatorFrame then return false end
           return p:inside(indicatorFrame) -- NOTE: frame *must* be a hs.geometry.rect instance
       end)

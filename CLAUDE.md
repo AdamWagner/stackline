@@ -92,7 +92,8 @@ init.lua                          Entry point. Adds stackline to package.path.
 │   ├── stackline/stackmanager.lua    Manages collection of Stack objects. Coordinates updates.
 │   │   └── stackline/queryYabai.lua       Groups HS windows by frame. Queries yabai. Detects changes.
 │   ├── stackline/stack.lua           Single stack: contains windows, iterators, hit-testing.
-│   └── stackline/window.lua          Window model + all indicator rendering. Largest module (365 lines).
+│   ├── stackline/window.lua          Window model: identity, stack membership, focus coordination.
+│   └── stackline/indicator.lua       Single indicator: appearance, geometry, canvas lifecycle.
 ├── conf.lua                      Default config values.
 ├── lib/utils.lua                 Functional helpers (map, filter, groupBy, etc.) + table utilities.
 └── lib/valid.lua                 Schema validation library for config.
@@ -106,7 +107,9 @@ init.lua                          Entry point. Adds stackline to package.path.
 
 **stackmanager.lua** — `ingest()` receives grouped+merged windows from query, creates `Stack` objects, wires up `otherAppWindows` (for the HS #2400 workaround), and triggers indicator rendering. `findWindow()` does a linear scan across all stacks to locate a window by ID (used by the fast path). `cleanup()` tears down all canvas elements before a full refresh.
 
-**window.lua** — The most complex module. `Window:new()` wraps an `hs.window` and computes `stackId`/`stackIdFzy`. `setupIndicator()` calculates rect positions from config + stackIdx. `drawIndicator()` creates a new `hs.canvas` with a rounded rect and optional app icon. `redrawIndicator()` is the fast-path logic — it determines which of 4 focus states changed (stack focused/unfocused x window focused/unfocused) and updates canvas properties accordingly. `getColorAttrs()` and `getShadowAttrs()` compute visual properties from focus state.
+**window.lua** — Window model. `Window:new()` wraps an `hs.window` and computes `stackId`/`stackIdFzy`. `buildIndicator()` creates an Indicator instance and draws it (slow path). `redrawIndicator()` handles focus change side effects (HS #2400 workaround, sibling redraws) then delegates canvas updates to `self.indicator:updateFocus()` (fast path).
+
+**indicator.lua** — Single indicator: appearance, geometry, and canvas lifecycle. `Indicator:new(args)` receives a flat args table (no Window/Stack references) and computes geometry. `draw()` creates the `hs.canvas`. `updateFocus(isWinFocused, isStackFocused)` handles render-state change detection (including the "last-active window" rule) and updates canvas properties in-place. `getColorAttrs()` and `getShadowAttrs()` compute visual properties from focus state. `getHitFrame()` exposes the indicator rect for click hit-testing.
 
 **configmanager.lua** — Stores config as a flat-ish table accessed via dot-notation paths (`"appearance.color"`). Schema defined in `Config.schema`, validated on init and on `set()`. `Config.events` maps config key paths to side-effect functions (e.g., changing any `appearance.*` key triggers `rebuildAllIndicators`).
 
@@ -309,13 +312,10 @@ Each item gets its own commit. Provably-correct changes first, then logic restru
 
 ### Tier 2: Extract & simplify (same behavior, clearer code)
 
-- [ ] **9. Extract geometry & aesthetic calculations into a utility file** — Pull pure calculation functions out of window.lua into a new `stackline/indicator_utils.lua` (or similar). These don't need `self` — they take explicit arguments and return values, making them trivially testable with standalone Lua. Candidates:
-  - **Geometry:** `getScreenSide(frame, screenWidth)`, `getIndicatorPosition(frame, screenFrame, side, width, config)`, `makeStackId(frame, fuzzFactor)`, y-position formula from `setupIndicator`
-  - **Aesthetics:** `getColorAttrs(config, showIcons, isStackFocused, isWinFocused)`, `getShadowAttrs(config, showIcons, isFocused, side)`
-  - Window.lua becomes focused on lifecycle & state management (the hard part). Items 10, 11, and 14 are naturally addressed during extraction (flatten getColorAttrs, name shadow magic numbers, pass focused ID as arg instead of querying HS).
+- [x] **9. Extract Indicator module** — Created `stackline/indicator.lua` with all rendering logic extracted from window.lua. Indicator owns canvas lifecycle (`new`/`draw`/`delete`), geometry computation, focus-driven visual updates (`updateFocus`), color/shadow calculation (`getColorAttrs`/`getShadowAttrs`), and click hit-testing (`getHitFrame`). Constructor takes a flat args table — no Window or Stack references. Window.lua dropped from ~350 to ~130 lines, now focused purely on identity, stack membership, and focus coordination.
 - [x] **10. Flatten `getColorAttrs`** (C2) — Replaced nested string-keyed lookup with flat if/else + `withAlpha` helper. 50 lines → 20. Each branch is self-documenting with early returns. Only the needed branch computes.
 - [ ] **11. Name `getShadowAttrs` magic numbers** (C3) — Extract hardcoded values into local constants with descriptive names. Same outputs, more readable. (Can be done as part of item 9 or standalone.)
-- [ ] **12. Inline `getShowIconsState`** (D3) — Replace `stackline.manager:getShowIconsState()` calls with `stackline.config:get('appearance.showIcons')`. Fixes stale-cache bug and removes indirection.
+- [x] **12. Inline `getShowIconsState`** (D3) — Replaced `stackline.manager:getShowIconsState()` with `self.showIcons` in both `getColorAttrs` and `getShadowAttrs`. Fixes stale-cache bug and removes cross-module dependency on stackmanager.
 - [x] **13. Simplify `getSummary` dual data shape** (C4) — Normalize data shape at the top of the function instead of branching in every callback. Unwrap `Stack.windows` via `u.map` so the body is branch-free. Simpler than splitting into two functions.
 - [ ] **14. Pass focused window ID through update cycle** (A4) — Resolve `hs.window.focusedWindow()` once at the top of `redrawIndicator`, pass the ID down. Eliminates N+1 redundant HS API calls per focus event. (Can be done as part of item 9 or standalone.)
 - [x] **15. Simplify `redrawIndicator` state machine** (C1) — Replaced 4-way branch with direct conditions. Separated concerns: render state → side effects → canvas update. "Last-active window" rule is now `if winChanged and not stackChanged`. Sibling redraws consolidated. Added comments explaining render state persistence.
@@ -390,3 +390,5 @@ Key insight on **A1 (full teardown/rebuild)**: previous attempts to fix this wen
 - `3f8dc7e` — Item 8f: Normalize naming conventions. `shouldRestack`→`shouldQuery`, `forceRedraw`→`forceQuery`, `resetAllIndicators`→`rebuildAllIndicators`, `tabStacks`→`stacks`, `self.focus`→`self.winFocused`, `self.stackFocus`→`self.stackFocused`. Pure renames across 6 files, no logic change.
 - `41ab49d` — Item 15: Simplify `redrawIndicator` state machine. Replace 4-way branch with direct conditions, separate concerns (render state → side effects → canvas), consolidate sibling redraws, explain render state persistence.
 - `a30cea9` — Fix cross-stack same-app focus bugs. Three fixes: (1) drawIndicator now initializes stackFocused from isStackFocused() instead of hardcoding true — stale state caused unfocused stacks to appear focused. (2) HS #2400 workaround moved before early return and triggers on isWinFocused alone — "last-active" preservation made winChanged always false for returning windows. (3) winFocused update condition changed to `winChanged and isStackFocused` to prevent cross-stack HS #2400 redraws from clearing last-active state.
+- `2d0c21c` — Make getShadowAttrs take explicit isWinFocused param, matching getColorAttrs pattern.
+- `519f0a0` — Item 12: Replace `stackline.manager:getShowIconsState()` with `self.showIcons`. Fixes stale cache, removes cross-module dependency.
