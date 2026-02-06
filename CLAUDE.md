@@ -267,8 +267,8 @@ Calls `hs.window.focusedWindow()` every time. During a single `redrawIndicator()
 **C2. `getColorAttrs` rebuilds a nested lookup on every call** — **FIXED**
 Replaced 50-line deeply nested string-keyed lookup with flat if/else + `withAlpha` helper. 4 branches with early returns, each self-documenting. Only the needed branch computes (was building all 4 `u.copy`/`u.extend` every call).
 
-**C3. `getShadowAttrs` magic numbers** (window.lua:291-316)
-Hardcoded dimming ratios (`6`, `7`, `15.0`, `7.0`, `3.0`, `2.0`, etc.) with no names or config backing. Difficult to tune or understand.
+**C3. `getShadowAttrs` magic numbers + implicit self read** (window.lua:291-316)
+Hardcoded dimming ratios (`6`, `7`, `15.0`, `7.0`, `3.0`, `2.0`, etc.) with no names or config backing. Difficult to tune or understand. Also reads `self.winFocused` directly (implicit), unlike `getColorAttrs` which takes `(isStackFocused, isWinFocused)` as explicit parameters. Should take params for consistency and testability.
 
 **C4. `getSummary` dual data shape** — **FIXED**
 The `external` parameter switched between reading from Stack objects (`.windows` property) and raw grouped arrays, branching in every callback. Fixed by normalizing at the top of the function: unwrap `Stack.windows` via `u.map` so the body always works with plain window arrays.
