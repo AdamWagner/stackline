@@ -38,7 +38,7 @@ function stackline:init(userConfig) -- {{{
       self.config:get'advanced.maxRefreshRate',
       function()
          self.manager:update({forceRedraw=self.forceRedraw})
-         if(self.forceRedraw) then self.forceRedraw = false end
+         if(self.forceRedraw) then self.forceRedraw = false end -- reset after consuming
       end,
       true -- continue on error
    )
@@ -95,7 +95,7 @@ function stackline:setupListeners() -- {{{
         )
 
         log.i('Window event:', evt, 'force:', self.forceRedraw)
-        self.queryWindowState:start()
+        self.queryWindowState:start() -- (re)start the throttled timer
     end)
 
     -- On each win evt listed, simply *redraw* indicators

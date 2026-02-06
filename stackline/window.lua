@@ -50,12 +50,12 @@ function Window:setupIndicator() -- {{{
     self.showIcons = c.showIcons
 
     -- computed from config
-    self.width = self.showIcons and c.size or (c.size / c.pillThinness)
+    self.width = self.showIcons and c.size or (c.size / c.pillThinness) -- icons are square; pills are narrow
     self.iconRadius = self.width / self.config.radius
 
     -- Set canvas to fill entire screen
     self.screen = self._win:screen()
-    self.frame = self.screen:absoluteToLocal(hs.geometry(self._win:frame()))
+    self.frame = self.screen:absoluteToLocal(hs.geometry(self._win:frame())) -- canvas uses screen-relative positioning
 
     local xval = self:getIndicatorPosition()
 
@@ -67,7 +67,7 @@ function Window:setupIndicator() -- {{{
     -- NOTE: self.stackIdx comes from yabai. Window is stacked if stackIdx > 0
     self.indicator_rect = {
         x = xval,
-        y = self.frame.y + c.offset.y +
+        y = self.frame.y + c.offset.y +                        -- stack indicators vertically by stackIdx
             ((self.stackIdx - 1) * c.size * c.vertSpacing),
         w = self.width,
         h = c.size,
@@ -95,7 +95,7 @@ function Window:drawIndicator(overrideOpts) -- {{{
     -- will correct this if needed on the next focus event.
     self.stackFocus = true
 
-    if self.indicator then
+    if self.indicator then              -- clean up previous canvas if rebuilding
         self.indicator:delete()
     end
 
@@ -184,7 +184,7 @@ function Window:redrawIndicator() -- {{{
         end
     end
 
-    if not self.indicator then
+    if not self.indicator then           -- safety net: create indicator if it doesn't exist yet
         self:setupIndicator()
     end
 
@@ -209,8 +209,8 @@ function Window:getScreenSide() -- {{{
 
     local leftEdge  = self.frame.x
     local rightEdge = self.frame.x + self.frame.w
-    local percR     = 1 - ((screenWidth - rightEdge) / screenWidth)
-    local percL     = (screenWidth - leftEdge) / screenWidth
+    local percR     = 1 - ((screenWidth - rightEdge) / screenWidth) -- how far right edge extends across screen (0→1)
+    local percL     = (screenWidth - leftEdge) / screenWidth      -- how far left edge is from right side (0→1)
 
     local side = (percR > thresh and percL < thresh) and 'right' or 'left'
     return side
@@ -239,7 +239,7 @@ function Window:getIndicatorPosition() -- {{{
     -- Clamp indicators to screen boundary to prevent drawing offscreen
     -- https://github.com/AdamWagner/stackline/issues/21
     if self.side == 'right' then xval = (self.frame.x + self.frame.w) + c.offset.x   -- position indicators on right edge
-        if xval + self.width > self.screenFrame.w then           -- don't go beyond the right screen edge
+        if xval + self.width > self.screenFrame.w then      -- don't go beyond the right screen edge
             xval = self.screenFrame.w - self.width
         end
     else   -- side is 'left'
@@ -275,7 +275,7 @@ function Window:getColorAttrs(isStackFocused, isWinFocused) -- {{{
                 window = {
                     ['true'] = {
                         bg = u.extend(u.copy(opts.color), {
-                            alpha = opts.alpha / (opts.dimmer / 1.2),
+                            alpha = opts.alpha / (opts.dimmer / 1.2), -- slightly less dimmed than unfocused-in-focused-stack
                         }),
                         -- last-focused icon stays full alpha when stack unfocused
                         img = opts.alpha,
@@ -304,7 +304,7 @@ end -- }}}
 function Window:getShadowAttrs() -- {{{
     -- less opaque & blurry when iconsDisabled
     -- even less opaque & blurry when unfocused
-    local iconsDisabledDimmer = stackline.manager:getShowIconsState() and 1 or 5
+    local iconsDisabledDimmer = stackline.manager:getShowIconsState() and 1 or 5 -- pills get much subtler shadows than icons
     local alphaDimmer = (self.focus and 6 or 7) * iconsDisabledDimmer
     local blurDimmer = (self.focus and 15.0 or 7.0) / iconsDisabledDimmer
 
@@ -312,8 +312,8 @@ function Window:getShadowAttrs() -- {{{
     -- …or, if you prefer, from a light source originating from the center of the screen.
     local xDirection = (self.side == 'left') and -1 or 1
     local offset = {
-        h = (self.focus and 3.0 or 2.0) * -1.0,
-        w = ((self.focus and 7.0 or 6.0) * xDirection) / iconsDisabledDimmer,
+        h = (self.focus and 3.0 or 2.0) * -1.0,                              -- cast upward (negative = up)
+        w = ((self.focus and 7.0 or 6.0) * xDirection) / iconsDisabledDimmer, -- cast outward toward screen edge
     }
 
     -- TODO [just for fun]: Dust off an old Geometry textbook and try get the shadow's angle to rotate around a point at the center of the screen (aka, 'light source')
@@ -334,7 +334,7 @@ function Window:iconFromAppName() -- {{{
 end -- }}}
 
 function Window:makeStackId(hsWin) -- {{{
-    local frame = hsWin:frame():floor()
+    local frame = hsWin:frame():floor() -- floor to avoid sub-pixel differences
 
     local x = frame.x
     local y = frame.y
@@ -343,7 +343,7 @@ function Window:makeStackId(hsWin) -- {{{
 
     local fuzzFactor = stackline.config:get('features.fzyFrameDetect.fuzzFactor')
     local roundToFuzzFactor = u.partial(u.roundToNearest, fuzzFactor)
-    local ff = u.map({x, y, w, h}, roundToFuzzFactor)
+    local ff = u.map({x, y, w, h}, roundToFuzzFactor) -- round all dimensions by fuzzFactor
 
     return {
         topLeft = table.concat({x, y}, '|'),

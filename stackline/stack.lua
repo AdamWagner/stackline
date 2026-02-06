@@ -59,7 +59,7 @@ function Stack:redrawAllIndicators(opts) -- {{{
    -- FAST PATH: updates existing canvas properties in-place (colors, shadow, opacity).
    -- Called on focus changes — no canvas teardown, no icon lookups.
    self:eachWin(function(win)
-       if win.id ~= opts.except then
+       if win.id ~= opts.except then -- skip the triggering window (it redraws itself)
            win:redrawIndicator()
        end
    end)
@@ -72,7 +72,7 @@ function Stack:deleteAllIndicators() -- {{{
 end -- }}}
 
 function Stack:getWindowByPoint(p)
-   if p.x < 0 or p.y < 0 then
+   if p.x < 0 or p.y < 0 then -- negative coords mean click is on a non-primary screen
       -- FIX: https://github.com/AdamWagner/stackline/issues/62
       -- NOTE: Window indicator frame coordinates are relative to the window's screen.
       -- So, if click point has negative X or Y vals, then convert its coordinates
@@ -89,14 +89,14 @@ function Stack:getWindowByPoint(p)
       end -- }}}
 
       local clickedScren = findClickedScreen(p)
-      p = clickedScren
-         and clickedScren:absoluteToLocal(p)
+      p = clickedScren                          -- convert to screen-relative coords
+         and clickedScren:absoluteToLocal(p)   -- to match indicator frames
          or p
    end
 
    return table.unpack(
          u.filter(self.windows, function(w)
-          local indicatorFrame = w.indicator and w.indicator:canvasElements()[1].frame
+          local indicatorFrame = w.indicator and w.indicator:canvasElements()[1].frame -- get the rectangle element's frame
           if not indicatorFrame then return false end
           return p:inside(indicatorFrame) -- NOTE: frame *must* be a hs.geometry.rect instance
       end)

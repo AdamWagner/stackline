@@ -17,7 +17,7 @@ end -- }}}
 
 function Stackmanager:update(opts) -- {{{
     log.i('Running update()')
-    self.query.run(opts) -- calls Stack:ingest when ready
+    self.query.run(opts) -- async: calls stackmanager:ingest when yabai responds
     return self
 end -- }}}
 
@@ -30,7 +30,7 @@ function Stackmanager:ingest(stacks, appWins) -- {{{
         u.each(stack.windows, function(win)
             -- win.otherAppWindows needed to workaround Hammerspoon issue #2400
             win.otherAppWindows = u.filter(appWins[win.app], function(w)
-                -- exclude self and other app windows from other others
+                -- exclude self and windows on other screens
                 return (w.id ~= win.id) and (w.screen == win.screen)
             end)
             -- TODO: fix error with nil stack field (??): window.lua:32: attempt to index a nil value (field 'stack')
@@ -61,11 +61,11 @@ end -- }}}
 function Stackmanager:getSummary(external) -- {{{
     -- Summarizes all stacks on the current space, making it easy to determine
     -- what needs to be updated (if anything)
-    local stacks = external or self.tabStacks
+    local stacks = external or self.tabStacks -- external = raw grouped arrays from queryYabai; self.tabStacks = Stack objects
     return {
         numStacks = #stacks,
         topLeft = u.map(stacks, function(s)
-            local windows = external and s or s.windows
+            local windows = external and s or s.windows -- external arrays are flat; Stack objects nest windows
             return windows[1].topLeft
         end),
         dimensions = u.map(stacks, function(s)

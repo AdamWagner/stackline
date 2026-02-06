@@ -10,7 +10,7 @@ log.i('Loading module: queryYabai')
 local function yabai(command, callback) -- {{{
     -- Run a yabai CLI command asynchronously. Callback receives parsed JSON response.
     callback = callback or function(x) return x end
-    command = '-m ' .. command
+    command = '-m ' .. command -- prepend yabai message flag
 
     hs.task.new(
         stackline.config:get'paths.yabai',
@@ -23,7 +23,7 @@ local function stackIdMapper(yabaiWindow) -- {{{
     -- Build a {[winId_string] = stack_index} map from yabai's JSON response.
     -- Windows with stack-index == 0 are not stacked and are excluded.
     local res = {}
-    if type(yabaiWindow)~='table' then u.p(yabaiWindow) end
+    if type(yabaiWindow)~='table' then u.p(yabaiWindow) end -- debug guard: log unexpected non-table response
     for _,win in pairs(yabaiWindow or {}) do
         if win['stack-index']~=0 then
             res[tostring(win.id)] = win['stack-index']
@@ -116,8 +116,8 @@ local function shouldRestack(new) -- {{{
     --    • change position
     --    • change num windows (win added / removed)
 
-    local curr = stackline.manager:getSummary()
-    new = stackline.manager:getSummary(u.values(new))
+    local curr = stackline.manager:getSummary()            -- snapshot current state
+    new = stackline.manager:getSummary(u.values(new))      -- snapshot incoming state in same format
 
     if curr.numStacks ~= new.numStacks then
         log.i('Should refresh -> Num stacks changed')
@@ -143,7 +143,7 @@ local function run(opts) -- {{{
     -- Groups HS windows by frame, checks if anything changed, and if so
     -- queries yabai for stack indices and hands off to stackmanager:ingest().
     opts = opts or {}
-    local byStack, byApp = groupWindows(stackline.wf:getWindows()) -- set byStack & self.appWindows
+    local byStack, byApp = groupWindows(stackline.wf:getWindows()) -- returns byStack, byApp
 
     if shouldRestack(byStack) or opts.forceRedraw then
         log.i('Refreshing stackline')

@@ -121,7 +121,7 @@ function u.isfunc(x) -- {{{
 end -- }}}
 
 function u.isarray(x) -- {{{
-    return u.istable(x) and x[1]~=nil and x[u.length(x)]~=nil
+    return u.istable(x) and x[1]~=nil and x[u.length(x)]~=nil -- has contiguous integer keys from 1..n
 end -- }}}
 
 function u.isjson(x) -- {{{
@@ -235,7 +235,7 @@ function u.setfield(path, val, tbl) -- {{{
     log.d(('u.setfield: %s, val: %s'):format(path, val))
 
     tbl = tbl or _G -- start with the table of globals
-    for w, d in path:gmatch('([%w_]+)(.?)') do
+    for w, d in path:gmatch('([%w_]+)(.?)') do -- w = segment name, d = delimiter ('.' or '')
         if d=='.' then -- not last field?
             tbl[w] = tbl[w] or {} -- create table if absent
             tbl = tbl[w] -- get the table
@@ -292,7 +292,7 @@ function u.greaterThan(n) -- {{{
 end -- }}}
 
 function u.roundToNearest(roundTo, numToRound) -- {{{
-    return numToRound - numToRound % roundTo
+    return numToRound - numToRound % roundTo -- always rounds down
 end -- }}}
 
 function u.p(data, howDeep) -- {{{
@@ -396,7 +396,7 @@ function u.equal(a, b) -- {{{
         return false
     end
 
-    u.each({a,b}, u.safeSort)
+    u.each({a,b}, u.safeSort) -- NOTE: mutates inputs before comparing
 
     for k in u.getiter(a) do
         if b[k]~=a[k] then
@@ -451,7 +451,7 @@ function u.flattenPath(tbl) -- {{{
         return res
     end -- }}}
 
-    local maxdepth = 0
+    local maxdepth = 0 -- 0 = unlimited depth
     local prefix = ''
     local result = {}
     local circularRef = {[tostring(tbl)] = true}
