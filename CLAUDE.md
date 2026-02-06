@@ -341,3 +341,4 @@ Key insight on **A1 (full teardown/rebuild)**: previous attempts to fix this wen
 - `0ab1f89` — Convert top-of-file module comments from `--` to `--[[ ]]` blocks across all 8 modules. First line is always just `--[[`.
 - `fd98f27` — Item 13: Simplify `getSummary` by normalizing data shape upfront. Unwrap `Stack.windows` via `u.map` at the top instead of branching in every callback.
 - `6c91a90` — Readability cleanup: collapse identical `u.p()` branches, inline `isFocused` variable, deduplicate `getColorAttrs()` call in `drawIndicator`, remove dead `local f` in `redrawIndicator`, simplify `percR` algebra, remove leftover debug print in `shouldRestack`.
+- `c42c608` — Rename `forceCheckOn` → `forceQueryOn` (what's forced is the query, not the check). Add slow/fast path comments to the events table. Keep `checkOn` as-is.
