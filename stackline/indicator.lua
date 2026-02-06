@@ -13,67 +13,32 @@ log.i('Loading module: indicator')
 local Indicator = {}
 
 function Indicator:new(args) -- {{{
-    local config = args.config
+    local config    = args.config
     local showIcons = config.showIcons
-
-    -- Indicator width: icons are square; pills are narrow
-    local width = showIcons and config.size or (config.size / config.pillThinness)
-    local iconRadius = width / config.radius
-
-    local screen = args.screen
-    local screenFrame = screen:fullFrame()
-    local frame = args.windowFrame
-
-    -- Determine which screen edge to place indicator on
-    local side = self:getScreenSide(frame, screenFrame.w)
-
-    -- Compute x position, clamped to screen bounds
-    local xval
-    if side == 'right' then
-        xval = (frame.x + frame.w) + config.offset.x
-        if xval + width > screenFrame.w then
-            xval = screenFrame.w - width
-        end
-    else
-        xval = frame.x - (width + config.offset.x)
-        xval = math.max(xval, 0)
-    end
-
-    -- stackIdx comes from yabai: position within the stack (1, 2, 3...)
-    local indicator_rect = {
-        x = xval,
-        y = frame.y + config.offset.y +
-            ((args.stackIdx - 1) * config.size * config.vertSpacing),
-        w = width,
-        h = config.size,
-    }
-
-    local icon_rect = {
-        x = xval + config.iconPadding,
-        y = indicator_rect.y + config.iconPadding,
-        w = indicator_rect.w - (config.iconPadding * 2),
-        h = indicator_rect.h - (config.iconPadding * 2),
-    }
+    local width     = showIcons and config.size or (config.size / config.pillThinness)
 
     local ind = {
-        config         = config,
-        showIcons      = showIcons,
-        width          = width,
-        iconRadius     = iconRadius,
-        screenFrame    = screenFrame,
-        side           = side,
-        indicator_rect = indicator_rect,
-        icon_rect      = icon_rect,
-        rectIdx        = 1,
-        iconIdx        = 2,
-        appName        = args.appName,
-        canvas         = nil,           -- hs.canvas, created in draw()
+        config              = config,
+        showIcons           = showIcons,
+        width               = width,
+        iconRadius          = width / config.radius,
+        frame               = args.windowFrame,
+        stackIdx            = args.stackIdx,
+        screenFrame         = args.screen:fullFrame(),
+        rectIdx             = 1,
+        iconIdx             = 2,
+        appName             = args.appName,
+        canvas              = nil, -- hs.canvas, created in draw()
         showingWinFocused   = args.isFocused,
         showingStackFocused = args.isStackFocused,
     }
 
     setmetatable(ind, self)
     self.__index = self
+
+    ind.side = ind:getScreenSide()
+    ind.indicator_rect, ind.icon_rect = ind:buildRects()
+
     return ind
 end -- }}}
 
@@ -222,12 +187,48 @@ function Indicator:getShadowAttrs(isWinFocused) -- {{{
     }
 end -- }}}
 
-function Indicator:getScreenSide(frame, screenWidth) -- {{{
+function Indicator:getScreenSide() -- {{{
     -- Returns the side of the screen that the window is (mostly) on: "left" or "right"
     local thresh = 0.75
-    local percR = (frame.x + frame.w) / screenWidth
-    local percL = (screenWidth - frame.x) / screenWidth
+    local screenWidth = self.screenFrame.w
+    local percR = (self.frame.x + self.frame.w) / screenWidth
+    local percL = (screenWidth - self.frame.x) / screenWidth
     return (percR > thresh and percL < thresh) and 'right' or 'left'
+end -- }}}
+
+function Indicator:buildRects() -- {{{
+    -- Compute indicator and icon rectangles from frame, config, and screen side.
+    -- X position is clamped to screen bounds to prevent drawing offscreen.
+    local c = self.config
+
+    local xval
+    if self.side == 'right' then
+        xval = (self.frame.x + self.frame.w) + c.offset.x
+        if xval + self.width > self.screenFrame.w then
+            xval = self.screenFrame.w - self.width
+        end
+    else
+        xval = self.frame.x - (self.width + c.offset.x)
+        xval = math.max(xval, 0)
+    end
+
+    -- stackIdx comes from yabai: position within the stack (1, 2, 3...)
+    local indicator_rect = {
+        x = xval,
+        y = self.frame.y + c.offset.y +
+            ((self.stackIdx - 1) * c.size * c.vertSpacing),
+        w = self.width,
+        h = c.size,
+    }
+
+    local icon_rect = {
+        x = xval + c.iconPadding,
+        y = indicator_rect.y + c.iconPadding,
+        w = indicator_rect.w - (c.iconPadding * 2),
+        h = indicator_rect.h - (c.iconPadding * 2),
+    }
+
+    return indicator_rect, icon_rect
 end -- }}}
 
 function Indicator:iconFromAppName() -- {{{
