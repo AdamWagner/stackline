@@ -77,11 +77,13 @@ HS focus event → find window in manager → update canvas element properties i
 
 No yabai query needed. No canvas destruction/creation. Just tweaks `fillColor`, `imageAlpha`, and `shadow` on existing canvas elements. This matters because focus changes happen constantly (every alt-tab, every click).
 
-### `forceRedraw` flag
-`forceRedraw` bypasses the `shouldRestack()` optimization, forcing a yabai query + rebuild regardless of whether the summary diff detected a change. It's set on events where something significant likely happened (windowCreated, windowMoved, windowsChanged, space switch, init) and serves as a safety net when the summary check might miss a real change. Also useful for debugging: `stackline.manager:update({forceRedraw=true})` in the HS console forces a fresh yabai query at any time.
+### `forceRedraw` flag (pending rename to `forceQuery`)
+`forceRedraw` bypasses the `shouldRestack()` change-detection check, forcing a yabai query + rebuild regardless of whether the summary diff detected a change. It's set on events where something significant likely happened (windowCreated, windowMoved, windowsChanged, space switch, init) and serves as a safety net when the change-detection check might miss a real change. Also useful for debugging: `stackline.manager:update({forceRedraw=true})` in the HS console forces a fresh yabai query at any time.
+
+Note: The name `forceRedraw` is misleading — it forces a *query* (the expensive yabai subprocess call), not just a redraw. Rename to `forceQuery` is planned (see item 8f).
 
 ### Throttling
-The slow path uses `hs.timer.delayed` with `maxRefreshRate` (default 0.5s). Multiple rapid events (e.g., several windows moving during a layout change) collapse into a single update cycle. Some events (`windowCreated`, `windowsChanged`, `windowMoved`) set `forceRedraw=true` to bypass the `shouldRestack()` optimization.
+The slow path uses `hs.timer.delayed` with `maxRefreshRate` (default 0.5s). Multiple rapid events (e.g., several windows moving during a layout change) collapse into a single update cycle. Some events (`windowCreated`, `windowsChanged`, `windowMoved`) set `forceRedraw=true` to bypass the change-detection check.
 
 ## Module Map
 
@@ -121,7 +123,7 @@ Hammerspoon sometimes misses `windowCreated` events. Subscribing to `windowsChan
 ## Globals & Conventions
 
 - `stackline` is a global singleton table. Modules access it freely (e.g., `stackline.config`, `stackline.manager`, `stackline.wf`).
-- `u` is a global alias for `lib/utils.lua`, set in `stackline.lua:10`.
+- `u` is a global alias for `lib/utils.lua`, set in `stackline.lua:19`.
 - `c` is used as a local alias for config values in `window.lua` and `conf.lua`.
 - Objects use Lua's metatable pattern: `setmetatable(instance, Class); Class.__index = Class`.
 - Fold markers (`-- {{{` / `-- }}}`) are used throughout for editor code folding.
@@ -157,6 +159,24 @@ Don't try to automate canvas rendering verification. Batch up visual changes, th
 - Don't introduce a heavy test framework — plain `assert()` in a Lua file is enough.
 - Don't try to test canvas rendering programmatically — visual output is verified by eyes.
 - Don't make large sweeping changes — small steps, each independently verifiable.
+
+## Manual Test Plan
+
+Run after batched changes or before committing visual/behavior changes. Requires macOS + Hammerspoon + Yabai + real windows.
+
+**Setup:** At least 6 tiled windows on one space, with 3 of them in a stack.
+
+| # | Test | Expected | Status |
+|---|------|----------|--------|
+| 1 | **Reload config** | Indicators appear: correct count, position (screen-edge side), focused opacity, app icons | Pass |
+| 2 | **Focus change within stack** | Newly focused indicator becomes opaque; previously focused dims | Pass (intermittent: see I1) |
+| 3 | **Focus non-stacked window** | All stack indicators dim; last-focused window slightly brighter than siblings | Pass |
+| 4 | **Focus non-stacked window of same app as stacked window** | Stack should dim (unfocused); same-app indicator in stack should NOT appear focused | Flaky (see I2) |
+| 5 | **Create a new stack** | New indicators appear at correct position for the new stack | Pass |
+| 6 | **Destroy a stack** | Indicators for destroyed stack disappear | Pass |
+| 7 | **Resize windows** | Indicators reposition to match new window frames | Pass |
+| 8a | **Warp stack vertically** | Indicators follow stack to new position | Pass (slow, see I4) |
+| 8b | **Warp stack to opposite side** | Indicators follow and switch to correct screen edge | Pass (slow, see I4) |
 
 ## Developer Guidelines
 
@@ -195,7 +215,7 @@ The slow path = **query** (which triggers a rebuild). The fast path = **redraw**
 | `forceRedraw` | `forceQuery` | Forces the yabai call, not just a redraw |
 | `queryWindowState` | *(keep)* | Already correct |
 | `checkOn` | *(keep)* | Accurate: these events trigger a *check* (shouldRestack), not always a query |
-| ~~`forceCheckOn`~~ | `forceQueryOn` | **Done.** What's forced is the query, not the check |
+| ~~`forceCheckOn`~~ | ~~`forceQueryOn`~~ | **Done.** What's forced is the query, not the check |
 | `resetAllIndicators()` | `rebuildAllIndicators()` | "Reset" is vague; "rebuild" says canvases are torn down and recreated |
 | `tabStacks` | `stacks` | The `tab` prefix adds nothing; everything else says "stacks" |
 | `self.focus` | `self.winFocused` | Distinguishes from `self.stackFocused`; matches param style |
@@ -210,58 +230,58 @@ The slow path = **query** (which triggers a rebuild). The fast path = **redraw**
 
 ### Bugs / Latent Issues
 
-**B1. `u.extend` mutates the config color table** (window.lua:255)
-Line 255: `u.extend(opts.color, {alpha = opts.alpha})` mutates the shared config color object. The other 3 branches (lines 259, 268, 275) correctly do `u.extend(u.copy(opts.color), ...)`. This one forgot to copy first. Every call to `getColorAttrs(true, true)` permanently adds/overwrites `alpha` on the config's color table.
+**B1. `u.extend` mutates the config color table** — **FIXED**
+`getColorAttrs` now uses `u.copy` before `u.extend` in all branches. Additionally, the entire function was rewritten as flat if/else (see C2).
 
-**B2. `Config:autosuggest()` is called but never defined** (configmanager.lua:187)
-`Config:set()` calls `self:autosuggest(path)` when a path isn't in the schema, but this method doesn't exist. Would throw a runtime error on any `set()` with an invalid path. The `self.autosuggestions` table is built in `validate()` (line 146) but never read anywhere.
+**B2. `Config:autosuggest()` is called but never defined** — **FIXED**
+Replaced crashing `self:autosuggest()` call with `log.w()`. Removed dead `self.autosuggestions` build.
 
-**B3. `forceRedraw` flag can be clobbered** (stackline.lua:86)
-The event handler unconditionally sets `self.forceRedraw = u.contains(...)` on every event. If a `windowCreated` sets it `true`, then a `windowHidden` fires before the timer executes, it gets overwritten to `false`. Should be `self.forceRedraw = self.forceRedraw or u.contains(...)`.
+**B3. `forceRedraw` flag can be clobbered** — **FIXED**
+Changed to `self.forceRedraw = self.forceRedraw or u.contains(...)`.
 
-**B4. `iconFromAppName` leaks a global** (window.lua:322)
-`appBundle = hs.appfinder...` is missing `local`, creating an implicit global on every call.
+**B4. `iconFromAppName` leaks a global** — **FIXED**
+Added missing `local` to `appBundle`.
 
-**B5. `conf.lua` leaks global `c`** (conf.lua:4)
-`c = {}` without `local`. Harmless in practice but pollutes the global namespace.
+**B5. `conf.lua` leaks global `c`** — **FIXED**
+Changed to `local c = {}`.
 
 ### Architectural
 
-**A1. Full teardown/rebuild on every slow-path update** (queryYabai.lua:45-47, stackmanager.lua:20-38)
+**A1. Full teardown/rebuild on every slow-path update** (queryYabai.lua:47, stackmanager.lua:20-43)
 `groupWindows()` creates brand-new Window objects for *every* visible window on every update cycle. Old Window objects (with their canvas references, cached icons, focus state) are thrown away and rebuilt from scratch. This forces full canvas teardown/rebuild — the most expensive operation.
 
 Window IDs are stable (same in HS and yabai), so a **keyed reconciliation** could avoid this: keep a `windowsById` map, diff new state against existing state, and only create/destroy/reposition what actually changed. This would eliminate most canvas churn and icon re-lookups. Previous attempts to solve this via a deep OOP hierarchy (auto-building data tree from global → screen → space → stack → window → indicator) became too complex and buggy. A flat hash-map diff is simpler: just three cases per window ID — unchanged (keep), changed (update), gone (delete) — plus new IDs (create).
 
-**A2. `resetAllIndicators` called inside the ingest loop** (stackmanager.lua:36)
-Inside `for stackId, groupedWindows in pairs(stacks)`, each iteration calls `self:resetAllIndicators()`, which iterates *all* stacks accumulated so far. With N stacks, indicators are set up 1+2+...+N = N(N+1)/2 times total. Should be called once after the loop.
+**A2. `resetAllIndicators` called inside the ingest loop** — **FIXED**
+Moved call from inside the `for` loop to after it. Eliminates N(N+1)/2 redundant calls.
 
-**A3. One `hs.canvas` per window, sized to full screen** (window.lua:98)
+**A3. One `hs.canvas` per window, sized to full screen** (window.lua:102)
 Each stacked window creates its own canvas spanning the entire screen frame, then draws one small rect+icon in it. A single canvas per screen with multiple elements would be lighter and could also simplify click hit-testing.
 
-**A4. `Window:isFocused()` queries HS on every call** (window.lua:28-35)
+**A4. `Window:isFocused()` queries HS on every call** (window.lua:35-38)
 Calls `hs.window.focusedWindow()` every time. During a single `redrawIndicator()`, this is called once directly, then again for every window in the stack via `isStackFocused()` → `stack:anyFocused()`. A 5-window stack = 6 calls to `hs.window.focusedWindow()` per event. The focused window ID could be resolved once and passed through.
 
 ### Unnecessary Complexity
 
-**C1. `redrawIndicator` focus state machine** (window.lua:130-196)
+**C1. `redrawIndicator` focus state machine** (window.lua:136-201)
 4-way branch (`noChange`, `bothChange`, `onlyWinChange`, `onlyStackChange`) with side effects scattered across branches. Some update `self.focus`, some update `self.stackFocus`, some trigger sibling redraws. The "last-active window" behavior — `bothChange` updates `stackFocus` but intentionally does *not* update `self.focus` — is a non-obvious design decision buried in a branch. Sibling redraw trigger is duplicated in two branches. The inline TODO says "Refactor to reduce complexity."
 
-**C2. `getColorAttrs` rebuilds a nested lookup on every call** (window.lua:245-292) — **FIXED**
+**C2. `getColorAttrs` rebuilds a nested lookup on every call** — **FIXED**
 Replaced 50-line deeply nested string-keyed lookup with flat if/else + `withAlpha` helper. 4 branches with early returns, each self-documenting. Only the needed branch computes (was building all 4 `u.copy`/`u.extend` every call).
 
-**C3. `getShadowAttrs` magic numbers** (window.lua:294-319)
+**C3. `getShadowAttrs` magic numbers** (window.lua:291-316)
 Hardcoded dimming ratios (`6`, `7`, `15.0`, `7.0`, `3.0`, `2.0`, etc.) with no names or config backing. Difficult to tune or understand.
 
-**C4. `getSummary` dual data shape** (stackmanager.lua:57-76) — **FIXED**
+**C4. `getSummary` dual data shape** — **FIXED**
 The `external` parameter switched between reading from Stack objects (`.windows` property) and raw grouped arrays, branching in every callback. Fixed by normalizing at the top of the function: unwrap `Stack.windows` via `u.map` so the body always works with plain window arrays.
 
-**C5. `drawIndicator` mutates `self.config`** (window.lua:85)
-`u.extend(self.config, overrideOpts or {})` mutates `self.config` in place. Since `overrideOpts` is currently never passed, this is a no-op today, but would corrupt shared config state if ever used. Intent is to support overrides — fix is to extend a *copy* of `self.config` instead.
+**C5. `drawIndicator` mutates `self.config`** — **FIXED**
+Changed to `u.extend(u.copy(self.config), overrideOpts or {})`.
 
 ### Dead Code
 
-**D1. Some utils.lua functions are dead code**
-Truly unused and not useful for the functional coding style or debugging: `u.json_cb` (redundant with `u.task_cb`), `u.from_iter`, `u.copyShallow` (buggy — missing `local copy = {}`; `u.copy` from hs.fnutils already exists), `u.levenshteinDistance` (for unfinished autosuggest feature), `u.pheader`, `table.slice`, `table.merge` (never called). Functional-style utilities like `u.pipe`, `u.flip`, `u.flatten`, `u.zip`, `u.uniq`, `u.include`, `u.deepCopy` should be kept — they support a terse, readable coding style and may be used in future refactoring.
+**D1. Some utils.lua functions are dead code** — **FIXED**
+Removed 7 unused functions (110 lines). Kept functional-style utilities (`u.pipe`, `u.flip`, `u.flatten`, etc.).
 
 **D2. `Stackmanager:findStackByWindow` — keep** (stackmanager.lua:95-103)
 Currently unused in code, but useful for live debugging via the Hammerspoon console. Methods like this let you inspect the live system state interactively.
@@ -306,6 +326,29 @@ Each item gets its own commit. Provably-correct changes first, then logic restru
 
 - [ ] **16. Keyed reconciliation in ingest** (A1) — Maintain `windowsById` map. Diff new state against existing windows. Only create/destroy/reposition what changed. Eliminates full teardown/rebuild on every slow-path update.
 - [ ] **17. Single canvas per screen** (A3) — Replace per-window full-screen canvases with one canvas per screen containing multiple elements. Lighter, simpler hit-testing.
+
+## Behavior Improvements
+
+Issues observed during manual testing. Ordered by impact.
+
+### Bugs (incorrect behavior)
+
+**I1. Stale focused state when switching focus within a stack**
+When switching focus between windows in the same stack, the previously-focused indicator sometimes stays in its focused (opaque) state, resulting in two indicators appearing focused simultaneously. Intermittent — hard to reproduce reliably. Likely related to HS #2400 (unreliable unfocus events for same-app windows) or a timing issue where the fast-path `redrawIndicator` doesn't fire for the unfocused window.
+
+**I2. Same-app focus bleeds into unfocused stack**
+When focusing a non-stacked window whose app matches a window inside a stack, the stack sometimes incorrectly takes on a "focused" appearance, and the same-app window's indicator appears focused — even though neither the stack nor that window is focused. Intermittent. This is another manifestation of HS #2400: Hammerspoon fires a focus event for the stacked same-app window instead of (or in addition to) the actual target. The existing `hsBugWorkaround` (`unfocusOtherAppWindows`) partially addresses this but doesn't catch all cases.
+
+### Sub-optimal (correct but could be better)
+
+**I3. Full indicator rebuild on unrelated stack changes**
+Creating or destroying a stack causes ALL indicators to fade out and back in, including indicators on unaffected stacks. This is because the slow path tears down and recreates every canvas on every update cycle (see A1 in Complexity Hotspots). Keyed reconciliation (item 16) would fix this — only changed stacks would be rebuilt.
+
+**I4. Slow indicator repositioning after warp/move**
+When windows are warped to a new position, indicators follow but with noticeable delay. This is the slow-path latency: 0.5s throttle + async yabai query + full canvas rebuild. Could be improved by reducing `maxRefreshRate` for move events, or by optimistically repositioning indicators based on the new HS frame before the yabai response arrives.
+
+**I5. No error logging when yabai subprocess fails**
+If the yabai binary path is wrong or yabai returns an error, the entire async pipeline silently stops. No indicators appear and no error is logged (only a low-level HS warning). The `yabai()` function in queryYabai.lua should log when the subprocess exits with a non-zero code or empty stdout.
 
 ## Work Log
 
