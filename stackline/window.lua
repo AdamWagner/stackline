@@ -1,8 +1,10 @@
--- Window model AND all indicator rendering logic (the largest module).
--- Each Window wraps an hs.window, computes stack grouping IDs, and owns a
--- single hs.canvas for its indicator. Contains both the slow path (setupIndicator
--- + drawIndicator: full canvas creation) and the fast path (redrawIndicator:
--- in-place color/shadow/opacity updates based on focus state changes).
+--[[ 
+Window model AND all indicator rendering logic (the largest module).
+Each Window wraps an hs.window, computes stack grouping IDs, and owns a
+single hs.canvas for its indicator. Contains both the slow path (setupIndicator
++ drawIndicator: full canvas creation) and the fast path (redrawIndicator:
+in-place color/shadow/opacity updates based on focus state changes).
+]]
 local log   = hs.logger.new('window', 'info')
 log.i('Loading module: window')
 

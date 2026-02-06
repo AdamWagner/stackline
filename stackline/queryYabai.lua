@@ -1,9 +1,11 @@
--- Slow-path pipeline: groups Hammerspoon windows by frame, queries yabai for
--- stack indices, and merges the two data sources. This is where the core data
--- problem is solved — HS provides grouping (which windows overlap), yabai provides
--- ordering (stack-index) and confirmation (stack-index > 0 means truly stacked).
--- Called by stackmanager:update(). Hands merged results to stackmanager:ingest().
--- shouldRestack() avoids unnecessary yabai subprocess calls via change detection.
+--[[ 
+Slow-path pipeline: groups Hammerspoon windows by frame, queries yabai for
+stack indices, and merges the two data sources. This is where the core data
+problem is solved — HS provides grouping (which windows overlap), yabai provides
+ordering (stack-index) and confirmation (stack-index > 0 means truly stacked).
+Called by stackmanager:update(). Hands merged results to stackmanager:ingest().
+shouldRestack() avoids unnecessary yabai subprocess calls via change detection.
+]]
 local log   = hs.logger.new('query', 'info')
 log.i('Loading module: queryYabai')
 

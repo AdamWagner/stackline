@@ -1,5 +1,7 @@
--- A single stack: a group of overlapping windows sharing the same frame.
--- Contains Window objects, iterators, indicator lifecycle, and click hit-testing.
+--[[ 
+A single stack: a group of overlapping windows sharing the same frame.
+Contains Window objects, iterators, indicator lifecycle, and click hit-testing.
+]]
 local Stack = {}
 
 function Stack:new(stackedWindows) -- {{{
