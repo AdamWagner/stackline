@@ -246,8 +246,8 @@ Calls `hs.window.focusedWindow()` every time. During a single `redrawIndicator()
 **C1. `redrawIndicator` focus state machine** (window.lua:130-196)
 4-way branch (`noChange`, `bothChange`, `onlyWinChange`, `onlyStackChange`) with side effects scattered across branches. Some update `self.focus`, some update `self.stackFocus`, some trigger sibling redraws. The "last-active window" behavior — `bothChange` updates `stackFocus` but intentionally does *not* update `self.focus` — is a non-obvious design decision buried in a branch. Sibling redraw trigger is duplicated in two branches. The inline TODO says "Refactor to reduce complexity."
 
-**C2. `getColorAttrs` rebuilds a nested lookup on every call** (window.lua:245-292)
-Constructs a deeply nested table, converts booleans to string keys (`tostring(isStackFocused)`), then navigates `colorLookup.stack['true'].window['false']`. Called on every focus change for every indicator. The 4 focus states could be a flat table with a composite key, or precomputed once when config changes.
+**C2. `getColorAttrs` rebuilds a nested lookup on every call** (window.lua:245-292) — **FIXED**
+Replaced 50-line deeply nested string-keyed lookup with flat if/else + `withAlpha` helper. 4 branches with early returns, each self-documenting. Only the needed branch computes (was building all 4 `u.copy`/`u.extend` every call).
 
 **C3. `getShadowAttrs` magic numbers** (window.lua:294-319)
 Hardcoded dimming ratios (`6`, `7`, `15.0`, `7.0`, `3.0`, `2.0`, etc.) with no names or config backing. Difficult to tune or understand.
@@ -295,7 +295,7 @@ Each item gets its own commit. Provably-correct changes first, then logic restru
   - **Geometry:** `getScreenSide(frame, screenWidth)`, `getIndicatorPosition(frame, screenFrame, side, width, config)`, `makeStackId(frame, fuzzFactor)`, y-position formula from `setupIndicator`
   - **Aesthetics:** `getColorAttrs(config, showIcons, isStackFocused, isWinFocused)`, `getShadowAttrs(config, showIcons, isFocused, side)`
   - Window.lua becomes focused on lifecycle & state management (the hard part). Items 10, 11, and 14 are naturally addressed during extraction (flatten getColorAttrs, name shadow magic numbers, pass focused ID as arg instead of querying HS).
-- [ ] **10. Flatten `getColorAttrs`** (C2) — Replace nested table + string-key lookup with a flat 4-entry table keyed by `"focused_focused"`, `"focused_unfocused"`, etc. Same outputs, half the code. (Can be done as part of item 9 or standalone.)
+- [x] **10. Flatten `getColorAttrs`** (C2) — Replaced nested string-keyed lookup with flat if/else + `withAlpha` helper. 50 lines → 20. Each branch is self-documenting with early returns. Only the needed branch computes.
 - [ ] **11. Name `getShadowAttrs` magic numbers** (C3) — Extract hardcoded values into local constants with descriptive names. Same outputs, more readable. (Can be done as part of item 9 or standalone.)
 - [ ] **12. Inline `getShowIconsState`** (D3) — Replace `stackline.manager:getShowIconsState()` calls with `stackline.config:get('appearance.showIcons')`. Fixes stale-cache bug and removes indirection.
 - [x] **13. Simplify `getSummary` dual data shape** (C4) — Normalize data shape at the top of the function instead of branching in every callback. Unwrap `Stack.windows` via `u.map` so the body is branch-free. Simpler than splitting into two functions.

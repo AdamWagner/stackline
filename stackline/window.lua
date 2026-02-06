@@ -49,7 +49,7 @@ function Window:setupIndicator() -- {{{
 
     -- computed from config
     self.width = self.showIcons and c.size or (c.size / c.pillThinness) -- icons are square; pills are narrow
-    self.iconRadius = self.width / self.config.radius
+    self.iconRadius = self.width / c.radius
 
     -- Set canvas to fill entire screen
     self.screen = self._win:screen()
@@ -250,54 +250,31 @@ end -- }}}
 
 function Window:getColorAttrs(isStackFocused, isWinFocused) -- {{{
     local opts = self.config
-    -- Lookup bg color and image alpha based on stack + window focus
-    -- e.g., fillColor = self:getColorAttrs(self.stackFocus, self.focus).bg
-    --       iconAlpha = self:getColorAttrs(self.stackFocus, self.focus).img
-    -- Uses string keys ('true'/'false') because Lua doesn't allow boolean table keys
-    -- in this nested lookup pattern. tostring() on the boolean args gives us the key.
-    local colorLookup = {
-        stack = {
-            ['true'] = {
-                window = {
-                    ['true'] = {
-                        bg = u.extend(u.copy(opts.color), {alpha = opts.alpha}),
-                        img = opts.alpha,
-                    },
-                    ['false'] = {
-                        bg = u.extend(u.copy(opts.color),
-                            {alpha = opts.alpha / opts.dimmer}),
-                        img = opts.alpha / opts.iconDimmer,
-                    },
-                },
-            },
-            ['false'] = {
-                window = {
-                    ['true'] = {
-                        bg = u.extend(u.copy(opts.color), {
-                            alpha = opts.alpha / (opts.dimmer / 1.2), -- slightly less dimmed than unfocused-in-focused-stack
-                        }),
-                        -- last-focused icon stays full alpha when stack unfocused
-                        img = opts.alpha,
-                    },
-                    ['false'] = {
-                        -- When icons are shown, bg is invisible (alpha=0) for unfocused windows
-                        -- in unfocused stacks — only the icon itself provides visual presence.
-                        -- For pill mode, a faint bg (0.2) remains so the pill is still visible.
-                        bg = u.extend(u.copy(opts.color), {
-                            alpha = stackline.manager:getShowIconsState() and 0 or
-                                0.2,
-                        }),
-                        -- unfocused icon has slightly lower alpha when stack also unfocused
-                        img = opts.alpha /
-                            (opts.iconDimmer + (opts.iconDimmer * 0.70)),
-                    },
-                },
-            },
-        },
-    }
-    local isStackFocusedKey = tostring(isStackFocused)
-    local isWinFocusedKey = tostring(isWinFocused)
-    return colorLookup.stack[isStackFocusedKey].window[isWinFocusedKey]
+    local function withAlpha(a)
+        return u.extend(u.copy(opts.color), {alpha = a})
+    end
+
+    if isStackFocused and isWinFocused then
+        -- focused window in focused stack: full brightness
+        return { bg = withAlpha(opts.alpha), img = opts.alpha }
+
+    elseif isStackFocused then
+        -- unfocused window in focused stack: dimmed
+        return { bg = withAlpha(opts.alpha / opts.dimmer), img = opts.alpha / opts.iconDimmer }
+
+    elseif isWinFocused then
+        -- last-active window in unfocused stack: slightly less dimmed
+        return { bg = withAlpha(opts.alpha / (opts.dimmer / 1.2)), img = opts.alpha }
+
+    else
+        -- unfocused window in unfocused stack: most dimmed
+        -- icon mode hides bg entirely (alpha=0); pill mode keeps a faint bg (0.2)
+        local showIcons = stackline.manager:getShowIconsState()
+        return {
+            bg = withAlpha(showIcons and 0 or 0.2),
+            img = opts.alpha / (opts.iconDimmer + (opts.iconDimmer * 0.70)),
+        }
+    end
 end -- }}}
 
 function Window:getShadowAttrs() -- {{{

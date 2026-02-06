@@ -49,9 +49,6 @@ local function groupWindows(ws) -- {{{
     --    1. Create stackline window objects
     --    2. Group wins by `stackId` prop (aka top-left frame coords)
     --    3. If at least one such group, also group wins by app (to workaround hs bug unfocus event bug)
-    local byStack
-    local byApp
-
     local windows = u.map(ws, function(w)
         return stackline.window:new(w)
     end)
@@ -61,10 +58,11 @@ local function groupWindows(ws) -- {{{
         and 'stackIdFzy'
         or 'stackId'
 
-    byStack = u.filter(
+    local byStack = u.filter(
         u.groupBy(windows, groupKey),
         u.greaterThan(1))  -- stacks have >1 window, so ignore 'groups' of 1
 
+    local byApp
     if u.length(byStack) > 0 then
         local stackedWinIds = getStackedWinIds(byStack)
         local stackedWins = u.filter(windows, function(w)
