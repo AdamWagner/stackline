@@ -1,6 +1,7 @@
 -- Manages the collection of Stack objects for the current space.
--- Coordinates the slow-path update cycle: receives grouped windows from queryYabai.lua,
--- creates Stack objects, wires up workaround data, and triggers indicator rendering.
+-- Slow path: receives grouped+indexed windows from queryYabai.lua via ingest(),
+-- creates Stack objects, wires up HS #2400 workaround data, and triggers canvas rebuild.
+-- Fast path: findWindow() does a linear scan to locate a window by ID for in-place redraws.
 local log   = hs.logger.new('stackmanager', 'info')
 
 local Stackmanager = {}

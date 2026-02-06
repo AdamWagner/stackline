@@ -1,6 +1,8 @@
--- Window model AND all indicator rendering logic.
--- Each Window wraps an hs.window and owns a single hs.canvas (the indicator).
--- This is the largest module — rendering, focus state, color, shadow, positioning all live here.
+-- Window model AND all indicator rendering logic (the largest module).
+-- Each Window wraps an hs.window, computes stack grouping IDs, and owns a
+-- single hs.canvas for its indicator. Contains both the slow path (setupIndicator
+-- + drawIndicator: full canvas creation) and the fast path (redrawIndicator:
+-- in-place color/shadow/opacity updates based on focus state changes).
 local log   = hs.logger.new('window', 'info')
 log.i('Loading module: window')
 

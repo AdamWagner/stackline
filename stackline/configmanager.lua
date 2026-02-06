@@ -1,4 +1,9 @@
--- https://github.com/erento/lua-schema-validation
+-- Schema-validated configuration manager. Stores config as a nested table accessed
+-- via dot-path strings (e.g., 'appearance.color'). Validates on init and on set().
+-- Config changes trigger onChange callbacks in Config.events (e.g., any appearance.*
+-- change rebuilds all indicators). Keys not listed in Config.events fall through to
+-- a metatable default that triggers a full query cycle.
+-- Validation based on: https://github.com/erento/lua-schema-validation
 local log = hs.logger.new('configmgr', 'info')
 local v = require 'lib.valid' -- Validators & type lookup
 local o = v.optional

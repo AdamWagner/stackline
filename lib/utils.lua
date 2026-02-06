@@ -1,3 +1,7 @@
+-- Functional utility library. Aliases hs.fnutils methods and adds extras:
+-- table manipulation (groupBy, extend, flatten, flattenPath), type checks,
+-- dot-path field access (getfield/setfield), and hs.task callback wrappers.
+-- Exposed as the global `u` — used throughout every module.
 -- luacheck: ignore 142 112
 local log = hs.logger.new('utils', 'info')
 log.i('Loading module: utils')

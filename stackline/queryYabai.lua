@@ -1,5 +1,11 @@
+-- Slow-path pipeline: groups Hammerspoon windows by frame, queries yabai for
+-- stack indices, and merges the two data sources. This is where the core data
+-- problem is solved — HS provides grouping (which windows overlap), yabai provides
+-- ordering (stack-index) and confirmation (stack-index > 0 means truly stacked).
+-- Called by stackmanager:update(). Hands merged results to stackmanager:ingest().
+-- shouldRestack() avoids unnecessary yabai subprocess calls via change detection.
 local log   = hs.logger.new('query', 'info')
-log.i('Loading module: query')
+log.i('Loading module: queryYabai')
 
 local function yabai(command, callback) -- {{{
     -- Run a yabai CLI command asynchronously. Callback receives parsed JSON response.

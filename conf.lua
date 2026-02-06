@@ -1,4 +1,6 @@
--- default stackline config
+-- Default configuration values for stackline. Users override these by passing
+-- a config table to stackline:init(). See configmanager.lua for the schema that
+-- validates these values, and CLAUDE.md for architecture documentation.
 
 local c = {}
 c.paths = {}
