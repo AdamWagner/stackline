@@ -77,6 +77,9 @@ HS focus event → find window in manager → update canvas element properties i
 
 No yabai query needed. No canvas destruction/creation. Just tweaks `fillColor`, `imageAlpha`, and `shadow` on existing canvas elements. This matters because focus changes happen constantly (every alt-tab, every click).
 
+### `forceRedraw` flag
+`forceRedraw` bypasses the `shouldRestack()` optimization, forcing a yabai query + rebuild regardless of whether the summary diff detected a change. It's set on events where something significant likely happened (windowCreated, windowMoved, windowsChanged, space switch, init) and serves as a safety net when the summary check might miss a real change. Also useful for debugging: `stackline.manager:update({forceRedraw=true})` in the HS console forces a fresh yabai query at any time.
+
 ### Throttling
 The slow path uses `hs.timer.delayed` with `maxRefreshRate` (default 0.5s). Multiple rapid events (e.g., several windows moving during a layout change) collapse into a single update cycle. Some events (`windowCreated`, `windowsChanged`, `windowMoved`) set `forceRedraw=true` to bypass the `shouldRestack()` optimization.
 
@@ -154,6 +157,43 @@ Don't try to automate canvas rendering verification. Batch up visual changes, th
 - Don't try to test canvas rendering programmatically — visual output is verified by eyes.
 - Don't make large sweeping changes — small steps, each independently verifiable.
 
+## Developer Guidelines
+
+- **Follow through on simplifications.** When you remove the primary use of a variable, check all remaining uses and question whether they're still needed. When a change reduces an expression to a trivial case (e.g., a variable that's just an alias for a single function call), inline it. Don't leave orphaned variables or unnecessary indirection behind.
+
+### Naming Conventions
+
+The codebase currently uses several different words for the same operations. The target naming scheme assigns one verb per cost level, so the name itself signals the performance implication.
+
+**Three verbs, by cost:**
+
+| Verb | Meaning | Cost |
+|---|---|---|
+| **query** | Call yabai (subprocess), get fresh data, rebuild everything | High — external I/O |
+| **rebuild** | Tear down canvases, create new ones from existing data | Medium — canvas + icon lookups |
+| **redraw** | Tweak colors/opacity/shadow on existing canvases in-place | Low — nearly free |
+
+The slow path = **query** (which triggers a rebuild). The fast path = **redraw**.
+
+**Current → Target renames:**
+
+| Current | Target | Why |
+|---|---|---|
+| `shouldRestack()` | `shouldQuery()` | "Should we call yabai?" — signals external I/O |
+| `forceRedraw` | `forceQuery` | Forces the yabai call, not just a redraw |
+| `queryWindowState` | *(keep)* | Already correct |
+| `checkOn` | `queryOn` | Events that trigger a yabai query |
+| `forceCheckOn` | `forceQueryOn` | Events that force a query regardless of diff |
+| `resetAllIndicators()` | `rebuildAllIndicators()` | "Reset" is vague; "rebuild" says canvases are torn down and recreated |
+| `tabStacks` | `stacks` | The `tab` prefix adds nothing; everything else says "stacks" |
+| `self.focus` | `self.winFocused` | Distinguishes from `self.stackFocused`; matches param style |
+| `self.stackFocus` | `self.stackFocused` | Consistent adjective form matching local vars and params |
+| `maxRefreshRate` | *(keep)* | Already understood |
+| `redrawOn` | *(keep)* | Already correct |
+| `redrawIndicator()` | *(keep)* | Already correct |
+| `redrawAllIndicators()` | *(keep)* | Already correct |
+| `_win` (unused callback param) | *(keep)* | Intentional underscore convention for unused args |
+
 ## Complexity Hotspots (Refactoring Targets)
 
 ### Bugs / Latent Issues
@@ -223,14 +263,19 @@ Each item gets its own commit. Provably-correct changes first, then logic restru
 
 ### Tier 1: Provably correct (no behavior change possible)
 
-- [ ] **1. Remove dead code from utils.lua** (D1) — Remove functions that aren't useful for stackline's functional style or debugging: `u.json_cb` (redundant with `u.task_cb`), `u.from_iter`, `u.copyShallow` (buggy, `u.copy` exists), `u.levenshteinDistance` (for unfinished autosuggest), `u.pheader`, `table.slice`, `table.merge` (never called). Keep functional-style utilities (`u.pipe`, `u.flip`, `u.flatten`, etc.) — they support a terse, readable coding style even if not currently called.
-- [ ] **2. Fix `conf.lua` global leak** (B5) — `c = {}` → `local c = {}`. No behavior change; `c` is returned and assigned by the caller.
-- [ ] **3. Fix `iconFromAppName` global leak** (B4) — Add missing `local` to `appBundle`. No behavior change.
-- [ ] **4. Fix `getColorAttrs` config mutation** (B1) — Line 255: `u.extend(opts.color, ...)` → `u.extend(u.copy(opts.color), ...)`. Matches the pattern already used on lines 259, 268, 275.
-- [ ] **5. Fix `drawIndicator` config mutation** (C5) — `u.extend(self.config, ...)` → `u.extend(u.copy(self.config), ...)`. Preserves override intent without mutating shared state.
-- [ ] **6. Fix `forceRedraw` clobbering** (B3) — `self.forceRedraw = u.contains(...)` → `self.forceRedraw = self.forceRedraw or u.contains(...)`. One-line change, fixes a real race condition.
-- [ ] **7. Move `resetAllIndicators` outside ingest loop** (A2) — Move one line from inside to after the `for` loop. Same final state, eliminates N(N+1)/2 redundant calls.
-- [ ] **8. Remove or stub `autosuggest`** (B2) — Either delete the call in `set()` or add a no-op method. Currently crashes on invalid config paths.
+- [x] **1. Remove dead code from utils.lua** (D1) — Remove functions that aren't useful for stackline's functional style or debugging: `u.json_cb` (redundant with `u.task_cb`), `u.from_iter`, `u.copyShallow` (buggy, `u.copy` exists), `u.levenshteinDistance` (for unfinished autosuggest), `u.pheader`, `table.slice`, `table.merge` (never called). Keep functional-style utilities (`u.pipe`, `u.flip`, `u.flatten`, etc.) — they support a terse, readable coding style even if not currently called.
+- [x] **2. Fix `conf.lua` global leak** (B5) — `c = {}` → `local c = {}`. No behavior change; `c` is returned and assigned by the caller.
+- [x] **3. Fix `iconFromAppName` global leak** (B4) — Add missing `local` to `appBundle`. No behavior change.
+- [x] **4. Fix `getColorAttrs` config mutation** (B1) — Line 255: `u.extend(opts.color, ...)` → `u.extend(u.copy(opts.color), ...)`. Matches the pattern already used on lines 259, 268, 275.
+- [x] **5. Fix `drawIndicator` config mutation** (C5) — `u.extend(self.config, ...)` → `u.extend(u.copy(self.config), ...)`. Preserves override intent without mutating shared state.
+- [x] **6. Fix `forceRedraw` clobbering** (B3) — `self.forceRedraw = u.contains(...)` → `self.forceRedraw = self.forceRedraw or u.contains(...)`. One-line change, fixes a real race condition.
+- [x] **6b. Remove `spaceHasStacks` guard in query.lua** — The `spaceHasStacks and` prefix on `shouldRestack()` creates a blind spot (0→N stacks) that forces `forceRedraw` to cover init/space-switch. Removing it lets `shouldRestack()` handle all transitions naturally via `numStacks` diff.
+- [x] **7. Move `resetAllIndicators` outside ingest loop** (A2) — Move one line from inside to after the `for` loop. Same final state, eliminates N(N+1)/2 redundant calls.
+- [x] **8. Remove or stub `autosuggest`** (B2) — Either delete the call in `set()` or add a no-op method. Currently crashes on invalid config paths.
+- [x] **8c. Fix `u.find()` global leak** — Add missing `local` to `result` variable. Same class of bug as items 3-5.
+- [x] **8d. Fix comment typos and inaccuracies** — Fix typos (forgiven, WANRING, elment), wrong defaults (0.3s→0.5s), stale line-number references, stale `-- end`, incorrect stackIdFzy description, `~=` → `≈`.
+- [x] **8e. Add high-value comments** — Module-level comments, explain non-obvious patterns (stackFocus=true, string-key lookup, __index metatable fallback, globals), label slow/fast paths, document query.lua functions, clarify conf.lua values. Remove dead `self:isStackFocused()` call in setupIndicator.
+- [ ] **8f. Normalize naming conventions** — Rename per the naming scheme in Developer Guidelines. `shouldRestack`→`shouldQuery`, `forceRedraw`→`forceQuery`, `checkOn`→`queryOn`, `forceCheckOn`→`forceQueryOn`, `resetAllIndicators`→`rebuildAllIndicators`, `tabStacks`→`stacks`, `self.focus`→`self.winFocused`, `self.stackFocus`→`self.stackFocused`. Pure renames, no logic change.
 
 ### Tier 2: Logic simplification (same behavior, clearer code)
 
@@ -259,3 +304,18 @@ Checked whether yabai has added a `stack-id` or any stack-grouping field since t
 Audited all modules for bugs, unnecessary complexity, and dead code. Full findings written up in "Complexity Hotspots" section above (items B1-B5, A1-A4, C1-C5, D1-D3).
 
 Key insight on **A1 (full teardown/rebuild)**: previous attempts to fix this went down a deep OOP path — building a sophisticated class library with an auto-building data tree (global → screen → space → stack → window → indicator) where each level knows how to construct its children. These attempts consistently became too complex, introduced many bugs, and failed. The simpler approach is a **flat keyed reconciliation** by window ID: diff new state against a `windowsById` map, and only create/destroy/reposition what actually changed. No new class hierarchy needed.
+
+### Commits
+- `ef91aa9` — Item 1: Remove dead code from utils.lua. Removed 7 unused functions (table.slice, table.merge, u.from_iter, u.json_cb, u.copyShallow, u.levenshteinDistance, u.pheader). 110 lines deleted. Also removed stale `luacheck: globals table.merge` directive from stackline.lua.
+- `72ce9ec` — Add CLAUDE.md with architecture docs and refactoring plan.
+- `4629d5a` — Item 2: Fix conf.lua global leak. Made `c` local, fixed query.lua:50 to use `stackline.config:get()`.
+- `1f85833` — Item 3: Fix iconFromAppName global leak. Added missing `local`.
+- `bd256d6` — Item 4: Fix getColorAttrs mutating shared config color table. Added missing `u.copy()`.
+- `b2cc3ed` — Item 5: Fix drawIndicator mutating self.config via u.extend. Copy before extending.
+- `3dff1c5` — Item 6: Fix forceRedraw flag being clobbered by subsequent events. Use `or` to preserve earlier force.
+- `1a42537` — Item 6b: Remove `spaceHasStacks` entirely. Inlined `shouldRestack()` call, removed `shouldRefresh` variable, made `ingest()` always clean up (no-op when empty). `shouldRestack()` now handles 0→N transitions naturally.
+- `24f4f9b` — Item 7: Move `resetAllIndicators()` outside ingest loop. Eliminates N(N+1)/2 redundant calls.
+- `640504c` — Item 8: Remove unimplemented autosuggest. Replaced crashing `self:autosuggest()` call with `log.w()`, removed dead `self.autosuggestions` build, removed related TODO in conf.lua.
+- `649f00d` — Item 8c: Fix `u.find()` global leak. Added missing `local` to `result`.
+- `bad9963` — Item 8d: Fix comment typos, wrong defaults, and stale references across 6 files.
+- `736a211` — Item 8e: Add high-value comments across all modules. Module-level comments, explain non-obvious patterns, label slow/fast paths, document functions, clarify config values. Remove dead `self:isStackFocused()` call.
