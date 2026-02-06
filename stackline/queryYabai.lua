@@ -127,7 +127,6 @@ local function shouldRestack(new) -- {{{
     end
 
     if not u.equal(curr.topLeft, new.topLeft) then
-        u.p(curr.topLeft)
         log.i('Should refresh -> Stack position changed', curr.topLeft, new.topLeft)
         return true
     end

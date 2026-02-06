@@ -63,6 +63,7 @@ end -- }}}
 function Stackmanager:getSummary(external) -- {{{
     -- Summarizes all stacks on the current space, making it easy to determine
     -- what needs to be updated (if anything).
+    
     -- Normalize: external is already an array of window arrays; self.tabStacks
     -- contains Stack objects, so unwrap .windows to get the same shape.
     local stacks = external or u.map(self.tabStacks, function(s) return s.windows end)

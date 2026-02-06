@@ -298,15 +298,7 @@ function u.roundToNearest(roundTo, numToRound) -- {{{
 end -- }}}
 
 function u.p(data, howDeep) -- {{{
-    -- local logger = hs.logger.new('inspect', 'debug')
-    local depth = howDeep or 3
-    if type(data)=='table' then
-        print(hs.inspect(data, {depth = depth}))
-        -- logger.df(hs.inspect(data, {depth = depth}))
-    else
-        print(hs.inspect(data, {depth = depth}))
-        -- logger.df(hs.inspect(data, {depth = depth}))
-    end
+    print(hs.inspect(data, {depth = howDeep or 3}))
 end -- }}}
 
 function u.groupBy(t, f) -- {{{

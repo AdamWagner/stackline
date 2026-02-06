@@ -122,9 +122,10 @@ Hammerspoon sometimes misses `windowCreated` events. Subscribing to `windowsChan
 
 - `stackline` is a global singleton table. Modules access it freely (e.g., `stackline.config`, `stackline.manager`, `stackline.wf`).
 - `u` is a global alias for `lib/utils.lua`, set in `stackline.lua:10`.
-- `c` is used as a local alias for config values throughout `window.lua` and `conf.lua` (note: `conf.lua` sets `c` as a global, which is a bit unusual).
+- `c` is used as a local alias for config values in `window.lua` and `conf.lua`.
 - Objects use Lua's metatable pattern: `setmetatable(instance, Class); Class.__index = Class`.
 - Fold markers (`-- {{{` / `-- }}}`) are used throughout for editor code folding.
+- **Comment conventions:** Top-of-file module comments use `--[[ ]]` blocks (first line is just `--[[`). Everything else (inline, TODOs, section headers) uses single-line `--`.
 
 ## Avoiding Bug Introduction
 
@@ -160,6 +161,17 @@ Don't try to automate canvas rendering verification. Batch up visual changes, th
 ## Developer Guidelines
 
 - **Follow through on simplifications.** When you remove the primary use of a variable, check all remaining uses and question whether they're still needed. When a change reduces an expression to a trivial case (e.g., a variable that's just an alias for a single function call), inline it. Don't leave orphaned variables or unnecessary indirection behind.
+
+- **Normalize data shapes upfront.** When a function handles two data shapes (e.g., raw arrays vs. wrapper objects), don't branch repeatedly in the body. Normalize at the top so the body only deals with one shape. Example: `getSummary` replaced per-callback `external and s or s.windows` branching with a single `u.map` at the top that unwraps Stack objects into the same shape as the raw input.
+
+- **Eliminate dead variables and redundant calls.** When auditing for readability:
+  - Variables assigned and immediately returned → inline the expression.
+  - Function arguments that the callee ignores → remove them (and the variable).
+  - Identical if/else branches → collapse to one path.
+  - Duplicate function calls with same args in a single flow → compute once, reuse.
+  - Algebraic simplifications → apply when the result is clearer (e.g., `1 - (a-b)/a` → `b/a`).
+
+- **Always update CLAUDE.md.** After every commit: add to the Commits list in Work Log, and update the Refactoring Plan checkboxes. Don't let them drift.
 
 ### Naming Conventions
 
@@ -240,8 +252,8 @@ Constructs a deeply nested table, converts booleans to string keys (`tostring(is
 **C3. `getShadowAttrs` magic numbers** (window.lua:294-319)
 Hardcoded dimming ratios (`6`, `7`, `15.0`, `7.0`, `3.0`, `2.0`, etc.) with no names or config backing. Difficult to tune or understand.
 
-**C4. `getSummary` dual data shape** (stackmanager.lua:57-76)
-The `external` parameter switches between reading from Stack objects (`.windows` property) and raw grouped arrays. Two small functions would be clearer than one branching function.
+**C4. `getSummary` dual data shape** (stackmanager.lua:57-76) — **FIXED**
+The `external` parameter switched between reading from Stack objects (`.windows` property) and raw grouped arrays, branching in every callback. Fixed by normalizing at the top of the function: unwrap `Stack.windows` via `u.map` so the body always works with plain window arrays.
 
 **C5. `drawIndicator` mutates `self.config`** (window.lua:85)
 `u.extend(self.config, overrideOpts or {})` mutates `self.config` in place. Since `overrideOpts` is currently never passed, this is a no-op today, but would corrupt shared config state if ever used. Intent is to support overrides — fix is to extend a *copy* of `self.config` instead.
@@ -286,7 +298,7 @@ Each item gets its own commit. Provably-correct changes first, then logic restru
 - [ ] **10. Flatten `getColorAttrs`** (C2) — Replace nested table + string-key lookup with a flat 4-entry table keyed by `"focused_focused"`, `"focused_unfocused"`, etc. Same outputs, half the code. (Can be done as part of item 9 or standalone.)
 - [ ] **11. Name `getShadowAttrs` magic numbers** (C3) — Extract hardcoded values into local constants with descriptive names. Same outputs, more readable. (Can be done as part of item 9 or standalone.)
 - [ ] **12. Inline `getShowIconsState`** (D3) — Replace `stackline.manager:getShowIconsState()` calls with `stackline.config:get('appearance.showIcons')`. Fixes stale-cache bug and removes indirection.
-- [ ] **13. Split `getSummary` into two functions** (C4) — One for existing Stack objects, one for raw grouped arrays. Eliminates the confusing `external` parameter.
+- [x] **13. Simplify `getSummary` dual data shape** (C4) — Normalize data shape at the top of the function instead of branching in every callback. Unwrap `Stack.windows` via `u.map` so the body is branch-free. Simpler than splitting into two functions.
 - [ ] **14. Pass focused window ID through update cycle** (A4) — Resolve `hs.window.focusedWindow()` once at the top of `redrawIndicator`, pass the ID down. Eliminates N+1 redundant HS API calls per focus event. (Can be done as part of item 9 or standalone.)
 - [ ] **15. Simplify `redrawIndicator` state machine** (C1) — Restructure the 4-way branch to make the "last-active window" behavior explicit and deduplicate the sibling-redraw trigger. Same logic, clearer intent.
 
@@ -326,3 +338,5 @@ Key insight on **A1 (full teardown/rebuild)**: previous attempts to fix this wen
 - `82f999d` — Rename query.lua → queryYabai.lua. Updated require path and all references.
 - `c7532c4` — Add/improve top-of-file comments across all modules (stackline.lua, queryYabai.lua, configmanager.lua, conf.lua, utils.lua, window.lua, stackmanager.lua).
 - `33e3f91` — Item 8f: Add 31 targeted inline comments across all modules. Geometry calculations, shadow math, focus state, coordinate transforms, data flow, subtle gotchas.
+- `0ab1f89` — Convert top-of-file module comments from `--` to `--[[ ]]` blocks across all 8 modules. First line is always just `--[[`.
+- `fd98f27` — Item 13: Simplify `getSummary` by normalizing data shape upfront. Unwrap `Stack.windows` via `u.map` at the top instead of branching in every callback.

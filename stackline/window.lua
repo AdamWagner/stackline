@@ -34,11 +34,7 @@ end -- }}}
 
 function Window:isFocused() -- {{{
     local focusedWin = hs.window.focusedWindow()
-    if focusedWin == nil then
-        return false
-    end
-    local isFocused = self.id == focusedWin:id()
-    return isFocused
+    return focusedWin ~= nil and self.id == focusedWin:id()
 end -- }}}
 
 function Window:isStackFocused() -- {{{
@@ -105,10 +101,12 @@ function Window:drawIndicator(overrideOpts) -- {{{
     -- there be one canvas per screen/space into which each window's indicator element is appended?
     self.indicator = hs.canvas.new(self.screenFrame)
 
+    local colorAttrs = self:getColorAttrs(self.stackFocus, self.focus)
+
     self.indicator:insertElement({
         type = "rectangle",
         action = "fill", -- options: strokeAndFill, stroke, fill
-        fillColor = self:getColorAttrs(self.stackFocus, self.focus).bg,
+        fillColor = colorAttrs.bg,
         frame = self.indicator_rect,
         roundedRectRadii = {xRadius = radius, yRadius = radius},
         withShadow = true,
@@ -126,7 +124,7 @@ function Window:drawIndicator(overrideOpts) -- {{{
             type = "image",
             image = self:iconFromAppName(),
             frame = self.icon_rect,
-            imageAlpha = self:getColorAttrs(self.stackFocus, self.focus).img,
+            imageAlpha = colorAttrs.img,
         }, self.iconIdx)
     end
 
@@ -191,7 +189,6 @@ function Window:redrawIndicator() -- {{{
     end
 
     -- ACTION: Update canvas values
-    local f = self.focus
     local rect = self.indicator[self.rectIdx]
     local icon = self.indicator[self.iconIdx]
 
@@ -200,7 +197,7 @@ function Window:redrawIndicator() -- {{{
     if self.showIcons then
         icon.imageAlpha = colorAttrs.img
     end
-    rect.shadow = self:getShadowAttrs(f)
+    rect.shadow = self:getShadowAttrs()
 end -- }}}
 
 function Window:getScreenSide() -- {{{
@@ -211,7 +208,7 @@ function Window:getScreenSide() -- {{{
 
     local leftEdge  = self.frame.x
     local rightEdge = self.frame.x + self.frame.w
-    local percR     = 1 - ((screenWidth - rightEdge) / screenWidth) -- how far right edge extends across screen (0→1)
+    local percR     = rightEdge / screenWidth                       -- how far right edge extends across screen (0→1)
     local percL     = (screenWidth - leftEdge) / screenWidth      -- how far left edge is from right side (0→1)
 
     local side = (percR > thresh and percL < thresh) and 'right' or 'left'
