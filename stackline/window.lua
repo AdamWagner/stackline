@@ -269,7 +269,7 @@ function Window:getColorAttrs(isStackFocused, isWinFocused) -- {{{
     else
         -- unfocused window in unfocused stack: most dimmed
         -- icon mode hides bg entirely (alpha=0); pill mode keeps a faint bg (0.2)
-        local showIcons = stackline.manager:getShowIconsState()
+        local showIcons = self.showIcons
         return {
             bg = withAlpha(showIcons and 0 or 0.2),
             img = opts.alpha / (opts.iconDimmer + (opts.iconDimmer * 0.70)),
@@ -280,7 +280,7 @@ end -- }}}
 function Window:getShadowAttrs(isWinFocused) -- {{{
     -- Returns {blurRadius, color, offset} based on focus state.
     -- Called by drawIndicator (slow path) and redrawIndicator (fast path).
-    local iconsDisabledDimmer = stackline.manager:getShowIconsState() and 1 or 5 -- pills get much subtler shadows than icons
+    local iconsDisabledDimmer = self.showIcons and 1 or 5 -- pills get much subtler shadows than icons
     local alphaDimmer = (isWinFocused and 6 or 7) * iconsDisabledDimmer
     local blurDimmer = (isWinFocused and 15.0 or 7.0) / iconsDisabledDimmer
 

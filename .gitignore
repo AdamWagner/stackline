@@ -5,3 +5,5 @@ stackline/sratch.md
 lib/figlet.lua
 
 luacov.stats.out
+.DS_STORE
+.vscode/
