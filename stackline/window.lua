@@ -12,7 +12,7 @@ function Window:new(hsWin) -- {{{
         frame      = hsWin:frame(),              -- x,y,w,h of window (table)
         stackId    = stackIdResult.stackId,      -- "{{x}|{y}|{w}|{h}" e.g., "35|63|1185|741" (string)
         topLeft    = stackIdResult.topLeft,      -- "{{x}|{y}" e.g., "35|63" (string)
-        stackIdFzy = stackIdResult.fzyFrame,     -- "{{x}|{y}" e.g., "35|63" (string)
+        stackIdFzy = stackIdResult.fzyFrame,     -- fuzzy "{x}|{y}|{w}|{h}" rounded by fuzzFactor (string)
         _win       = hsWin,                      -- hs.window object (table)
         screen     = hsWin:screen():id(),
         indicator  = nil,                        -- the canvas element (table)
@@ -122,7 +122,7 @@ function Window:drawIndicator(overrideOpts) -- {{{
         }, self.iconIdx)
     end
 
-    self.indicator:clickActivating(false) -- clicking on a canvas elment should NOT bring Hammerspoon wins to front
+    self.indicator:clickActivating(false) -- clicking on a canvas element should NOT bring Hammerspoon wins to front
     self.indicator:show(fadeDuration)
     return self
 end -- }}}
@@ -230,7 +230,8 @@ function Window:getIndicatorPosition() -- {{{
     self.screenFrame = self.screen:fullFrame()
     self.side = self:getScreenSide()
 
-    -- DONE: Limit stack left/right side to screen boundary to prevent drawing offscreen https://github.com/AdamWagner/stackline/issues/21
+    -- Clamp indicators to screen boundary to prevent drawing offscreen
+    -- https://github.com/AdamWagner/stackline/issues/21
     if self.side == 'right' then xval = (self.frame.x + self.frame.w) + c.offset.x   -- position indicators on right edge
         if xval + self.width > self.screenFrame.w then           -- don't go beyond the right screen edge
             xval = self.screenFrame.w - self.width
@@ -284,8 +285,6 @@ function Window:getColorAttrs(isStackFocused, isWinFocused) -- {{{
             },
         },
     }
-    -- end
-
     local isStackFocusedKey = tostring(isStackFocused)
     local isWinFocusedKey = tostring(isWinFocused)
     return colorLookup.stack[isStackFocusedKey].window[isWinFocusedKey]

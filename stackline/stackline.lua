@@ -25,8 +25,8 @@ function stackline:init(userConfig) -- {{{
     self.manager = require'stackline.stackmanager':init()
     self.manager:update({forceRedraw=true})
 
-    -- Reuseable update fn that runs at most once every maxRefreshRate (default 0.3s)
-    -- NOTE: yabai is only called if query.shouldRestack() returns true (see ./stackline/query.lua:104)
+    -- Reuseable update fn that runs at most once every maxRefreshRate (default 0.5s)
+    -- NOTE: yabai is only called if query.shouldRestack() returns true (see query.lua:shouldRestack)
     self.queryWindowState = timer.new(
       self.config:get'advanced.maxRefreshRate',
       function()
@@ -79,7 +79,7 @@ stackline.events = { -- {{{
 } -- }}}
 
 function stackline:setupListeners() -- {{{
-    -- On each win evt above, run update at most once every maxRefreshRate (defaults to 0.3s))
+    -- On each win evt above, run update at most once every maxRefreshRate (defaults to 0.5s)
     -- update = query window state & check if redraw needed
     self.wf:subscribe(self.events.checkOn, function(_win, _app, evt)
         self.forceRedraw = self.forceRedraw or u.contains( -- forceRedraw depending on the type of event

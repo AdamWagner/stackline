@@ -128,7 +128,7 @@ function Config.generateValidator(schemaType) -- {{{
         return v.is_table(children)
     end
 
-    -- otherwise, return validation fn forgiven type
+    -- otherwise, return validation fn for given type
     log.d('schemaType:', schemaType)
     return Config.types[schemaType]                  -- if schemaType is a known config type..
             and Config.types[schemaType].validator() -- then return validation fn

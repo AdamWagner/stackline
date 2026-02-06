@@ -364,7 +364,7 @@ function u.deepCopy(obj, seen) -- {{{
 end -- }}}
 
 function u.safeSort(tbl, fn) -- {{{
-    -- WANRING: Sorting mutates table
+    -- WARNING: Sorting mutates table
     fn = fn or function(x,y) return x < y end
     if u.isarray(tbl) then
         table.sort(tbl,fn)

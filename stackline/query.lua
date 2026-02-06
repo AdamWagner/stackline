@@ -46,7 +46,7 @@ local function groupWindows(ws) -- {{{
         return stackline.window:new(w)
     end)
 
-    -- See 'stackId' def @ /window.lua:233
+    -- See Window:makeStackId() in window.lua
     local groupKey = stackline.config:get('features.fzyFrameDetect').enabled
         and 'stackIdFzy'
         or 'stackId'

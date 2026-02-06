@@ -21,8 +21,8 @@ end -- }}}
 
 function Stack:frame() -- {{{
    -- All stacked windows have the same dimensions,
-   -- so the 1st Hs window's frame is ~= to the stack's frame
-   -- TODO: Incorrect when the 1st window has min-size < stack width. See ./query.lua:105
+   -- so the 1st HS window's frame is ≈ the stack's frame.
+   -- TODO: Incorrect when the 1st window has min-size < stack width (see fuzzy frame detection in CLAUDE.md)
    return self.windows[1]._win:frame()
 end -- }}}
 
