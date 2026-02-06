@@ -33,8 +33,8 @@ function Stackmanager:ingest(stacks, appWins) -- {{{
             win.stack = stack -- enables calling stack methods from window
         end)
         table.insert(self.tabStacks, stack)
-        self:resetAllIndicators()
     end
+    self:resetAllIndicators()
 end -- }}}
 
 function Stackmanager:get() -- {{{
