@@ -1,7 +1,9 @@
--- Manages the collection of Stack objects for the current space.
--- Slow path: receives grouped+indexed windows from queryYabai.lua via ingest(),
--- creates Stack objects, wires up HS #2400 workaround data, and triggers canvas rebuild.
--- Fast path: findWindow() does a linear scan to locate a window by ID for in-place redraws.
+--[[ 
+Manages the collection of Stack objects for the current space.
+Slow path: receives grouped+indexed windows from queryYabai.lua via ingest(),
+creates Stack objects, wires up HS #2400 workaround data, and triggers canvas rebuild.
+Fast path: findWindow() does a linear scan to locate a window by ID for in-place redraws.
+]]
 local log   = hs.logger.new('stackmanager', 'info')
 
 local Stackmanager = {}
@@ -60,22 +62,15 @@ end -- }}}
 
 function Stackmanager:getSummary(external) -- {{{
     -- Summarizes all stacks on the current space, making it easy to determine
-    -- what needs to be updated (if anything)
-    local stacks = external or self.tabStacks -- external = raw grouped arrays from queryYabai; self.tabStacks = Stack objects
+    -- what needs to be updated (if anything).
+    -- Normalize: external is already an array of window arrays; self.tabStacks
+    -- contains Stack objects, so unwrap .windows to get the same shape.
+    local stacks = external or u.map(self.tabStacks, function(s) return s.windows end)
     return {
         numStacks = #stacks,
-        topLeft = u.map(stacks, function(s)
-            local windows = external and s or s.windows -- external arrays are flat; Stack objects nest windows
-            return windows[1].topLeft
-        end),
-        dimensions = u.map(stacks, function(s)
-            local windows = external and s or s.windows
-            return windows[1].stackId -- stackId is stringified window frame dims ("1150|93|531|962")
-        end),
-        numWindows = u.map(stacks, function(s)
-            local windows = external and s or s.windows
-            return #windows
-        end),
+        topLeft = u.map(stacks, function(ws) return ws[1].topLeft end),
+        dimensions = u.map(stacks, function(ws) return ws[1].stackId end),
+        numWindows = u.map(stacks, function(ws) return #ws end),
     }
 end -- }}}
 
