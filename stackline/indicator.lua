@@ -12,6 +12,10 @@ log.i('Loading module: indicator')
 
 local Indicator = {}
 
+-- Canvas element indices (constant — rect is always first, icon second)
+local RECT = 1
+local ICON = 2
+
 function Indicator:new(args) -- {{{
     local config    = args.config
     local showIcons = config.showIcons
@@ -25,8 +29,6 @@ function Indicator:new(args) -- {{{
         frame               = args.windowFrame,
         stackIdx            = args.stackIdx,
         screenFrame         = args.screen:fullFrame(),
-        rectIdx             = 1,
-        iconIdx             = 2,
         appName             = args.appName,
         canvas              = nil, -- hs.canvas, created in draw()
         showingWinFocused   = args.isFocused,
@@ -43,7 +45,7 @@ end -- }}}
 
 function Indicator:draw() -- {{{
     log.i('draw indicator')
-    self.indicator_rect, self.icon_rect = self:buildRects()
+    local indicatorRect, iconRect = self:buildRects()
 
     local radius = self.showIcons and self.iconRadius or self.config.radius
     local fadeDuration = self.config.shouldFade and self.config.fadeDuration or 0
@@ -60,19 +62,19 @@ function Indicator:draw() -- {{{
         type = "rectangle",
         action = "fill",
         fillColor = colorAttrs.bg,
-        frame = self.indicator_rect,
+        frame = indicatorRect,
         roundedRectRadii = {xRadius = radius, yRadius = radius},
         withShadow = true,
         shadow = self:computeShadowAttrs(),
-    }, self.rectIdx)
+    }, RECT)
 
     if self.showIcons then
         self.canvas:insertElement({
             type = "image",
             image = self:iconFromAppName(),
-            frame = self.icon_rect,
+            frame = iconRect,
             imageAlpha = colorAttrs.img,
-        }, self.iconIdx)
+        }, ICON)
     end
 
     self.canvas:clickActivating(false)
@@ -109,13 +111,12 @@ function Indicator:updateFocus(isWinFocused, isStackFocused) -- {{{
     -- Update canvas properties in-place (fast path — no teardown/rebuild)
     if not self.canvas then return nil end
 
-    local rect = self.canvas[self.rectIdx]
-    local icon = self.canvas[self.iconIdx]
+    local rect = self.canvas[RECT]
 
     local colorAttrs = self:computeColorAttrs()
     rect.fillColor = colorAttrs.bg
     if self.showIcons then
-        icon.imageAlpha = colorAttrs.img
+        self.canvas[ICON].imageAlpha = colorAttrs.img
     end
     rect.shadow = self:computeShadowAttrs()
 
@@ -126,7 +127,7 @@ function Indicator:getHitFrame() -- {{{
     -- Returns the rectangle element's frame for click hit-testing,
     -- or nil if no canvas exists.
     if not self.canvas then return nil end
-    return self.canvas:canvasElements()[self.rectIdx].frame
+    return self.canvas:canvasElements()[RECT].frame
 end -- }}}
 
 function Indicator:computeColorAttrs() -- {{{
@@ -193,12 +194,10 @@ function Indicator:computeShadowAttrs() -- {{{
 end -- }}}
 
 function Indicator:getScreenSide() -- {{{
-    -- Returns the side of the screen that the window is (mostly) on: "left" or "right"
-    local thresh = 0.75
-    local screenWidth = self.screenFrame.w
-    local percR = (self.frame.x + self.frame.w) / screenWidth
-    local percL = (screenWidth - self.frame.x) / screenWidth
-    return (percR > thresh and percL < thresh) and 'right' or 'left'
+    -- Returns "left" or "right" based on which side of the screen the window is on.
+    -- Biased toward "left": window must have its right edge past 75% of screen width.
+    local rightEdge = (self.frame.x + self.frame.w) / self.screenFrame.w
+    return rightEdge > 0.75 and 'right' or 'left'
 end -- }}}
 
 function Indicator:buildRects() -- {{{
@@ -218,7 +217,7 @@ function Indicator:buildRects() -- {{{
     xval = math.max(0, math.min(xval, self.screenFrame.w - self.width))
 
     -- stackIdx comes from yabai: position within the stack (1, 2, 3...)
-    local indicator_rect = {
+    local indicatorRect = {
         x = xval,
         y = self.frame.y + c.offset.y +
             ((self.stackIdx - 1) * c.size * c.vertSpacing),
@@ -226,14 +225,14 @@ function Indicator:buildRects() -- {{{
         h = c.size,
     }
 
-    local icon_rect = {
+    local iconRect = {
         x = xval + c.iconPadding,
-        y = indicator_rect.y + c.iconPadding,
-        w = indicator_rect.w - (c.iconPadding * 2),
-        h = indicator_rect.h - (c.iconPadding * 2),
+        y = indicatorRect.y + c.iconPadding,
+        w = indicatorRect.w - (c.iconPadding * 2),
+        h = indicatorRect.h - (c.iconPadding * 2),
     }
 
-    return indicator_rect, icon_rect
+    return indicatorRect, iconRect
 end -- }}}
 
 function Indicator:iconFromAppName() -- {{{
