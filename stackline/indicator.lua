@@ -203,16 +203,16 @@ function Indicator:buildRects() -- {{{
     -- X position is clamped to screen bounds to prevent drawing offscreen.
     local c = self.config
 
+    -- Position indicator just outside the window edge
     local xval
     if self.side == 'right' then
-        xval = (self.frame.x + self.frame.w) + c.offset.x
-        if xval + self.width > self.screenFrame.w then
-            xval = self.screenFrame.w - self.width
-        end
+        xval = self.frame.x + self.frame.w + c.offset.x
     else
-        xval = self.frame.x - (self.width + c.offset.x)
-        xval = math.max(xval, 0)
+        xval = self.frame.x - self.width - c.offset.x
     end
+
+    -- Clamp to screen bounds
+    xval = math.max(0, math.min(xval, self.screenFrame.w - self.width))
 
     -- stackIdx comes from yabai: position within the stack (1, 2, 3...)
     local indicator_rect = {
