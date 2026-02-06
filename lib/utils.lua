@@ -140,7 +140,7 @@ function u.keys(t) -- {{{
 end -- }}}
 
 function u.find(t, val) -- {{{
-    result = nil
+    local result = nil
     for k, v in u.getiter(t) do
         if k==val then
             result = v
