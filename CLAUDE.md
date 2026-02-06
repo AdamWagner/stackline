@@ -323,3 +323,5 @@ Key insight on **A1 (full teardown/rebuild)**: previous attempts to fix this wen
 - `649f00d` — Item 8c: Fix `u.find()` global leak. Added missing `local` to `result`.
 - `bad9963` — Item 8d: Fix comment typos, wrong defaults, and stale references across 6 files.
 - `736a211` — Item 8e: Add high-value comments across all modules. Module-level comments, explain non-obvious patterns, label slow/fast paths, document functions, clarify config values. Remove dead `self:isStackFocused()` call.
+- `82f999d` — Rename query.lua → queryYabai.lua. Updated require path and all references.
+- `c7532c4` — Add/improve top-of-file comments across all modules (stackline.lua, queryYabai.lua, configmanager.lua, conf.lua, utils.lua, window.lua, stackmanager.lua).
