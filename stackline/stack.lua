@@ -49,7 +49,7 @@ function Stack:anyFocused() -- {{{
    end)
 end -- }}}
 
-function Stack:resetAllIndicators() -- {{{
+function Stack:rebuildAllIndicators() -- {{{
    -- SLOW PATH: tears down and recreates canvas elements from scratch.
    -- Called during rebuild after a yabai query.
    self:eachWin(function(w)

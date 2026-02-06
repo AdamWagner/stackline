@@ -61,7 +61,7 @@ This is safe to be aggressive with because **yabai corrects false positives**. E
 Triggered by: window created, destroyed, moved, hidden, minimized, fullscreened, space change.
 
 ```
-HS window event → throttle (0.5s) → groupWindows() → shouldRestack()?
+HS window event → throttle (0.5s) → groupWindows() → shouldQuery()?
   → YES → yabai query (async) → merge stack indices → ingest → rebuild all canvases
   → NO  → do nothing
 ```
@@ -77,13 +77,11 @@ HS focus event → find window in manager → update canvas element properties i
 
 No yabai query needed. No canvas destruction/creation. Just tweaks `fillColor`, `imageAlpha`, and `shadow` on existing canvas elements. This matters because focus changes happen constantly (every alt-tab, every click).
 
-### `forceRedraw` flag (pending rename to `forceQuery`)
-`forceRedraw` bypasses the `shouldRestack()` change-detection check, forcing a yabai query + rebuild regardless of whether the summary diff detected a change. It's set on events where something significant likely happened (windowCreated, windowMoved, windowsChanged, space switch, init) and serves as a safety net when the change-detection check might miss a real change. Also useful for debugging: `stackline.manager:update({forceRedraw=true})` in the HS console forces a fresh yabai query at any time.
-
-Note: The name `forceRedraw` is misleading — it forces a *query* (the expensive yabai subprocess call), not just a redraw. Rename to `forceQuery` is planned (see item 8f).
+### `forceQuery` flag
+`forceQuery` bypasses the `shouldQuery()` change-detection check, forcing a yabai query + rebuild regardless of whether the summary diff detected a change. It's set on events where something significant likely happened (windowCreated, windowMoved, windowsChanged, space switch, init) and serves as a safety net when the change-detection check might miss a real change. Also useful for debugging: `stackline.manager:update({forceQuery=true})` in the HS console forces a fresh yabai query at any time.
 
 ### Throttling
-The slow path uses `hs.timer.delayed` with `maxRefreshRate` (default 0.5s). Multiple rapid events (e.g., several windows moving during a layout change) collapse into a single update cycle. Some events (`windowCreated`, `windowsChanged`, `windowMoved`) set `forceRedraw=true` to bypass the change-detection check.
+The slow path uses `hs.timer.delayed` with `maxRefreshRate` (default 0.5s). Multiple rapid events (e.g., several windows moving during a layout change) collapse into a single update cycle. Some events (`windowCreated`, `windowsChanged`, `windowMoved`) set `forceQuery=true` to bypass the change-detection check.
 
 ## Module Map
 
@@ -104,13 +102,13 @@ init.lua                          Entry point. Adds stackline to package.path.
 
 **stackline.lua** — Sets up `hs.window.filter` subscriptions that route events to either the slow path (`queryWindowState` timer) or fast path (`redrawWinIndicator`). Also sets up `hs.eventtap` for click-to-focus and `hs.spaces.watcher` for space changes. Uses the global `stackline` table as a singleton.
 
-**queryYabai.lua** — The `run()` function is the slow-path entry point. `groupWindows()` maps `hs.window` objects into `Window` objects and groups by `stackId`/`stackIdFzy`. `shouldRestack()` compares summary stats (num stacks, positions, window counts) against the previous state to avoid unnecessary yabai queries. When a query is needed, `stackIdMapper()` extracts the `window.id → stack-index` mapping from yabai's JSON, and `mergeWinStackIdxs()` assigns those indices onto the grouped windows.
+**queryYabai.lua** — The `run()` function is the slow-path entry point. `groupWindows()` maps `hs.window` objects into `Window` objects and groups by `stackId`/`stackIdFzy`. `shouldQuery()` compares summary stats (num stacks, positions, window counts) against the previous state to avoid unnecessary yabai queries. When a query is needed, `stackIdMapper()` extracts the `window.id → stack-index` mapping from yabai's JSON, and `mergeWinStackIdxs()` assigns those indices onto the grouped windows.
 
 **stackmanager.lua** — `ingest()` receives grouped+merged windows from query, creates `Stack` objects, wires up `otherAppWindows` (for the HS #2400 workaround), and triggers indicator rendering. `findWindow()` does a linear scan across all stacks to locate a window by ID (used by the fast path). `cleanup()` tears down all canvas elements before a full refresh.
 
 **window.lua** — The most complex module. `Window:new()` wraps an `hs.window` and computes `stackId`/`stackIdFzy`. `setupIndicator()` calculates rect positions from config + stackIdx. `drawIndicator()` creates a new `hs.canvas` with a rounded rect and optional app icon. `redrawIndicator()` is the fast-path logic — it determines which of 4 focus states changed (stack focused/unfocused x window focused/unfocused) and updates canvas properties accordingly. `getColorAttrs()` and `getShadowAttrs()` compute visual properties from focus state.
 
-**configmanager.lua** — Stores config as a flat-ish table accessed via dot-notation paths (`"appearance.color"`). Schema defined in `Config.schema`, validated on init and on `set()`. `Config.events` maps config key paths to side-effect functions (e.g., changing any `appearance.*` key triggers `resetAllIndicators`).
+**configmanager.lua** — Stores config as a flat-ish table accessed via dot-notation paths (`"appearance.color"`). Schema defined in `Config.schema`, validated on init and on `set()`. `Config.events` maps config key paths to side-effect functions (e.g., changing any `appearance.*` key triggers `rebuildAllIndicators`).
 
 ## Known Workarounds
 
@@ -211,15 +209,15 @@ The slow path = **query** (which triggers a rebuild). The fast path = **redraw**
 
 | Current | Target | Why |
 |---|---|---|
-| `shouldRestack()` | `shouldQuery()` | "Should we call yabai?" — signals external I/O |
-| `forceRedraw` | `forceQuery` | Forces the yabai call, not just a redraw |
+| ~~`shouldRestack()`~~ | ~~`shouldQuery()`~~ | **Done.** "Should we call yabai?" — signals external I/O |
+| ~~`forceRedraw`~~ | ~~`forceQuery`~~ | **Done.** Forces the yabai call, not just a redraw |
 | `queryWindowState` | *(keep)* | Already correct |
-| `checkOn` | *(keep)* | Accurate: these events trigger a *check* (shouldRestack), not always a query |
+| `checkOn` | *(keep)* | Accurate: these events trigger a *check* (shouldQuery), not always a query |
 | ~~`forceCheckOn`~~ | ~~`forceQueryOn`~~ | **Done.** What's forced is the query, not the check |
-| `resetAllIndicators()` | `rebuildAllIndicators()` | "Reset" is vague; "rebuild" says canvases are torn down and recreated |
-| `tabStacks` | `stacks` | The `tab` prefix adds nothing; everything else says "stacks" |
-| `self.focus` | `self.winFocused` | Distinguishes from `self.stackFocused`; matches param style |
-| `self.stackFocus` | `self.stackFocused` | Consistent adjective form matching local vars and params |
+| ~~`resetAllIndicators()`~~ | ~~`rebuildAllIndicators()`~~ | **Done.** "Reset" is vague; "rebuild" says canvases are torn down and recreated |
+| ~~`tabStacks`~~ | ~~`stacks`~~ | **Done.** The `tab` prefix adds nothing; everything else says "stacks" |
+| ~~`self.focus`~~ | ~~`self.winFocused`~~ | **Done.** Distinguishes from `self.stackFocused`; matches param style |
+| ~~`self.stackFocus`~~ | ~~`self.stackFocused`~~ | **Done.** Consistent adjective form matching local vars and params |
 | `maxRefreshRate` | *(keep)* | Already understood |
 | `redrawOn` | *(keep)* | Already correct |
 | `redrawIndicator()` | *(keep)* | Already correct |
@@ -307,7 +305,7 @@ Each item gets its own commit. Provably-correct changes first, then logic restru
 - [x] **8c. Fix `u.find()` global leak** — Add missing `local` to `result` variable. Same class of bug as items 3-5.
 - [x] **8d. Fix comment typos and inaccuracies** — Fix typos (forgiven, WANRING, elment), wrong defaults (0.3s→0.5s), stale line-number references, stale `-- end`, incorrect stackIdFzy description, `~=` → `≈`.
 - [x] **8e. Add high-value comments** — Module-level comments, explain non-obvious patterns (stackFocus=true, string-key lookup, __index metatable fallback, globals), label slow/fast paths, document queryYabai.lua functions, clarify conf.lua values. Remove dead `self:isStackFocused()` call in setupIndicator.
-- [ ] **8f. Normalize naming conventions** — Rename per the naming scheme in Developer Guidelines. `shouldRestack`→`shouldQuery`, `forceRedraw`→`forceQuery`, `checkOn`→`queryOn`, `forceCheckOn`→`forceQueryOn`, `resetAllIndicators`→`rebuildAllIndicators`, `tabStacks`→`stacks`, `self.focus`→`self.winFocused`, `self.stackFocus`→`self.stackFocused`. Pure renames, no logic change.
+- [x] **8f. Normalize naming conventions** — Renamed per the naming scheme in Developer Guidelines. `shouldRestack`→`shouldQuery`, `forceRedraw`→`forceQuery`, `resetAllIndicators`→`rebuildAllIndicators`, `tabStacks`→`stacks`, `self.focus`→`self.winFocused`, `self.stackFocus`→`self.stackFocused`. (`checkOn` kept as-is; `forceCheckOn`→`forceQueryOn` done in earlier commit.) Pure renames, no logic change.
 
 ### Tier 2: Extract & simplify (same behavior, clearer code)
 
@@ -388,3 +386,5 @@ Key insight on **A1 (full teardown/rebuild)**: previous attempts to fix this wen
 - `6bebd41` — Item 10: Flatten `getColorAttrs` from 50-line nested string-keyed lookup to ~20-line if/else with `withAlpha` helper. Also: consistent `c.radius` in setupIndicator, hoist declarations in `groupWindows`.
 - `aeeaf95` — Format `getColorAttrs` branches for visual consistency (bg/img on separate lines in all 4 branches). Add function comment documenting return shape. Add luacheck globals hint for `hs`.
 - `d013c23` — Fix internal require paths. 3 requires used wrong paths that only worked when the parent directory happened to be on `package.path`: `stackline.stackline.queryYabai` → `stackline.queryYabai`, `stackline.stackline.stack` → `stackline.stack`, `stackline.conf` → `conf`. All requires now resolve through the single stackline root path, working in both standard (`~/.hammerspoon/stackline/`) and dev (`~/Programming/stackline/`) installs.
+- `71306a7` — Update default yabai path to Apple Silicon (`/opt/homebrew/bin/yabai`). Clean up CLAUDE.md: mark fixed hotspots, update stale line numbers, add manual test plan and behavior improvements section.
+- `PENDING` — Item 8f: Normalize naming conventions. `shouldRestack`→`shouldQuery`, `forceRedraw`→`forceQuery`, `resetAllIndicators`→`rebuildAllIndicators`, `tabStacks`→`stacks`, `self.focus`→`self.winFocused`, `self.stackFocus`→`self.stackFocused`. Pure renames across 6 files, no logic change.

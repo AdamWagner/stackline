@@ -33,15 +33,15 @@ function stackline:init(userConfig) -- {{{
     -- init stackmanager, & run update right away
     -- NOTE: Requires self.config to be initialized first
     self.manager = require'stackline.stackmanager':init()
-    self.manager:update({forceRedraw=true})
+    self.manager:update({forceQuery=true})
 
     -- Reuseable update fn that runs at most once every maxRefreshRate (default 0.5s)
-    -- NOTE: yabai is only called if shouldRestack() returns true (see queryYabai.lua:shouldRestack)
+    -- NOTE: yabai is only called if shouldQuery() returns true (see queryYabai.lua:shouldQuery)
     self.queryWindowState = timer.new(
       self.config:get'advanced.maxRefreshRate',
       function()
-         self.manager:update({forceRedraw=self.forceRedraw})
-         if(self.forceRedraw) then self.forceRedraw = false end -- reset after consuming
+         self.manager:update({forceQuery=self.forceQuery})
+         if(self.forceQuery) then self.forceQuery = false end -- reset after consuming
       end,
       true -- continue on error
    )
@@ -95,12 +95,12 @@ function stackline:setupListeners() -- {{{
     -- On each win evt above, run update at most once every maxRefreshRate (defaults to 0.5s)
     -- update = query window state & check if redraw needed
     self.wf:subscribe(self.events.checkOn, function(_win, _app, evt)
-        self.forceRedraw = self.forceRedraw or u.contains( -- forceRedraw depending on the type of event
+        self.forceQuery = self.forceQuery or u.contains( -- set forceQuery depending on the type of event
             self.events.forceQueryOn,
             evt
         )
 
-        log.i('Window event:', evt, 'force:', self.forceRedraw)
+        log.i('Window event:', evt, 'force:', self.forceQuery)
         self.queryWindowState:start() -- (re)start the throttled timer
     end)
 
@@ -161,7 +161,7 @@ stackline.spaceWatcher = hs.spaces.watcher.new( -- {{{
         -- Update stackline when switching spaces
         -- NOTE: hs.spaces.watcher uses deprecated macos APIs, so this may break in an upcoming macos release
         log.i(('hs.spaces.watcher -> changed to space %d'):format(spaceIdx))
-        stackline.forceRedraw = true -- force the next update cycle to redraw
+        stackline.forceQuery = true -- force the next update cycle to query yabai
         stackline.queryWindowState:start()
         stackline:refreshClickTracker()
     end

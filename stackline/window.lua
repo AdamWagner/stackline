@@ -87,11 +87,11 @@ function Window:drawIndicator(overrideOpts) -- {{{
     local radius = self.showIcons and self.iconRadius or opts.radius
     local fadeDuration = opts.shouldFade and opts.fadeDuration or 0
 
-    self.focus = self:isFocused()
+    self.winFocused = self:isFocused()
     -- drawIndicator is only called during rebuild (slow path), at which point
     -- we always consider the stack focused. The fast path (redrawIndicator)
     -- will correct this if needed on the next focus event.
-    self.stackFocus = true
+    self.stackFocused = true
 
     if self.indicator then              -- clean up previous canvas if rebuilding
         self.indicator:delete()
@@ -101,7 +101,7 @@ function Window:drawIndicator(overrideOpts) -- {{{
     -- there be one canvas per screen/space into which each window's indicator element is appended?
     self.indicator = hs.canvas.new(self.screenFrame)
 
-    local colorAttrs = self:getColorAttrs(self.stackFocus, self.focus)
+    local colorAttrs = self:getColorAttrs(self.stackFocused, self.winFocused)
 
     self.indicator:insertElement({
         type = "rectangle",
@@ -139,8 +139,8 @@ function Window:redrawIndicator() -- {{{
     local isStackFocused = self:isStackFocused()
 
     -- has stack, window focus changed?
-    local stackFocusChange = isStackFocused ~= self.stackFocus
-    local windowFocusChange = isWindowFocused ~= self.focus
+    local stackFocusChange = isStackFocused ~= self.stackFocused
+    local windowFocusChange = isWindowFocused ~= self.winFocused
 
     -- permutations of stack, window change combos
     local noChange = not stackFocusChange and not windowFocusChange
@@ -158,24 +158,24 @@ function Window:redrawIndicator() -- {{{
 
     elseif bothChange then
         -- If both change, it means a *focused* window's stack is now unfocused.
-        self.stackFocus = isStackFocused
+        self.stackFocused = isStackFocused
         self.stack:redrawAllIndicators({except = self.id})
-        -- Despite the window being unfocused, do *not* update self.focus
+        -- Despite the window being unfocused, do *not* update self.winFocused
         -- (unfocused stack + focused window = last-active window)
 
     elseif onlyWinChange then
         -- changing window focus within a stack
-        self.focus = isWindowFocused
+        self.winFocused = isWindowFocused
 
         local enableTmpFix = stackline.config:get('features.hsBugWorkaround')
-        if self.focus and enableTmpFix then
+        if self.winFocused and enableTmpFix then
             self:unfocusOtherAppWindows()
         end
 
     elseif onlyStackChange then
         -- aka, already unfocused window's stack is now unfocused, too
         -- so update stackFocus
-        self.stackFocus = isStackFocused
+        self.stackFocused = isStackFocused
 
         -- if only stack changed *and* win is focused, it means a previously
         -- unfocused stack is now focused, so redraw other window indicators
@@ -192,7 +192,7 @@ function Window:redrawIndicator() -- {{{
     local rect = self.indicator[self.rectIdx]
     local icon = self.indicator[self.iconIdx]
 
-    local colorAttrs = self:getColorAttrs(self.stackFocus, self.focus)
+    local colorAttrs = self:getColorAttrs(self.stackFocused, self.winFocused)
     rect.fillColor = colorAttrs.bg
     if self.showIcons then
         icon.imageAlpha = colorAttrs.img
@@ -292,21 +292,21 @@ function Window:getShadowAttrs() -- {{{
     -- less opaque & blurry when iconsDisabled
     -- even less opaque & blurry when unfocused
     local iconsDisabledDimmer = stackline.manager:getShowIconsState() and 1 or 5 -- pills get much subtler shadows than icons
-    local alphaDimmer = (self.focus and 6 or 7) * iconsDisabledDimmer
-    local blurDimmer = (self.focus and 15.0 or 7.0) / iconsDisabledDimmer
+    local alphaDimmer = (self.winFocused and 6 or 7) * iconsDisabledDimmer
+    local blurDimmer = (self.winFocused and 15.0 or 7.0) / iconsDisabledDimmer
 
     -- Shadows should cast outwards toward screen edges as if 
     -- from a light source originating from the screen's center
     local xDirection = (self.side == 'left') and -1 or 1
     local offset = {
-        h = (self.focus and 3.0 or 2.0) * -1.0,                              -- drop shadow (negative = downward)
-        w = ((self.focus and 7.0 or 6.0) * xDirection) / iconsDisabledDimmer, -- cast outward toward screen edge
+        h = (self.winFocused and 3.0 or 2.0) * -1.0,                              -- drop shadow (negative = downward)
+        w = ((self.winFocused and 7.0 or 6.0) * xDirection) / iconsDisabledDimmer, -- cast outward toward screen edge
     }
 
     -- TODO [just for fun]: Dust off an old Geometry textbook and try get the shadow's angle to rotate around a point at the center of the screen (aka, 'light source')
     -- Here's a super crude POC that uses the indicator's stack index such that
     -- higher indicators have a negative Y offset and lower indicators have a positive Y offset
-    --   h = (self.focus and 3.0 or 2.0 - (2 + (self.stackIdx * 5))) * -1.0,
+    --   h = (self.winFocused and 3.0 or 2.0 - (2 + (self.stackIdx * 5))) * -1.0,
 
     return {
         blurRadius = blurDimmer,

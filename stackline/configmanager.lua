@@ -69,7 +69,7 @@ local defaultOnChangeEvt = { -- {{{
 Config.events = setmetatable({ -- {{{
     -- onChange callbacks: when a config value is set(), the matching callback fires.
     -- Keys not listed here fall through to defaultOnChangeEvt (triggers a query cycle).
-    appearance = function() stackline.manager:resetAllIndicators() end,
+    appearance = function() stackline.manager:rebuildAllIndicators() end,
     features = {
         clickToFocus      = function() return stackline:refreshClickTracker() end,
         maxRefreshRate    = nil,

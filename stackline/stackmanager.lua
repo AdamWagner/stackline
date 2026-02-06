@@ -11,7 +11,7 @@ local Stackmanager = {}
 Stackmanager.query = require 'stackline.queryYabai'
 
 function Stackmanager:init() -- {{{
-    self.tabStacks = {}
+    self.stacks = {}
     self.showIcons = stackline.config:get('appearance.showIcons')
     self.__index = self
     return self
@@ -38,17 +38,17 @@ function Stackmanager:ingest(stacks, appWins) -- {{{
             -- TODO: fix error with nil stack field (??): window.lua:32: attempt to index a nil value (field 'stack')
             win.stack = stack -- enables calling stack methods from window
         end)
-        table.insert(self.tabStacks, stack)
+        table.insert(self.stacks, stack)
     end
-    self:resetAllIndicators()
+    self:rebuildAllIndicators()
 end -- }}}
 
 function Stackmanager:get() -- {{{
-    return self.tabStacks
+    return self.stacks
 end -- }}}
 
 function Stackmanager:eachStack(fn) -- {{{
-    for _stackId, stack in pairs(self.tabStacks) do
+    for _stackId, stack in pairs(self.stacks) do
         fn(stack)
     end
 end -- }}}
@@ -57,16 +57,16 @@ function Stackmanager:cleanup() -- {{{
     self:eachStack(function(stack)
         stack:deleteAllIndicators()
     end)
-    self.tabStacks = {}
+    self.stacks = {}
 end -- }}}
 
 function Stackmanager:getSummary(external) -- {{{
     -- Summarizes all stacks on the current space, making it easy to determine
     -- what needs to be updated (if anything).
     
-    -- Normalize: external is already an array of window arrays; self.tabStacks
+    -- Normalize: external is already an array of window arrays; self.stacks
     -- contains Stack objects, so unwrap .windows to get the same shape.
-    local stacks = external or u.map(self.tabStacks, function(s) return s.windows end)
+    local stacks = external or u.map(self.stacks, function(s) return s.windows end)
     return {
         numStacks = #stacks,
         topLeft = u.map(stacks, function(ws) return ws[1].topLeft end),
@@ -75,15 +75,15 @@ function Stackmanager:getSummary(external) -- {{{
     }
 end -- }}}
 
-function Stackmanager:resetAllIndicators() -- {{{
+function Stackmanager:rebuildAllIndicators() -- {{{
     self:eachStack(function(stack)
-        stack:resetAllIndicators()
+        stack:rebuildAllIndicators()
     end)
 end -- }}}
 
 function Stackmanager:findWindow(wid) -- {{{
     -- NOTE: A window must be *in* a stack to be found with this method!
-    for _stackId, stack in pairs(self.tabStacks) do
+    for _stackId, stack in pairs(self.stacks) do
         for _idx, win in pairs(stack.windows) do
             if win.id == wid then
                 return win
@@ -96,7 +96,7 @@ function Stackmanager:findStackByWindow(win) -- {{{
     -- NOTE: may not need when Hammerspoon #2400 is closed
     -- NOTE 2: Currently unused, since reference to "otherAppWindows" is sstored
     -- directly on each window. Likely to be useful, tho, so keeping it around.
-    for _stackId, stack in pairs(self.tabStacks) do
+    for _stackId, stack in pairs(self.stacks) do
         if stack.id == win.stackId then
             return stack
         end
@@ -110,7 +110,7 @@ end -- }}}
 function Stackmanager:getClickedWindow(point) -- {{{
     -- given the coordinates of a mouse click, return the first window whose
     -- indicator element encompasses the point, or nil if none.    
-    for _stackId, stack in pairs(self.tabStacks) do
+    for _stackId, stack in pairs(self.stacks) do
         local clickedWindow = stack:getWindowByPoint(point)
         if clickedWindow then
             return clickedWindow

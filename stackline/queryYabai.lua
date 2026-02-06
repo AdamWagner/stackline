@@ -4,7 +4,7 @@ stack indices, and merges the two data sources. This is where the core data
 problem is solved — HS provides grouping (which windows overlap), yabai provides
 ordering (stack-index) and confirmation (stack-index > 0 means truly stacked).
 Called by stackmanager:update(). Hands merged results to stackmanager:ingest().
-shouldRestack() avoids unnecessary yabai subprocess calls via change detection.
+shouldQuery() avoids unnecessary yabai subprocess calls via change detection.
 ]]
 local log   = hs.logger.new('query', 'info')
 log.i('Loading module: queryYabai')
@@ -109,7 +109,7 @@ local function mergeWinStackIdxs(byStack, winStackIdxs) -- {{{
 
 end -- }}}
 
-local function shouldRestack(new) -- {{{
+local function shouldQuery(new) -- {{{
     -- Analyze byStack to determine if a stack refresh is needed
     --  • change num stacks (+/-)
     --  • changes to existing stack
@@ -144,7 +144,7 @@ local function run(opts) -- {{{
     opts = opts or {}
     local byStack, byApp = groupWindows(stackline.wf:getWindows()) -- returns byStack, byApp
 
-    if shouldRestack(byStack) or opts.forceRedraw then
+    if shouldQuery(byStack) or opts.forceQuery then
         log.i('Refreshing stackline')
         -- TODO: if there's only 1 space, use 'query --windows --space' to reduce chance that parsing fails
         local yabai_cmd = 'query --windows'
