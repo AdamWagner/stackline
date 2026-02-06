@@ -194,8 +194,8 @@ The slow path = **query** (which triggers a rebuild). The fast path = **redraw**
 | `shouldRestack()` | `shouldQuery()` | "Should we call yabai?" — signals external I/O |
 | `forceRedraw` | `forceQuery` | Forces the yabai call, not just a redraw |
 | `queryWindowState` | *(keep)* | Already correct |
-| `checkOn` | `queryOn` | Events that trigger a yabai query |
-| `forceCheckOn` | `forceQueryOn` | Events that force a query regardless of diff |
+| `checkOn` | *(keep)* | Accurate: these events trigger a *check* (shouldRestack), not always a query |
+| ~~`forceCheckOn`~~ | `forceQueryOn` | **Done.** What's forced is the query, not the check |
 | `resetAllIndicators()` | `rebuildAllIndicators()` | "Reset" is vague; "rebuild" says canvases are torn down and recreated |
 | `tabStacks` | `stacks` | The `tab` prefix adds nothing; everything else says "stacks" |
 | `self.focus` | `self.winFocused` | Distinguishes from `self.stackFocused`; matches param style |

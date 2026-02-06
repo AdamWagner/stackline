@@ -60,6 +60,7 @@ stackline.wf = wf.new():setOverrideFilter{ -- {{{
 } -- }}}
 
 stackline.events = { -- {{{
+    -- Slow path: check if stacks changed, query yabai if so
     checkOn = {
         wf.windowCreated,
         wf.windowUnhidden,
@@ -75,11 +76,13 @@ stackline.events = { -- {{{
         wf.windowMinimized,
         wf.windowsChanged,   -- NOTE: pseudo-event for any change in list of windows. Addresses missing windowCreated events :/
     },
-    forceCheckOn = {
+    -- Subset of checkOn that bypasses the change-detection check and always queries yabai
+    forceQueryOn = {
         wf.windowCreated,
         wf.windowsChanged,
         wf.windowMoved,
     },
+    -- Fast path: update existing indicator canvas elements in-place (no yabai query)
     redrawOn = {
         wf.windowFocused,
         wf.windowNotVisible,
@@ -92,7 +95,7 @@ function stackline:setupListeners() -- {{{
     -- update = query window state & check if redraw needed
     self.wf:subscribe(self.events.checkOn, function(_win, _app, evt)
         self.forceRedraw = self.forceRedraw or u.contains( -- forceRedraw depending on the type of event
-            self.events.forceCheckOn,
+            self.events.forceQueryOn,
             evt
         )
 
