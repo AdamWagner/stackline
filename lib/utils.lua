@@ -297,6 +297,10 @@ function u.roundToNearest(roundTo, numToRound) -- {{{
     return numToRound - numToRound % roundTo -- always rounds down
 end -- }}}
 
+function u.clamp(val, min, max) -- {{{
+    return math.max(min, math.min(val, max))
+end -- }}}
+
 function u.p(data, howDeep) -- {{{
     print(hs.inspect(data, {depth = howDeep or 3}))
 end -- }}}

@@ -203,7 +203,7 @@ function Indicator:buildRects() -- {{{
         or  self.frame.x - self.width - c.offset.x
 
     -- Clamp to screen bounds
-    xval = math.max(0, math.min(xval, self.screenFrame.w - self.width))
+    xval = u.clamp(xval, 0, self.screenFrame.w - self.width)
 
     -- stackIdx comes from yabai: position within the stack (1, 2, 3...)
     local indicatorRect = {
