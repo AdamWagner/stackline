@@ -308,11 +308,11 @@ function Window:getShadowAttrs() -- {{{
     local alphaDimmer = (self.focus and 6 or 7) * iconsDisabledDimmer
     local blurDimmer = (self.focus and 15.0 or 7.0) / iconsDisabledDimmer
 
-    -- Shadows should cast outwards toward the screen edges as if due to the glow of onscreen windows…
-    -- …or, if you prefer, from a light source originating from the center of the screen.
+    -- Shadows should cast outwards toward screen edges as if 
+    -- from a light source originating from the screen's center
     local xDirection = (self.side == 'left') and -1 or 1
     local offset = {
-        h = (self.focus and 3.0 or 2.0) * -1.0,                              -- cast upward (negative = up)
+        h = (self.focus and 3.0 or 2.0) * -1.0,                              -- drop shadow (negative = downward)
         w = ((self.focus and 7.0 or 6.0) * xDirection) / iconsDisabledDimmer, -- cast outward toward screen edge
     }
 

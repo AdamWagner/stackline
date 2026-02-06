@@ -325,3 +325,4 @@ Key insight on **A1 (full teardown/rebuild)**: previous attempts to fix this wen
 - `736a211` — Item 8e: Add high-value comments across all modules. Module-level comments, explain non-obvious patterns, label slow/fast paths, document functions, clarify config values. Remove dead `self:isStackFocused()` call.
 - `82f999d` — Rename query.lua → queryYabai.lua. Updated require path and all references.
 - `c7532c4` — Add/improve top-of-file comments across all modules (stackline.lua, queryYabai.lua, configmanager.lua, conf.lua, utils.lua, window.lua, stackmanager.lua).
+- `33e3f91` — Item 8f: Add 31 targeted inline comments across all modules. Geometry calculations, shadow math, focus state, coordinate transforms, data flow, subtle gotchas.
