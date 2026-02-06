@@ -6,6 +6,7 @@ Also sets up click-to-focus (hs.eventtap) and space-change watcher (hs.spaces.wa
 Initializes the two globals: _G.u (utils) and _G.stackline (this singleton).
 ]]
 -- luacheck: globals u
+-- luacheck: globals hs
 -- luacheck: ignore 112
 local wf    = hs.window.filter
 local timer = hs.timer.delayed

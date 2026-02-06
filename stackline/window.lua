@@ -249,6 +249,8 @@ function Window:getIndicatorPosition() -- {{{
 end -- }}}
 
 function Window:getColorAttrs(isStackFocused, isWinFocused) -- {{{
+    -- Returns {bg = fillColor, img = imageAlpha} based on focus state.
+    -- Called by drawIndicator (slow path) and redrawIndicator (fast path).
     local opts = self.config
     local function withAlpha(a)
         return u.extend(u.copy(opts.color), {alpha = a})
@@ -256,15 +258,24 @@ function Window:getColorAttrs(isStackFocused, isWinFocused) -- {{{
 
     if isStackFocused and isWinFocused then
         -- focused window in focused stack: full brightness
-        return { bg = withAlpha(opts.alpha), img = opts.alpha }
+        return {
+            bg = withAlpha(opts.alpha),
+            img = opts.alpha
+        }
 
     elseif isStackFocused then
         -- unfocused window in focused stack: dimmed
-        return { bg = withAlpha(opts.alpha / opts.dimmer), img = opts.alpha / opts.iconDimmer }
+        return {
+            bg = withAlpha(opts.alpha / opts.dimmer),
+            img = opts.alpha / opts.iconDimmer
+        }
 
     elseif isWinFocused then
         -- last-active window in unfocused stack: slightly less dimmed
-        return { bg = withAlpha(opts.alpha / (opts.dimmer / 1.2)), img = opts.alpha }
+        return {
+            bg = withAlpha(opts.alpha / (opts.dimmer / 1.2)),
+            img = opts.alpha
+        }
 
     else
         -- unfocused window in unfocused stack: most dimmed
