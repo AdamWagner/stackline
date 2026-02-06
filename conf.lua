@@ -32,6 +32,9 @@ c.appearance.offset                   = {}                  -- Offset controls p
 c.appearance.offset.y                 = 2                   -- Distance from top of the window to render indicators
 c.appearance.offset.x                 = 4                   -- Distance away from the edge of the window to render indicators
 
+c.appearance.shadowIntensity          = 1                   -- Shadow opacity multiplier (higher = more visible shadows)
+c.appearance.shadowSpread             = 1                   -- Shadow blur multiplier (higher = softer, more diffuse shadows)
+
 c.appearance.shouldFade               = true                -- Enable/disable fade animations
 c.appearance.fadeDuration             = 0.2                 -- Duration of fade animations (seconds) 
 

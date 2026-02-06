@@ -151,41 +151,44 @@ function Indicator:computeColorAttrs() -- {{{
         }
 
     elseif self.showingWinFocused then
-        -- last-active window in unfocused stack: slightly less dimmed
+        -- last-active window in unfocused stack: 20% brighter than dimmed
         return {
-            bg = withAlpha(opts.alpha / (opts.dimmer / 1.2)),
+            bg = withAlpha(opts.alpha * 1.2 / opts.dimmer),
             img = opts.alpha
         }
 
     else
         -- unfocused window in unfocused stack: most dimmed
-        -- icon mode hides bg entirely (alpha=0); pill mode keeps a faint bg (0.2)
+        -- icon mode hides bg entirely; pill mode keeps a faint bg
         return {
             bg = withAlpha(self.showIcons and 0 or 0.2),
-            img = opts.alpha / (opts.iconDimmer + (opts.iconDimmer * 0.70)),
+            img = opts.alpha / (opts.iconDimmer * 1.7),
         }
     end
 end -- }}}
 
 function Indicator:computeShadowAttrs() -- {{{
-    -- Returns {blurRadius, color, offset} based on current focus state.
-    local focused = self.showingWinFocused
-    local iconsDisabledDimmer = self.showIcons and 1 or 5 -- pills get much subtler shadows than icons
-    local alphaDimmer = (focused and 6 or 7) * iconsDisabledDimmer
-    local blurDimmer = (focused and 15.0 or 7.0) / iconsDisabledDimmer
+    -- Focused window indicators get larger, bolder shadows.
+    -- pillDimmer scales down blur, opacity, and horizontal spread for pills.
+    local focused      = self.showingWinFocused
+    local pillDimmer   = self.showIcons and 1 or 5
+    local intensity    = self.config.shadowIntensity
+    local spread       = self.config.shadowSpread
+    local offsetSpread = math.sqrt(spread) -- offsets scale subtly with spread
 
-    -- Shadows cast outward toward screen edges, as if from a
-    -- light source at the screen's center
-    local xDirection = (self.side == 'left') and -1 or 1
-    local offset = {
-        h = (focused and 3.0 or 2.0) * -1.0,                              -- drop shadow (negative = downward)
-        w = ((focused and 7.0 or 6.0) * xDirection) / iconsDisabledDimmer, -- cast outward toward screen edge
-    }
+    -- Compute shadow opacity & blur
+    local alpha = (focused and 0.33 or 0.25) / pillDimmer * intensity
+    local blur  = (focused and 8 or 5) / pillDimmer * spread
+
+    -- Cast shadow outward toward nearest screen edge
+    local drop  = -(focused and 3 or 2) * offsetSpread
+    local castDir = self.side == 'left' and -1 or 1
+    local cast    = (focused and 3 or 2) / pillDimmer * castDir * offsetSpread
 
     return {
-        blurRadius = blurDimmer,
-        color = {alpha = 1 / alphaDimmer},
-        offset = offset,
+        blurRadius = blur,
+        color = {alpha = alpha},
+        offset = {h = drop, w = cast},
     }
 end -- }}}
 

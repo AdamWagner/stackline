@@ -100,6 +100,8 @@ Config.schema = { -- {{{
 
         vertSpacing       = 'number',
         offset            = {x='number', y='number'},
+        shadowIntensity   = 'number',
+        shadowSpread      = 'number',
         shouldFade        = 'boolean',
         fadeDuration      = 'number',
     },
