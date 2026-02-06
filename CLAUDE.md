@@ -277,19 +277,23 @@ Each item gets its own commit. Provably-correct changes first, then logic restru
 - [x] **8e. Add high-value comments** — Module-level comments, explain non-obvious patterns (stackFocus=true, string-key lookup, __index metatable fallback, globals), label slow/fast paths, document query.lua functions, clarify conf.lua values. Remove dead `self:isStackFocused()` call in setupIndicator.
 - [ ] **8f. Normalize naming conventions** — Rename per the naming scheme in Developer Guidelines. `shouldRestack`→`shouldQuery`, `forceRedraw`→`forceQuery`, `checkOn`→`queryOn`, `forceCheckOn`→`forceQueryOn`, `resetAllIndicators`→`rebuildAllIndicators`, `tabStacks`→`stacks`, `self.focus`→`self.winFocused`, `self.stackFocus`→`self.stackFocused`. Pure renames, no logic change.
 
-### Tier 2: Logic simplification (same behavior, clearer code)
+### Tier 2: Extract & simplify (same behavior, clearer code)
 
-- [ ] **9. Flatten `getColorAttrs`** (C2) — Replace nested table + string-key lookup with a flat 4-entry table keyed by `"focused_focused"`, `"focused_unfocused"`, etc. Same outputs, half the code.
-- [ ] **10. Name `getShadowAttrs` magic numbers** (C3) — Extract hardcoded values into local constants with descriptive names. Same outputs, more readable.
-- [ ] **11. Inline `getShowIconsState`** (D3) — Replace `stackline.manager:getShowIconsState()` calls with `stackline.config:get('appearance.showIcons')`. Fixes stale-cache bug and removes indirection.
-- [ ] **12. Split `getSummary` into two functions** (C4) — One for existing Stack objects, one for raw grouped arrays. Eliminates the confusing `external` parameter.
-- [ ] **13. Pass focused window ID through update cycle** (A4) — Resolve `hs.window.focusedWindow()` once at the top of `redrawIndicator`, pass the ID down. Eliminates N+1 redundant HS API calls per focus event.
-- [ ] **14. Simplify `redrawIndicator` state machine** (C1) — Restructure the 4-way branch to make the "last-active window" behavior explicit and deduplicate the sibling-redraw trigger. Same logic, clearer intent.
+- [ ] **9. Extract geometry & aesthetic calculations into a utility file** — Pull pure calculation functions out of window.lua into a new `stackline/indicator_utils.lua` (or similar). These don't need `self` — they take explicit arguments and return values, making them trivially testable with standalone Lua. Candidates:
+  - **Geometry:** `getScreenSide(frame, screenWidth)`, `getIndicatorPosition(frame, screenFrame, side, width, config)`, `makeStackId(frame, fuzzFactor)`, y-position formula from `setupIndicator`
+  - **Aesthetics:** `getColorAttrs(config, showIcons, isStackFocused, isWinFocused)`, `getShadowAttrs(config, showIcons, isFocused, side)`
+  - Window.lua becomes focused on lifecycle & state management (the hard part). Items 10, 11, and 14 are naturally addressed during extraction (flatten getColorAttrs, name shadow magic numbers, pass focused ID as arg instead of querying HS).
+- [ ] **10. Flatten `getColorAttrs`** (C2) — Replace nested table + string-key lookup with a flat 4-entry table keyed by `"focused_focused"`, `"focused_unfocused"`, etc. Same outputs, half the code. (Can be done as part of item 9 or standalone.)
+- [ ] **11. Name `getShadowAttrs` magic numbers** (C3) — Extract hardcoded values into local constants with descriptive names. Same outputs, more readable. (Can be done as part of item 9 or standalone.)
+- [ ] **12. Inline `getShowIconsState`** (D3) — Replace `stackline.manager:getShowIconsState()` calls with `stackline.config:get('appearance.showIcons')`. Fixes stale-cache bug and removes indirection.
+- [ ] **13. Split `getSummary` into two functions** (C4) — One for existing Stack objects, one for raw grouped arrays. Eliminates the confusing `external` parameter.
+- [ ] **14. Pass focused window ID through update cycle** (A4) — Resolve `hs.window.focusedWindow()` once at the top of `redrawIndicator`, pass the ID down. Eliminates N+1 redundant HS API calls per focus event. (Can be done as part of item 9 or standalone.)
+- [ ] **15. Simplify `redrawIndicator` state machine** (C1) — Restructure the 4-way branch to make the "last-active window" behavior explicit and deduplicate the sibling-redraw trigger. Same logic, clearer intent.
 
 ### Tier 3: Architectural (higher risk, higher reward)
 
-- [ ] **15. Keyed reconciliation in ingest** (A1) — Maintain `windowsById` map. Diff new state against existing windows. Only create/destroy/reposition what changed. Eliminates full teardown/rebuild on every slow-path update.
-- [ ] **16. Single canvas per screen** (A3) — Replace per-window full-screen canvases with one canvas per screen containing multiple elements. Lighter, simpler hit-testing.
+- [ ] **16. Keyed reconciliation in ingest** (A1) — Maintain `windowsById` map. Diff new state against existing windows. Only create/destroy/reposition what changed. Eliminates full teardown/rebuild on every slow-path update.
+- [ ] **17. Single canvas per screen** (A3) — Replace per-window full-screen canvases with one canvas per screen containing multiple elements. Lighter, simpler hit-testing.
 
 ## Work Log
 
