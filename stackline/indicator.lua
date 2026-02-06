@@ -10,49 +10,59 @@ back to Window or Stack. At redraw time, only needs two booleans
 local log = hs.logger.new('indicator', 'info')
 log.i('Loading module: indicator')
 
-local Indicator = {}
-
 -- Canvas element indices (constant — rect is always first, icon second)
 local RECT = 1
 local ICON = 2
 
-function Indicator:new(args) -- {{{
-    local config    = args.config
-    local showIcons = config.showIcons
-    local width     = showIcons and config.size or (config.size / config.pillThinness)
+-- ---------------------------------------------------------------------------
+-- Local helpers (pure computations, not part of the class interface)
+-- ---------------------------------------------------------------------------
 
-    local ind = {
+-- Returns "left" or "right" based on which side of the screen the window is on.
+-- Biased toward "left": window must have its right edge past 75% of screen width.
+local function screenSide(frame, screenWidth)
+    return (frame.x + frame.w) / screenWidth > 0.75 and 'right' or 'left'
+end
+
+local function appIcon(appName)
+    return hs.image.imageFromAppBundle(hs.appfinder.appFromName(appName):bundleID())
+end
+
+-- ---------------------------------------------------------------------------
+-- Indicator class
+-- ---------------------------------------------------------------------------
+
+local Indicator = {}
+Indicator.__index = Indicator
+
+function Indicator:new(args) -- {{{
+    local config      = args.config
+    local showIcons   = config.showIcons
+    local width       = showIcons and config.size or (config.size / config.pillThinness)
+    local screenFrame = args.screen:fullFrame()
+
+    return setmetatable({
         config              = config,
         showIcons           = showIcons,
         width               = width,
         iconRadius          = width / config.radius,
         frame               = args.windowFrame,
         stackIdx            = args.stackIdx,
-        screenFrame         = args.screen:fullFrame(),
+        screenFrame         = screenFrame,
         appName             = args.appName,
         canvas              = nil, -- hs.canvas, created in draw()
         showingWinFocused   = args.isFocused,
         showingStackFocused = args.isStackFocused,
-    }
-
-    setmetatable(ind, self)
-    self.__index = self
-
-    ind.side = ind:getScreenSide()
-
-    return ind
+        side                = screenSide(args.windowFrame, screenFrame.w),
+    }, self)
 end -- }}}
 
 function Indicator:draw() -- {{{
     log.i('draw indicator')
+    if self.canvas then self.canvas:delete() end
+
     local indicatorRect, iconRect = self:buildRects()
-
     local radius = self.showIcons and self.iconRadius or self.config.radius
-    local fadeDuration = self.config.shouldFade and self.config.fadeDuration or 0
-
-    if self.canvas then
-        self.canvas:delete()
-    end
 
     self.canvas = hs.canvas.new(self.screenFrame)
 
@@ -67,22 +77,14 @@ function Indicator:draw() -- {{{
     if self.showIcons then
         self.canvas:insertElement({
             type = "image",
-            image = self:iconFromAppName(),
+            image = appIcon(self.appName),
             frame = iconRect,
         }, ICON)
     end
 
     self:applyAppearance()
     self.canvas:clickActivating(false)
-    self.canvas:show(fadeDuration)
-end -- }}}
-
-function Indicator:delete() -- {{{
-    log.d('delete indicator')
-    if self.canvas then
-        self.canvas:delete(self.config.fadeDuration)
-        self.canvas = nil
-    end
+    self.canvas:show(self.config.shouldFade and self.config.fadeDuration or 0)
 end -- }}}
 
 function Indicator:updateFocus(isWinFocused, isStackFocused) -- {{{
@@ -110,6 +112,14 @@ function Indicator:updateFocus(isWinFocused, isStackFocused) -- {{{
     return {winChanged = winChanged, stackChanged = stackChanged}
 end -- }}}
 
+function Indicator:delete() -- {{{
+    log.d('delete indicator')
+    if self.canvas then
+        self.canvas:delete(self.config.fadeDuration)
+        self.canvas = nil
+    end
+end -- }}}
+
 function Indicator:getHitFrame() -- {{{
     -- Returns the rectangle element's frame for click hit-testing,
     -- or nil if no canvas exists.
@@ -117,18 +127,22 @@ function Indicator:getHitFrame() -- {{{
     return self.canvas:canvasElements()[RECT].frame
 end -- }}}
 
+-- ---------------------------------------------------------------------------
+-- Internal methods
+-- ---------------------------------------------------------------------------
+
 function Indicator:applyAppearance() -- {{{
     -- Apply colors and shadow to canvas elements based on current render state.
-    local bg, imgAlpha = self:computeColorAttrs()
+    local bg, imgAlpha = self:computeColors()
     self.canvas[RECT].fillColor = bg
-    self.canvas[RECT].shadow = self:computeShadowAttrs()
+    self.canvas[RECT].shadow = self:computeShadow()
     if self.showIcons then
         self.canvas[ICON].imageAlpha = imgAlpha
     end
 end -- }}}
 
-function Indicator:computeColorAttrs() -- {{{
-    -- Returns {bg = color table with alpha, img = icon opacity} for current focus state.
+function Indicator:computeColors() -- {{{
+    -- Returns bg color table, icon opacity for the current focus state.
     local opts = self.config
     local bgAlpha, imgAlpha
 
@@ -160,8 +174,8 @@ function Indicator:computeColorAttrs() -- {{{
     return bg, imgAlpha
 end -- }}}
 
-function Indicator:computeShadowAttrs() -- {{{
-    -- Focused window indicators get larger, bolder shadows.
+function Indicator:computeShadow() -- {{{
+    -- Focused indicators get larger, bolder shadows.
     -- pillDimmer scales down blur, opacity, and horizontal spread for pills.
     local focused      = self.showingWinFocused
     local pillDimmer   = self.showIcons and 1 or 5
@@ -183,13 +197,6 @@ function Indicator:computeShadowAttrs() -- {{{
         color = {alpha = alpha},
         offset = {h = drop, w = cast},
     }
-end -- }}}
-
-function Indicator:getScreenSide() -- {{{
-    -- Returns "left" or "right" based on which side of the screen the window is on.
-    -- Biased toward "left": window must have its right edge past 75% of screen width.
-    local rightEdge = (self.frame.x + self.frame.w) / self.screenFrame.w
-    return rightEdge > 0.75 and 'right' or 'left'
 end -- }}}
 
 function Indicator:buildRects() -- {{{
@@ -222,11 +229,6 @@ function Indicator:buildRects() -- {{{
     }
 
     return indicatorRect, iconRect
-end -- }}}
-
-function Indicator:iconFromAppName() -- {{{
-    local appBundle = hs.appfinder.appFromName(self.appName):bundleID()
-    return hs.image.imageFromAppBundle(appBundle)
 end -- }}}
 
 function Indicator:setLogLevel(lvl) -- {{{
