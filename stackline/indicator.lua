@@ -42,7 +42,7 @@ function Indicator:new(args) -- {{{
     local screenFrame = args.screen:fullFrame()
 
     -- Element IDs for string-keyed access into the shared canvas
-    local winId = tostring(args.winId)
+    local winId  = tostring(args.winId)
     local rectId = "rect_" .. winId
     local iconId = "icon_" .. winId
 

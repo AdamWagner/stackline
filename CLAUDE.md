@@ -1,5 +1,7 @@
 # Stackline — Architecture & Design Notes
 
+**See also:** [`docs/study-guide.md`](docs/study-guide.md) — Deep reference on Hammerspoon and Yabai internals (canvas system, IPC protocol, signals, async patterns, integration architectures).
+
 ## What Stackline Does
 
 Stackline renders visual indicators (app icons or minimal pills) on windows that Yabai has stacked. Yabai's window stacking has no built-in UI — you can't see what's in a stack or which window is focused. Stackline fills that gap.

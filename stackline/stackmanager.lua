@@ -41,7 +41,7 @@ function Stackmanager:getScreenCanvas(screen) -- {{{
     local screenId = screen:id()
     if not self.screenCanvases[screenId] then
         local canvas = hs.canvas.new(screen:fullFrame())
-        canvas:clickActivating(false)
+        canvas:clickActivating(false) -- prevents Hammerspoon from stealing focus when canvas is clicked
         canvas:show()
         self.screenCanvases[screenId] = canvas
     end

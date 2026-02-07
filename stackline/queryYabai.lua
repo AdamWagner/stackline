@@ -50,7 +50,8 @@ local function groupWindows(ws) -- {{{
 
     local byStack = u.filter(
         u.groupBy(windows, groupKey),
-        u.greaterThan(1))  -- stacks have >1 window, so ignore 'groups' of 1
+        u.greaterThan(1)  -- stacks have >1 window, so ignore 'groups' of 1
+    )
 
     local byApp
     if u.length(byStack) > 0 then
