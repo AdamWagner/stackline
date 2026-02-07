@@ -46,12 +46,6 @@ function Stack:getOtherAppWindows(win) -- {{{
    end)
 end -- }}}
 
-function Stack:anyFocused(focusedWinId) -- {{{
-   return self:any(function(w)
-       return w:isFocused(focusedWinId)
-   end)
-end -- }}}
-
 -- SLOW PATH: tears down and recreates canvas elements from scratch.
 -- Called during rebuild after a yabai query.
 function Stack:rebuildAllIndicators() -- {{{

@@ -81,10 +81,6 @@ function Window:isFocused(focusedWinId) -- {{{
     return focusedWin ~= nil and self.id == focusedWin:id()
 end -- }}}
 
-function Window:isStackFocused(focusedWinId) -- {{{
-    return self.stack:anyFocused(focusedWinId)
-end -- }}}
-
 -- Slow path: create a new Indicator (computes geometry) and draw it.
 function Window:buildIndicator() -- {{{
     log.d('buildIndicator for', self.id)
@@ -97,7 +93,7 @@ function Window:buildIndicator() -- {{{
         screen         = self._win:screen(),
         canvas         = self.screenCanvas, -- shared per-screen canvas from Stackmanager
         isFocused      = self:isFocused(),
-        isStackFocused = self:isStackFocused(),
+        isStackFocused = self.stack:any(function(w) return w:isFocused() end),
         config         = stackline.config:get('appearance'),
     })
     self.indicator:draw()
@@ -114,7 +110,7 @@ function Window:redrawIndicator() -- {{{
     local focusedWin = hs.window.focusedWindow()
     local focusedWinId = focusedWin and focusedWin:id()
     local isWinFocused = focusedWinId ~= nil and self.id == focusedWinId
-    local isStackFocused = self:isStackFocused(focusedWinId)
+    local isStackFocused = self.stack:any(function(w) return w:isFocused(focusedWinId) end)
 
     -- HS #2400 workaround: manually redraw same-app windows on focus gain.
     -- Runs BEFORE the early return because "last-active" preservation keeps
