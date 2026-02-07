@@ -93,7 +93,7 @@ init.lua                          Entry point. Adds stackline to package.path.
 │   │   └── stackline/queryYabai.lua       Groups HS windows by frame. Queries yabai. Detects changes.
 │   ├── stackline/stack.lua           Single stack: contains windows, iterators, hit-testing.
 │   ├── stackline/window.lua          Window model: identity, stack membership, focus coordination.
-│   └── stackline/indicator.lua       Single indicator: appearance, geometry, canvas lifecycle.
+│   └── stackline/indicator.lua       Single indicator: appearance, geometry, element lifecycle in shared canvas.
 ├── conf.lua                      Default config values.
 ├── lib/utils.lua                 Functional helpers (map, filter, groupBy, etc.) + table utilities.
 └── lib/valid.lua                 Schema validation library for config.
@@ -105,11 +105,11 @@ init.lua                          Entry point. Adds stackline to package.path.
 
 **queryYabai.lua** — The `run()` function is the slow-path entry point. `groupWindows()` maps `hs.window` objects into `Window` objects and groups by `stackId`/`stackIdFzy`. `shouldQuery()` compares summary stats (num stacks, positions, window counts) against the previous state to avoid unnecessary yabai queries. When a query is needed, `stackIdMapper()` extracts the `window.id → stack-index` mapping from yabai's JSON, and `mergeWinStackIdxs()` assigns those indices onto the grouped windows.
 
-**stackmanager.lua** — `ingest()` receives grouped+merged windows from query, creates `Stack` objects, wires up `otherAppWindows` (for the HS #2400 workaround), and triggers indicator rendering. `findWindow()` does a linear scan across all stacks to locate a window by ID (used by the fast path). `cleanup()` tears down all canvas elements before a full refresh.
+**stackmanager.lua** — Owns one shared `hs.canvas` per screen (`screenCanvases` map, created on demand via `getScreenCanvas()`). `ingest()` receives grouped+merged windows from query, creates `Stack` objects, wires up `otherAppWindows` (for the HS #2400 workaround), passes the screen canvas to each window, and triggers indicator rendering. `findWindow()` does a linear scan across all stacks to locate a window by ID (used by the fast path). `cleanup()` clears all canvas elements atomically via `replaceElements()` — canvases persist.
 
 **window.lua** — Window model. `Window:new()` wraps an `hs.window` and computes `stackId`/`stackIdFzy`. `buildIndicator()` creates an Indicator instance and draws it (slow path). `redrawIndicator()` handles focus change side effects (HS #2400 workaround, sibling redraws) then delegates canvas updates to `self.indicator:updateFocus()` (fast path).
 
-**indicator.lua** — Single indicator: appearance, geometry, and canvas lifecycle. `Indicator:new(args)` receives a flat args table (no Window/Stack references) and computes geometry. `draw()` creates the `hs.canvas`. `updateFocus(isWinFocused, isStackFocused)` handles render-state change detection (including the "last-active window" rule) and updates canvas properties in-place. `getColorAttrs()` and `getShadowAttrs()` compute visual properties from focus state. `getHitFrame()` exposes the indicator rect for click hit-testing.
+**indicator.lua** — Single indicator: appearance, geometry, and element lifecycle within a shared per-screen canvas. `Indicator:new(args)` receives a flat args table including the shared canvas reference and window ID — no Window/Stack references. Elements use string IDs (`rect_<winId>`, `icon_<winId>`) for O(1) property access. `draw()` appends elements to the shared canvas. `updateFocus(isWinFocused, isStackFocused)` handles render-state change detection (including the "last-active window" rule) and updates element properties in-place. `computeColors()` and `computeShadow()` compute visual properties from focus state. `getHitFrame()` exposes the indicator rect for click hit-testing.
 
 **configmanager.lua** — Stores config as a flat-ish table accessed via dot-notation paths (`"appearance.color"`). Schema defined in `Config.schema`, validated on init and on `set()`. `Config.events` maps config key paths to side-effect functions (e.g., changing any `appearance.*` key triggers `rebuildAllIndicators`).
 
@@ -256,8 +256,8 @@ Window IDs are stable (same in HS and yabai), so a **keyed reconciliation** coul
 **A2. `resetAllIndicators` called inside the ingest loop** — **FIXED**
 Moved call from inside the `for` loop to after it. Eliminates N(N+1)/2 redundant calls.
 
-**A3. One `hs.canvas` per window, sized to full screen** (window.lua:102)
-Each stacked window creates its own canvas spanning the entire screen frame, then draws one small rect+icon in it. A single canvas per screen with multiple elements would be lighter and could also simplify click hit-testing.
+**A3. One `hs.canvas` per window, sized to full screen** — **FIXED**
+Stackmanager now maintains one shared canvas per screen (`screenCanvases` map). Indicators insert elements with string IDs (`rect_<winId>`, `icon_<winId>`) into the shared canvas instead of creating their own. Canvas persists across rebuild cycles; only elements are swapped atomically via `replaceElements()`.
 
 **A4. `Window:isFocused()` queries HS on every call** (window.lua:35-38)
 Calls `hs.window.focusedWindow()` every time. During a single `redrawIndicator()`, this is called once directly, then again for every window in the stack via `isStackFocused()` → `stack:anyFocused()`. A 5-window stack = 6 calls to `hs.window.focusedWindow()` per event. The focused window ID could be resolved once and passed through.
@@ -323,7 +323,7 @@ Each item gets its own commit. Provably-correct changes first, then logic restru
 ### Tier 3: Architectural (higher risk, higher reward)
 
 - [ ] **16. Keyed reconciliation in ingest** (A1) — Maintain `windowsById` map. Diff new state against existing windows. Only create/destroy/reposition what changed. Eliminates full teardown/rebuild on every slow-path update.
-- [ ] **17. Single canvas per screen** (A3) — Replace per-window full-screen canvases with one canvas per screen containing multiple elements. Lighter, simpler hit-testing.
+- [x] **17. Single canvas per screen** (A3) — Stackmanager owns one `hs.canvas` per screen (`screenCanvases` map). Indicators insert/remove elements by string ID instead of creating/deleting their own canvases. Canvas persists across rebuilds; `replaceElements()` clears atomically before re-adding. Fade animations on individual indicators removed (tradeoff: shared canvas can't fade individual elements).
 
 ## Behavior Improvements
 
@@ -392,3 +392,4 @@ Key insight on **A1 (full teardown/rebuild)**: previous attempts to fix this wen
 - `a30cea9` — Fix cross-stack same-app focus bugs. Three fixes: (1) drawIndicator now initializes stackFocused from isStackFocused() instead of hardcoding true — stale state caused unfocused stacks to appear focused. (2) HS #2400 workaround moved before early return and triggers on isWinFocused alone — "last-active" preservation made winChanged always false for returning windows. (3) winFocused update condition changed to `winChanged and isStackFocused` to prevent cross-stack HS #2400 redraws from clearing last-active state.
 - `2d0c21c` — Make getShadowAttrs take explicit isWinFocused param, matching getColorAttrs pattern.
 - `519f0a0` — Item 12: Replace `stackline.manager:getShowIconsState()` with `self.showIcons`. Fixes stale cache, removes cross-module dependency.
+- `09da0de` — Item 17: Single canvas per screen. Stackmanager owns one shared `hs.canvas` per screen; Indicator inserts elements by string ID instead of creating its own canvas. Canvas persists across rebuilds; `replaceElements()` clears atomically. Eliminates per-indicator canvas creation/destruction and flicker.

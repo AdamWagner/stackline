@@ -1,7 +1,7 @@
 --[[
-Single indicator: appearance, geometry, and canvas lifecycle for one window's
-stack indicator. Owns the hs.canvas, computes position/size from config, and
-handles focus-driven visual updates (colors, shadows, opacity).
+Single indicator: appearance, geometry, and focus-driven visual updates for one
+window's stack indicator. Inserts elements into a shared per-screen hs.canvas
+(owned by Stackmanager) rather than creating its own canvas.
 
 Created by Window:buildIndicator() with a flat args table — no references
 back to Window or Stack. At redraw time, only needs two booleans
@@ -9,10 +9,6 @@ back to Window or Stack. At redraw time, only needs two booleans
 ]]
 local log = hs.logger.new('indicator', 'info')
 log.i('Loading module: indicator')
-
--- Canvas element indices (constant — rect is always first, icon second)
-local RECT = 1
-local ICON = 2
 
 -- ---------------------------------------------------------------------------
 -- Local helpers (pure computations, not part of the class interface)
@@ -41,6 +37,11 @@ function Indicator:new(args) -- {{{
     local width       = showIcons and config.size or (config.size / config.pillThinness)
     local screenFrame = args.screen:fullFrame()
 
+    -- Element IDs for string-keyed access into the shared canvas
+    local winId = tostring(args.winId)
+    local rectId = "rect_" .. winId
+    local iconId = "icon_" .. winId
+
     return setmetatable({
         config              = config,
         showIcons           = showIcons,
@@ -50,7 +51,9 @@ function Indicator:new(args) -- {{{
         stackIdx            = args.stackIdx,
         screenFrame         = screenFrame,
         appName             = args.appName,
-        canvas              = nil, -- hs.canvas, created in draw()
+        canvas              = args.canvas,  -- shared per-screen canvas (from Stackmanager)
+        rectId              = rectId,
+        iconId              = iconId,
         showingWinFocused   = args.isFocused,
         showingStackFocused = args.isStackFocused,
         side                = screenSide(args.windowFrame, screenFrame.w),
@@ -59,32 +62,30 @@ end -- }}}
 
 function Indicator:draw() -- {{{
     log.i('draw indicator')
-    if self.canvas then self.canvas:delete() end
 
     local indicatorRect, iconRect = self:buildRects()
     local radius = self.showIcons and self.iconRadius or self.config.radius
 
-    self.canvas = hs.canvas.new(self.screenFrame)
-
-    self.canvas:insertElement({
+    -- Insert elements into the shared canvas (no canvas creation)
+    self.canvas:appendElements({
+        id = self.rectId,
         type = "rectangle",
         action = "fill",
         frame = indicatorRect,
         roundedRectRadii = {xRadius = radius, yRadius = radius},
         withShadow = true,
-    }, RECT)
+    })
 
     if self.showIcons then
-        self.canvas:insertElement({
+        self.canvas:appendElements({
+            id = self.iconId,
             type = "image",
             image = appIcon(self.appName),
             frame = iconRect,
-        }, ICON)
+        })
     end
 
     self:applyAppearance()
-    self.canvas:clickActivating(false)
-    self.canvas:show(self.config.shouldFade and self.config.fadeDuration or 0)
 end -- }}}
 
 function Indicator:updateFocus(isWinFocused, isStackFocused) -- {{{
@@ -113,18 +114,32 @@ function Indicator:updateFocus(isWinFocused, isStackFocused) -- {{{
 end -- }}}
 
 function Indicator:delete() -- {{{
+    -- Remove this indicator's elements from the shared canvas.
+    -- Iterates to find numeric indices since hs.canvas methods require them.
     log.d('delete indicator')
-    if self.canvas then
-        self.canvas:delete(self.config.fadeDuration)
-        self.canvas = nil
+    if not self.canvas then return end
+
+    -- Collect indices to remove, then remove in reverse order (highest first)
+    -- so that earlier indices aren't shifted by later removals.
+    local toRemove = {}
+    for i = 1, self.canvas:elementCount() do
+        local id = self.canvas:elementAttribute(i, 'id')
+        if id == self.rectId or id == self.iconId then
+            table.insert(toRemove, i)
+        end
+    end
+    for i = #toRemove, 1, -1 do
+        self.canvas:removeElement(toRemove[i])
     end
 end -- }}}
 
 function Indicator:getHitFrame() -- {{{
     -- Returns the rectangle element's frame for click hit-testing,
-    -- or nil if no canvas exists.
+    -- or nil if no canvas/element exists.
     if not self.canvas then return nil end
-    return self.canvas:canvasElements()[RECT].frame
+    local elem = self.canvas[self.rectId]
+    if not elem then return nil end
+    return elem.frame
 end -- }}}
 
 -- ---------------------------------------------------------------------------
@@ -134,10 +149,10 @@ end -- }}}
 function Indicator:applyAppearance() -- {{{
     -- Apply colors and shadow to canvas elements based on current render state.
     local bg, imgAlpha = self:computeColors()
-    self.canvas[RECT].fillColor = bg
-    self.canvas[RECT].shadow = self:computeShadow()
+    self.canvas[self.rectId].fillColor = bg
+    self.canvas[self.rectId].shadow = self:computeShadow()
     if self.showIcons then
-        self.canvas[ICON].imageAlpha = imgAlpha
+        self.canvas[self.iconId].imageAlpha = imgAlpha
     end
 end -- }}}
 

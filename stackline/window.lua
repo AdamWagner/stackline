@@ -47,9 +47,11 @@ function Window:buildIndicator() -- {{{
     if self.indicator then self.indicator:delete() end
     self.indicator = Indicator:new({
         appName        = self.app,
+        winId          = self.id,
         stackIdx       = self.stackIdx,
         windowFrame    = self._win:screen():absoluteToLocal(hs.geometry(self._win:frame())),
         screen         = self._win:screen(),
+        canvas         = self.screenCanvas, -- shared per-screen canvas from Stackmanager
         isFocused      = self:isFocused(),
         isStackFocused = self:isStackFocused(),
         config         = stackline.config:get('appearance'),

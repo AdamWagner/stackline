@@ -12,6 +12,7 @@ Stackmanager.query = require 'stackline.queryYabai'
 
 function Stackmanager:init() -- {{{
     self.stacks = {}
+    self.screenCanvases = {} -- {screenId → hs.canvas} — one shared canvas per screen
     self.showIcons = stackline.config:get('appearance.showIcons')
     self.__index = self
     return self
@@ -21,6 +22,19 @@ function Stackmanager:update(opts) -- {{{
     log.i('Running update()')
     self.query.run(opts) -- async: calls stackmanager:ingest when yabai responds
     return self
+end -- }}}
+
+function Stackmanager:getScreenCanvas(screen) -- {{{
+    -- Returns the shared canvas for a screen, creating it on first use.
+    -- Canvas persists across rebuild cycles — only elements are swapped.
+    local screenId = screen:id()
+    if not self.screenCanvases[screenId] then
+        local canvas = hs.canvas.new(screen:fullFrame())
+        canvas:clickActivating(false)
+        canvas:show()
+        self.screenCanvases[screenId] = canvas
+    end
+    return self.screenCanvases[screenId]
 end -- }}}
 
 function Stackmanager:ingest(stacks, appWins) -- {{{
@@ -37,6 +51,8 @@ function Stackmanager:ingest(stacks, appWins) -- {{{
             end)
             -- TODO: fix error with nil stack field (??): window.lua:32: attempt to index a nil value (field 'stack')
             win.stack = stack -- enables calling stack methods from window
+            -- Pass shared screen canvas so Indicator inserts elements into it
+            win.screenCanvas = self:getScreenCanvas(win._win:screen())
         end)
         table.insert(self.stacks, stack)
     end
@@ -54,9 +70,10 @@ function Stackmanager:eachStack(fn) -- {{{
 end -- }}}
 
 function Stackmanager:cleanup() -- {{{
-    self:eachStack(function(stack)
-        stack:deleteAllIndicators()
-    end)
+    -- Clear all elements from shared canvases (canvases themselves persist)
+    for _screenId, canvas in pairs(self.screenCanvases) do
+        canvas:replaceElements()
+    end
     self.stacks = {}
 end -- }}}
 
@@ -76,6 +93,10 @@ function Stackmanager:getSummary(external) -- {{{
 end -- }}}
 
 function Stackmanager:rebuildAllIndicators() -- {{{
+    -- Clear all canvas elements first, then rebuild (avoids stale elements)
+    for _screenId, canvas in pairs(self.screenCanvases) do
+        canvas:replaceElements()
+    end
     self:eachStack(function(stack)
         stack:rebuildAllIndicators()
     end)
