@@ -43,7 +43,7 @@ Note: Yabai does have a signal system (`yabai -m signal`) that can trigger shell
 - **Which stack a window belongs to.** There is no `stack-id` or grouping key. Two separate stacks both have windows with `stack-index: 1`, `stack-index: 2`, etc. You cannot distinguish "two stacks of two" from "one stack of four" using `stack-index` alone.
 
 ### How stackline solves this
-1. **Frame-based grouping** (from Hammerspoon, fast, synchronous): windows with the same frame coordinates are grouped together. This gives us the *grouping* — which windows are in the same stack. The grouping key is `stackId = "x|y|w|h"` (see `window.lua:makeStackId()`).
+1. **Frame-based grouping** (from Hammerspoon, fast, synchronous): windows with the same frame coordinates are grouped together. This gives us the *grouping* — which windows are in the same stack. The grouping key is `stackId = "x|y|w|h"` (see `extractWindowData()` in queryYabai.lua).
 2. **stack-index** (from yabai, slower, async subprocess): gives us the *ordering* within each group, and confirms which windows are truly stacked (stack-index > 0) vs. just overlapping (stack-index == 0).
 3. **Merge**: `queryYabai.lua:mergeWinStackIdxs()` assigns yabai's `stackIdx` to each grouped window. Windows with `stackIdx == 0` are removed from their group (they were false positives from frame-matching).
 
@@ -59,16 +59,16 @@ This is safe to be aggressive with because **yabai corrects false positives**. E
 
 ## Two Update Paths
 
-### Slow path: structural changes (query + rebuild)
+### Slow path: structural changes (query + reconcile)
 Triggered by: window created, destroyed, moved, hidden, minimized, fullscreened, space change.
 
 ```
 HS window event → throttle (0.5s) → groupWindows() → shouldQuery()?
-  → YES → yabai query (async) → merge stack indices → ingest → rebuild all canvases
+  → YES → yabai query (async) → merge stack indices → reconcile (diff-based update)
   → NO  → do nothing
 ```
 
-This path tears down and recreates all `hs.canvas` elements. It's expensive because of the subprocess call, JSON parsing, and canvas rebuilding (including app icon lookups).
+`groupWindows()` produces plain data tables (via `extractWindowData()`), not Window objects. `reconcile()` diffs these against existing Window/Indicator objects by window ID: unchanged windows are skipped, geometry changes trigger `Indicator:reposition()` (pure math + 2 canvas property updates), and only truly new/removed windows trigger indicator creation/deletion. App icon lookups only happen for new windows. Full teardown+rebuild is available via `ingest()` (used by `forceRebuild` and config changes).
 
 ### Fast path: focus changes (redraw in-place)
 Triggered by: window focused, unfocused, not visible.
@@ -80,7 +80,7 @@ HS focus event → find window in manager → update canvas element properties i
 No yabai query needed. No canvas destruction/creation. Just tweaks `fillColor`, `imageAlpha`, and `shadow` on existing canvas elements. This matters because focus changes happen constantly (every alt-tab, every click).
 
 ### `forceQuery` flag
-`forceQuery` bypasses the `shouldQuery()` change-detection check, forcing a yabai query + rebuild regardless of whether the summary diff detected a change. It's set on events where something significant likely happened (windowCreated, windowMoved, windowsChanged, space switch, init) and serves as a safety net when the change-detection check might miss a real change. Also useful for debugging: `stackline.manager:update({forceQuery=true})` in the HS console forces a fresh yabai query at any time.
+`forceQuery` bypasses the `shouldQuery()` change-detection check, forcing a yabai query + reconcile regardless of whether the summary diff detected a change. It's set on events where something significant likely happened (windowCreated, windowMoved, windowsChanged, space switch, init) and serves as a safety net when the change-detection check might miss a real change. Also useful for debugging: `stackline.manager:update({forceQuery=true})` in the HS console forces a fresh yabai query at any time. `forceRebuild` goes further — calls `cleanup()` before `reconcile()`, discarding all existing state so everything is rebuilt from scratch: `stackline.manager:update({forceQuery=true, forceRebuild=true})`.
 
 ### Throttling
 The slow path uses `hs.timer.delayed` with `maxRefreshRate` (default 0.5s). Multiple rapid events (e.g., several windows moving during a layout change) collapse into a single update cycle. Some events (`windowCreated`, `windowsChanged`, `windowMoved`) set `forceQuery=true` to bypass the change-detection check.
@@ -105,20 +105,20 @@ init.lua                          Entry point. Adds stackline to package.path.
 
 **stackline.lua** — Sets up `hs.window.filter` subscriptions that route events to either the slow path (`queryWindowState` timer) or fast path (`redrawWinIndicator`). Also sets up `hs.eventtap` for click-to-focus and `hs.spaces.watcher` for space changes. Uses the global `stackline` table as a singleton.
 
-**queryYabai.lua** — The `run()` function is the slow-path entry point. `groupWindows()` maps `hs.window` objects into `Window` objects and groups by `stackId`/`stackIdFzy`. `shouldQuery()` compares summary stats (num stacks, positions, window counts) against the previous state to avoid unnecessary yabai queries. When a query is needed, `stackIdMapper()` extracts the `window.id → stack-index` mapping from yabai's JSON, and `mergeWinStackIdxs()` assigns those indices onto the grouped windows.
+**queryYabai.lua** — The `run()` function is the slow-path entry point. `extractWindowData()` produces plain data tables from `hs.window` objects (lightweight, disposable). `groupWindows()` groups these by `stackId`/`stackIdFzy`. `shouldQuery()` compares summary stats (num stacks, positions, window counts) against the previous state to avoid unnecessary yabai queries. When a query is needed, `stackIdMapper()` extracts the `window.id → stack-index` mapping from yabai's JSON, and `mergeWinStackIdxs()` assigns those indices onto the data tables. Results are handed to `reconcile()` (default) or `ingest()` (`forceRebuild` fallback).
 
-**stackmanager.lua** — Owns one shared `hs.canvas` per screen (`screenCanvases` map, created on demand via `getScreenCanvas()`). `ingest()` receives grouped+merged windows from query, creates `Stack` objects, wires up `otherAppWindows` (for the HS #2400 workaround), passes the screen canvas to each window, and triggers indicator rendering. `findWindow()` does a linear scan across all stacks to locate a window by ID (used by the fast path). `cleanup()` clears all canvas elements atomically via `replaceElements()` — canvases persist.
+**stackmanager.lua** — Owns one shared `hs.canvas` per screen (`screenCanvases` map, created on demand via `getScreenCanvas()`). `reconcile()` is the default update path: diffs incoming data tables against existing Window objects by ID — reuses existing windows (with `Indicator:reposition()` for geometry changes), creates new ones, and deletes orphans. `forceRebuild` calls `cleanup()` first so `reconcile()` sees no existing state (= full rebuild). `findWindow()` does a linear scan across all stacks to locate a window by ID (used by the fast path). `cleanup()` clears all canvas elements atomically via `replaceElements()` — canvases persist.
 
-**window.lua** — Window model. `Window:new()` wraps an `hs.window` and computes `stackId`/`stackIdFzy`. `buildIndicator()` creates an Indicator instance and draws it (slow path). `redrawIndicator()` handles focus change side effects (HS #2400 workaround, sibling redraws) then delegates canvas updates to `self.indicator:updateFocus()` (fast path).
+**window.lua** — Window model. `Window:new()` wraps an `hs.window` and computes `stackId`/`stackIdFzy`. `Window:newFromData()` creates from a plain data table (reconcile path). `Window:reconcile()` updates in-place: detects screen/app/frame/stackIdx changes and either rebuilds the indicator (screen/app change), repositions it (`Indicator:reposition()`), or does nothing. `buildIndicator()` creates an Indicator instance and draws it (slow path). `redrawIndicator()` handles focus change side effects (HS #2400 workaround, sibling redraws) then delegates canvas updates to `self.indicator:updateFocus()` (fast path).
 
-**indicator.lua** — Single indicator: appearance, geometry, and element lifecycle within a shared per-screen canvas. `Indicator:new(args)` receives a flat args table including the shared canvas reference and window ID — no Window/Stack references. Elements use string IDs (`rect_<winId>`, `icon_<winId>`) for O(1) property access. `draw()` appends elements to the shared canvas. `updateFocus(isWinFocused, isStackFocused)` handles render-state change detection (including the "last-active window" rule) and updates element properties in-place. `computeColors()` and `computeShadow()` compute visual properties from focus state. `getHitFrame()` exposes the indicator rect for click hit-testing.
+**indicator.lua** — Single indicator: appearance, geometry, and element lifecycle within a shared per-screen canvas. `Indicator:new(args)` receives a flat args table including the shared canvas reference and window ID — no Window/Stack references. Elements use string IDs (`rect_<winId>`, `icon_<winId>`) for O(1) property access. `draw()` appends elements to the shared canvas. `reposition()` updates geometry in-place (pure math + canvas property writes, no icon lookup). `updateFocus(isWinFocused, isStackFocused)` handles render-state change detection (including the "last-active window" rule) and updates element properties in-place. `computeColors()` and `computeShadow()` compute visual properties from focus state. `getHitFrame()` exposes the indicator rect for click hit-testing.
 
 **configmanager.lua** — Stores config as a flat-ish table accessed via dot-notation paths (`"appearance.color"`). Schema defined in `Config.schema`, validated on init and on `set()`. `Config.events` maps config key paths to side-effect functions (e.g., changing any `appearance.*` key triggers `rebuildAllIndicators`).
 
 ## Known Workarounds
 
 ### Hammerspoon #2400
-When switching focus between windows of the *same app* within a stack, Hammerspoon sometimes fails to fire the unfocus event for the previously-focused window. The workaround (`features.hsBugWorkaround`) tracks `otherAppWindows` per window and manually calls `redrawIndicator()` on them during focus changes. See `Window:unfocusOtherAppWindows()` and the wiring in `stackmanager.lua:ingest()`.
+When switching focus between windows of the *same app* within a stack, Hammerspoon sometimes fails to fire the unfocus event for the previously-focused window. The workaround (`features.hsBugWorkaround`) tracks `otherAppWindows` per window and manually calls `redrawIndicator()` on them during focus changes. See `Window:unfocusOtherAppWindows()` and the wiring in `stackmanager.lua:reconcile()` (step 6).
 
 ### `windowsChanged` pseudo-event
 Hammerspoon sometimes misses `windowCreated` events. Subscribing to `windowsChanged` (fires on any change to the window list) acts as a catch-all.
@@ -167,7 +167,7 @@ Don't try to automate canvas rendering verification. Batch up visual changes, th
 
 Run after batched changes or before committing visual/behavior changes. Requires macOS + Hammerspoon + Yabai + real windows.
 
-**Setup:** At least 6 tiled windows on one space, with 3 of them in a stack.
+**Setup:** At least 6 tiled windows on one space, with 3 of them in a stack. A second space with at least one stack.
 
 | # | Test | Expected | Status |
 |---|------|----------|--------|
@@ -180,6 +180,9 @@ Run after batched changes or before committing visual/behavior changes. Requires
 | 7 | **Resize windows** | Indicators reposition to match new window frames | Pass |
 | 8a | **Warp stack vertically** | Indicators follow stack to new position | Pass (slow, see I4) |
 | 8b | **Warp stack to opposite side** | Indicators follow and switch to correct screen edge | Pass (slow, see I4) |
+| 9 | **Switch to space with stacks** | Old indicators disappear immediately; new space's indicators appear after query | Needs test |
+| 10 | **Switch to space without stacks** | All indicators disappear | Needs test |
+| 11 | **Switch back to original space** | Indicators reappear for original space's stacks | Needs test |
 
 ## Developer Guidelines
 
@@ -250,10 +253,8 @@ Changed to `local c = {}`.
 
 ### Architectural
 
-**A1. Full teardown/rebuild on every slow-path update** (queryYabai.lua:47, stackmanager.lua:20-43)
-`groupWindows()` creates brand-new Window objects for *every* visible window on every update cycle. Old Window objects (with their canvas references, cached icons, focus state) are thrown away and rebuilt from scratch. This forces full canvas teardown/rebuild — the most expensive operation.
-
-Window IDs are stable (same in HS and yabai), so a **keyed reconciliation** could avoid this: keep a `windowsById` map, diff new state against existing state, and only create/destroy/reposition what actually changed. This would eliminate most canvas churn and icon re-lookups. A previous attempt at this failed — but the failure was due to attempting a sweeping OOP rearchitecture (auto-building data tree from global → screen → space → stack → window → indicator) all at once, not because the reconciliation concept is wrong. A flat hash-map diff is simpler: just three cases per window ID — unchanged (keep), changed (update), gone (delete) — plus new IDs (create).
+**A1. Full teardown/rebuild on every slow-path update** — **FIXED**
+`groupWindows()` now produces plain data tables via `extractWindowData()` instead of Window objects. `Stackmanager:reconcile()` diffs these against existing Window objects by ID: existing windows are updated in-place (with `Indicator:reposition()` for geometry changes), new windows get fresh indicators, and orphaned windows have their indicators deleted. Only what actually changed gets touched. `forceRebuild` calls `cleanup()` first so `reconcile()` sees no existing state (= full rebuild).
 
 **A2. `resetAllIndicators` called inside the ingest loop** — **FIXED**
 Moved call from inside the `for` loop to after it. Eliminates N(N+1)/2 redundant calls.
@@ -324,7 +325,7 @@ Each item gets its own commit. Provably-correct changes first, then logic restru
 
 ### Tier 3: Architectural (higher risk, higher reward)
 
-- [ ] **16. Keyed reconciliation in ingest** (A1) — Maintain `windowsById` map. Diff new state against existing windows. Only create/destroy/reposition what changed. Eliminates full teardown/rebuild on every slow-path update.
+- [x] **16. Keyed reconciliation** (A1) — `Stackmanager:reconcile()` diffs incoming plain data tables against existing Window objects by ID. Three cases: existing window → `Window:reconcile(data)` (updates fields, repositions indicator in-place via `Indicator:reposition()`); new window → `Window:newFromData(data)` + `buildIndicator()`; orphaned window → `deleteIndicator()`. `extractWindowData()` in queryYabai.lua produces lightweight data tables for grouping/comparison. `forceRebuild` calls `cleanup()` first so `reconcile()` sees no existing state.
 - [x] **17. Single canvas per screen** (A3) — Stackmanager owns one `hs.canvas` per screen (`screenCanvases` map). Indicators insert/remove elements by string ID instead of creating/deleting their own canvases. Canvas persists across rebuilds; `replaceElements()` clears atomically before re-adding. Fade animations on individual indicators removed (tradeoff: shared canvas can't fade individual elements).
 
 ## Behavior Improvements
@@ -341,8 +342,8 @@ When focusing a non-stacked window whose app matches a window inside a stack, th
 
 ### Sub-optimal (correct but could be better)
 
-**I3. Full indicator rebuild on unrelated stack changes**
-Creating or destroying a stack causes ALL indicators to fade out and back in, including indicators on unaffected stacks. This is because the slow path tears down and recreates every canvas on every update cycle (see A1 in Complexity Hotspots). Keyed reconciliation (item 16) would fix this — only changed stacks would be rebuilt.
+**I3. Full indicator rebuild on unrelated stack changes** — **FIXED**
+Keyed reconciliation (item 16) now diffs by window ID. Unchanged windows keep their existing indicators; only new/removed/repositioned windows are touched. Creating or destroying one stack no longer causes indicators on other stacks to flicker.
 
 **I4. Slow indicator repositioning after warp/move**
 When windows are warped to a new position, indicators follow but with noticeable delay. This is the slow-path latency: 0.5s throttle + async yabai query + full canvas rebuild. Could be improved by reducing `maxRefreshRate` for move events, or by optimistically repositioning indicators based on the new HS frame before the yabai response arrives.
@@ -395,3 +396,4 @@ Key insight on **A1 (full teardown/rebuild)**: a previous attempt tried to solve
 - `2d0c21c` — Make getShadowAttrs take explicit isWinFocused param, matching getColorAttrs pattern.
 - `519f0a0` — Item 12: Replace `stackline.manager:getShowIconsState()` with `self.showIcons`. Fixes stale cache, removes cross-module dependency.
 - `09da0de` — Item 17: Single canvas per screen. Stackmanager owns one shared `hs.canvas` per screen; Indicator inserts elements by string ID instead of creating its own canvas. Canvas persists across rebuilds; `replaceElements()` clears atomically. Eliminates per-indicator canvas creation/destruction and flicker.
+- `(pending)` — Item 16: Reconcile-based update pipeline. `extractWindowData()` produces plain data tables; `Stackmanager:reconcile()` diffs by window ID, reusing existing Window/Indicator objects. `Indicator:reposition()` updates geometry in-place. `Window:newFromData()`/`Window:reconcile()` handle create/update. `forceRebuild` calls `cleanup()` first so reconcile sees empty state. Fixes I3 (unrelated stack flicker).

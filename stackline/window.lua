@@ -34,6 +34,64 @@ function Window:new(hsWin) -- {{{
     return ws
 end -- }}}
 
+function Window:newFromData(data) -- {{{
+    -- Create a Window from a plain data table (from extractWindowData).
+    -- Used by reconcile path for windows that don't yet exist.
+    return setmetatable({
+        title      = data.title,
+        app        = data.app,
+        id         = data.id,
+        frame      = data.frame,
+        stackId    = data.stackId,
+        topLeft    = data.topLeft,
+        stackIdFzy = data.stackIdFzy,
+        _win       = data._win,
+        screen     = data.screen,
+        stackIdx   = data.stackIdx,
+        indicator  = nil,
+    }, self)
+end -- }}}
+
+function Window:reconcile(data) -- {{{
+    -- Update an existing Window in-place from new data.
+    -- Only rebuilds the indicator when screen or app changed (different canvas/icon).
+    -- Repositions in-place when only geometry changed. Does nothing if unchanged.
+    self._win  = data._win     -- refresh hs.window reference
+    self.title = data.title
+
+    local screenChanged   = self.screen ~= data.screen
+    local frameChanged    = self.stackId ~= data.stackId  -- stackId encodes floored x|y|w|h
+    local stackIdxChanged = self.stackIdx ~= data.stackIdx
+    local appChanged      = self.app ~= data.app
+
+    self.frame      = data.frame
+    self.app        = data.app
+    self.stackId    = data.stackId
+    self.topLeft    = data.topLeft
+    self.stackIdFzy = data.stackIdFzy
+    self.stackIdx   = data.stackIdx
+    self.screen     = data.screen
+
+    if screenChanged or appChanged then
+        -- Different canvas or different icon: must fully rebuild indicator
+        log.d('reconcile: rebuild indicator for', self.id, '(screen/app changed)')
+        self:deleteIndicator()
+        self.indicator = nil  -- rebuilt later in Stackmanager:reconcile step 5
+    elseif frameChanged or stackIdxChanged then
+        -- Geometry changed: reposition in-place
+        log.d('reconcile: reposition', self.id, '(frame/stackIdx changed)')
+        if self.indicator then
+            self.indicator:reposition(
+                self._win:screen():absoluteToLocal(hs.geometry(self.frame)),
+                self.stackIdx,
+                self._win:screen():fullFrame()
+            )
+        end
+    else
+        log.d('reconcile: no change for', self.id)
+    end
+end -- }}}
+
 function Window:isFocused() -- {{{
     local focusedWin = hs.window.focusedWindow()
     return focusedWin ~= nil and self.id == focusedWin:id()

@@ -157,12 +157,23 @@ end -- }}}
 
 stackline.spaceWatcher = hs.spaces.watcher.new( -- {{{
     function(spaceIdx)
-        -- QUESTION: do I need to clean this up? If so, how?
         -- Update stackline when switching spaces
         -- NOTE: hs.spaces.watcher uses deprecated macos APIs, so this may break in an upcoming macos release
         log.i(('hs.spaces.watcher -> changed to space %d'):format(spaceIdx))
-        stackline.forceQuery = true -- force the next update cycle to query yabai
-        stackline.queryWindowState:start()
+        if not stackline.manager then return end
+
+        -- Switch to per-space canvas + cached stacks
+        stackline.manager:switchSpace(hs.spaces.focusedSpace())
+
+        if stackline.manager:count() == 0 then
+            -- First visit to this space: discover stacks via yabai
+            stackline.forceQuery = true
+            stackline.queryWindowState:start()
+        end
+        -- Return visit: cached stacks are valid (can't change on inactive space).
+        -- Per-space canvas already has the right indicators — macOS shows it automatically.
+        -- Focus events will update focus state via the fast path.
+
         stackline:refreshClickTracker()
     end
 ):start() -- }}}

@@ -1,9 +1,11 @@
---[[ 
+--[[
 Slow-path pipeline: groups Hammerspoon windows by frame, queries yabai for
 stack indices, and merges the two data sources. This is where the core data
 problem is solved — HS provides grouping (which windows overlap), yabai provides
 ordering (stack-index) and confirmation (stack-index > 0 means truly stacked).
-Called by stackmanager:update(). Hands merged results to stackmanager:ingest().
+Called by stackmanager:update(). Hands merged results to stackmanager:reconcile()
+(diff-based update). forceRebuild calls cleanup() first so reconcile sees no existing state.
+extractWindowData() produces plain data tables; Window objects persist across cycles.
 shouldQuery() avoids unnecessary yabai subprocess calls via change detection.
 ]]
 local log   = hs.logger.new('query', 'info')
@@ -34,16 +36,39 @@ local function stackIdMapper(yabaiWindow) -- {{{
     return res
 end  -- }}}
 
+local function extractWindowData(hsWin) -- {{{
+    -- Extract data from an hs.window into a plain table for grouping and comparison.
+    -- Absorbs the stackId computation from Window:makeStackId().
+    -- Used by reconcile path: lightweight, disposable records (no metatable, no indicator).
+    local frame = hsWin:frame():floor()
+    local x, y, w, h = frame.x, frame.y, frame.w, frame.h
+    local fuzzFactor = stackline.config:get('features.fzyFrameDetect.fuzzFactor')
+    local roundToFuzzFactor = u.partial(u.roundToNearest, fuzzFactor)
+    local ff = u.map({x, y, w, h}, roundToFuzzFactor)
+
+    return {
+        id         = hsWin:id(),
+        title      = hsWin:title(),
+        app        = hsWin:application():name(),
+        frame      = hsWin:frame(),
+        screen     = hsWin:screen():id(),
+        _win       = hsWin,
+        topLeft    = table.concat({x, y}, '|'),
+        stackId    = table.concat({x, y, w, h}, '|'),
+        stackIdFzy = table.concat(ff, '|'),
+    }
+end -- }}}
+
 local function groupWindows(ws) -- {{{
     -- Given windows from hs.window.filter:
-    --    1. Create stackline window objects
-    --    2. Group wins by `stackId` prop (aka top-left frame coords)
-    --    3. If at least one such group, also group wins by app (to workaround hs bug unfocus event bug)
+    --    1. Extract plain data tables from hs.window objects
+    --    2. Group by stackId (frame coords)
+    --    3. If at least one group, also group by app (for HS #2400 workaround)
     local windows = u.map(ws, function(w)
-        return stackline.window:new(w)
+        return extractWindowData(w)
     end)
 
-    -- See Window:makeStackId() in window.lua
+    -- See extractWindowData() above for how stackId/stackIdFzy are computed
     local groupKey = stackline.config:get('features.fzyFrameDetect').enabled
         and 'stackIdFzy'
         or 'stackId'
@@ -108,9 +133,10 @@ end -- }}}
 local function run(opts) -- {{{
     -- Main slow-path entry point, called by stackmanager:update().
     -- Groups HS windows by frame, checks if anything changed, and if so
-    -- queries yabai for stack indices and hands off to stackmanager:ingest().
+    -- queries yabai for stack indices and hands off to stackmanager:reconcile().
+    -- When forceRebuild is set, cleanup() runs first so reconcile sees no existing state.
     opts = opts or {}
-    local byStack, byApp = groupWindows(stackline.wf:getWindows()) -- returns byStack, byApp
+    local byStack = groupWindows(stackline.wf:getWindows())
 
     if shouldQuery(byStack) or opts.forceQuery then
         log.i('Refreshing stackline')
@@ -119,10 +145,11 @@ local function run(opts) -- {{{
 
         yabai(yabai_cmd, function(yabaiRes)
             local winStackIdxs = stackIdMapper(yabaiRes)
-            stackline.manager:ingest( -- hand over to stackmanager
-                mergeWinStackIdxs(byStack, winStackIdxs), -- Add the stack indexes from yabai to byStack
-                byApp
-            )
+            local merged = mergeWinStackIdxs(byStack, winStackIdxs)
+            if opts.forceRebuild then
+                stackline.manager:cleanup()              -- delete everything first
+            end
+            stackline.manager:reconcile(merged)          -- diff-based update (after cleanup = full rebuild)
         end)
     end
 end -- }}}

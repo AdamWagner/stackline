@@ -117,6 +117,24 @@ function Indicator:updateFocus(isWinFocused, isStackFocused) -- {{{
     return {winChanged = winChanged, stackChanged = stackChanged}
 end -- }}}
 
+function Indicator:reposition(newFrame, newStackIdx, newScreenFrame) -- {{{
+    -- Update geometry without recreating canvas elements or looking up icons.
+    -- Used by reconcile path when a window moved or stack-index changed.
+    self.frame = newFrame
+    self.stackIdx = newStackIdx
+    self.screenFrame = newScreenFrame
+    self.side = screenSide(newFrame, newScreenFrame.w)
+
+    local indicatorRect, iconRect = self:buildRects()
+
+    if self.canvas[self.rectId] then
+        self.canvas[self.rectId].frame = indicatorRect
+    end
+    if self.showIcons and self.canvas[self.iconId] then
+        self.canvas[self.iconId].frame = iconRect
+    end
+end -- }}}
+
 function Indicator:delete() -- {{{
     -- Remove this indicator's elements from the shared canvas.
     -- Iterates to find numeric indices since hs.canvas methods require them.
