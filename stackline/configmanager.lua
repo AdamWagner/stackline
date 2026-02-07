@@ -1,4 +1,4 @@
---[[ 
+--[[
 Schema-validated configuration manager. Stores config as a nested table accessed
 via dot-path strings (e.g., 'appearance.color'). Validates on init and on set().
 Config changes trigger onChange callbacks in Config.events (e.g., any appearance.*
@@ -28,8 +28,8 @@ log.i('Loading module: stackline.configmanager')
 
 local Config = {}
 
+-- Validator & coerce methods for each type found in stackline config.
 Config.types = { -- {{{
-    -- validator & coerce mthods for each type found in stackline config
     ['string'] = {
         validator = v.is_string,
         coerce = tostring,
@@ -66,9 +66,9 @@ local defaultOnChangeEvt = { -- {{{
     __index = function() stackline.queryWindowState:start() end
 }  -- }}}
 
+-- onChange callbacks: when a config value is set(), the matching callback fires.
+-- Keys not listed here fall through to defaultOnChangeEvt (triggers a query cycle).
 Config.events = setmetatable({ -- {{{
-    -- onChange callbacks: when a config value is set(), the matching callback fires.
-    -- Keys not listed here fall through to defaultOnChangeEvt (triggers a query cycle).
     appearance = function() stackline.manager:rebuildAllIndicators() end,
     features = {
         clickToFocus      = function() return stackline:refreshClickTracker() end,
@@ -82,8 +82,8 @@ Config.events = setmetatable({ -- {{{
     },
 }, defaultOnChangeEvt) -- }}}
 
+-- Set type for each stackline config key.
 Config.schema = { -- {{{
-    -- Set type for each stackline config key
     paths = {
       yabai               = 'string'
     },
@@ -132,14 +132,14 @@ function Config:getPathSchema(path) -- {{{
     return _type, validator
 end -- }}}
 
+-- Recursively build a validator function from the schema type definition.
 function Config.generateValidator(schemaType) -- {{{
-    if u.istable(schemaType) then -- recursively build validator
+    if u.istable(schemaType) then
         local children = u.map(schemaType, Config.generateValidator)
         log.d('validator children:\n', hs.inspect(children))
         return v.is_table(children)
     end
 
-    -- otherwise, return validation fn for given type
     log.d('schemaType:', schemaType)
     return Config.types[schemaType]                  -- if schemaType is a known config type..
             and Config.types[schemaType].validator() -- then return validation fn
@@ -174,9 +174,9 @@ function Config:getOrSet(path, val) -- {{{
       or self:get(path)
 end -- }}}
 
+-- path is a dot-separated string, e.g., 'appearance.color'.
+-- Returns value at path or full config if path not provided.
 function Config:get(path) -- {{{
-    -- path is a dot-separated string, e.g., 'appearance.color'
-    -- returns value at path or full config if path not provided
     if path==nil then return self.conf end
     local val = u.getfield(path, self.conf)
 
@@ -188,10 +188,10 @@ function Config:get(path) -- {{{
     return val
 end -- }}}
 
+-- path is a dot-separated string, e.g., 'appearance.color'.
+-- val is the value to set at path.
+-- Non-existent path segments will be set to an empty table.
 function Config:set(path, val) -- {{{
-    -- path is a dot-separated string, e.g., 'appearance.color'
-    -- val is the value to set at path
-    -- non-existent path segments will be set to an empty table
     local _type, validator = self:getPathSchema(path) -- lookup type in schema
     if not _type then
         log.w(('config.set("%s") not found in schema'):format(path))

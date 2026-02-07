@@ -21,8 +21,8 @@ function Stack:new(stackedWindows) -- {{{
     return stack
 end -- }}}
 
+-- Convenience accessor: returns array of Window objects.
 function Stack:windows() -- {{{
-    -- Convenience accessor: returns array of Window objects (same shape as old self.windows)
     return self:get()
 end -- }}}
 
@@ -32,37 +32,37 @@ function Stack:getHs() -- {{{
    end)
 end -- }}}
 
+-- All stacked windows have the same dimensions,
+-- so the 1st HS window's frame is ≈ the stack's frame.
+-- TODO: Incorrect when the 1st window has min-size < stack width (see fuzzy frame detection)
 function Stack:frame() -- {{{
-   -- All stacked windows have the same dimensions,
-   -- so the 1st HS window's frame is ≈ the stack's frame.
-   -- TODO: Incorrect when the 1st window has min-size < stack width (see fuzzy frame detection)
    return self:first()._win:frame()
 end -- }}}
 
+-- NOTE: may not need when HS issue #2400 is closed
 function Stack:getOtherAppWindows(win) -- {{{
-   -- NOTE: may not need when HS issue #2400 is closed
    return self:filter(function(w)
        return w.app == win.app
    end)
 end -- }}}
 
-function Stack:anyFocused() -- {{{
+function Stack:anyFocused(focusedWinId) -- {{{
    return self:any(function(w)
-       return w:isFocused()
+       return w:isFocused(focusedWinId)
    end)
 end -- }}}
 
+-- SLOW PATH: tears down and recreates canvas elements from scratch.
+-- Called during rebuild after a yabai query.
 function Stack:rebuildAllIndicators() -- {{{
-   -- SLOW PATH: tears down and recreates canvas elements from scratch.
-   -- Called during rebuild after a yabai query.
    self:each(function(w)
        w:buildIndicator()
    end)
 end -- }}}
 
+-- FAST PATH: updates existing canvas properties in-place (colors, shadow, opacity).
+-- Called on focus changes — no canvas teardown, no icon lookups.
 function Stack:redrawAllIndicators(opts) -- {{{
-   -- FAST PATH: updates existing canvas properties in-place (colors, shadow, opacity).
-   -- Called on focus changes — no canvas teardown, no icon lookups.
    self:each(function(win)
        if win.id ~= opts.except then -- skip the triggering window (it redraws itself)
            win:redrawIndicator()

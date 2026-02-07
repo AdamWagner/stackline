@@ -11,8 +11,8 @@ shouldQuery() avoids unnecessary yabai subprocess calls via change detection.
 local log   = hs.logger.new('query', 'info')
 log.i('Loading module: queryYabai')
 
+-- Run a yabai CLI command asynchronously. Callback receives parsed JSON response.
 local function yabai(command, callback) -- {{{
-    -- Run a yabai CLI command asynchronously. Callback receives parsed JSON response.
     callback = callback or function(x) return x end
     command = '-m ' .. command -- prepend yabai message flag
 
@@ -23,9 +23,9 @@ local function yabai(command, callback) -- {{{
     ):start()
 end  -- }}}
 
+-- Build a {[winId_string] = stack_index} map from yabai's JSON response.
+-- Windows with stack-index == 0 are not stacked and are excluded.
 local function stackIdMapper(yabaiWindow) -- {{{
-    -- Build a {[winId_string] = stack_index} map from yabai's JSON response.
-    -- Windows with stack-index == 0 are not stacked and are excluded.
     local res = {}
     if type(yabaiWindow)~='table' then u.p(yabaiWindow) end -- debug guard: log unexpected non-table response
     for _,win in pairs(yabaiWindow or {}) do
@@ -36,10 +36,10 @@ local function stackIdMapper(yabaiWindow) -- {{{
     return res
 end  -- }}}
 
+-- Extract data from an hs.window into a plain table for grouping and comparison.
+-- Computes stackId/stackIdFzy for frame-based grouping.
+-- Lightweight, disposable records (no metatable, no indicator).
 local function extractWindowData(hsWin) -- {{{
-    -- Extract data from an hs.window into a plain table for grouping and comparison.
-    -- Absorbs the stackId computation from Window:makeStackId().
-    -- Used by reconcile path: lightweight, disposable records (no metatable, no indicator).
     local frame = hsWin:frame():floor()
     local x, y, w, h = frame.x, frame.y, frame.w, frame.h
     local fuzzFactor = stackline.config:get('features.fzyFrameDetect.fuzzFactor')
@@ -59,36 +59,27 @@ local function extractWindowData(hsWin) -- {{{
     }
 end -- }}}
 
+-- Given windows from hs.window.filter:
+--    1. Extract plain data tables from hs.window objects
+--    2. Group by stackId (frame coords), keeping only groups with >1 window
 local function groupWindows(ws) -- {{{
-    -- Given windows from hs.window.filter:
-    --    1. Extract plain data tables from hs.window objects
-    --    2. Group by stackId (frame coords)
-    --    3. If at least one group, also group by app (for HS #2400 workaround)
     local windows = u.map(ws, function(w)
         return extractWindowData(w)
     end)
 
-    -- See extractWindowData() above for how stackId/stackIdFzy are computed
     local groupKey = stackline.config:get('features.fzyFrameDetect').enabled
         and 'stackIdFzy'
         or 'stackId'
 
-    local byStack = u.filter(
+    return u.filter(
         u.groupBy(windows, groupKey),
         u.greaterThan(1)  -- stacks have >1 window, so ignore 'groups' of 1
     )
-
-    local byApp
-    if u.length(byStack) > 0 then
-        byApp = u.groupBy(u.flatValues(byStack), 'app')
-    end
-
-    return byStack, byApp
 end -- }}}
 
+-- Assign yabai stack indices to frame-grouped windows, then prune any
+-- that yabai says aren't truly stacked (absent from map → stack-index was 0).
 local function mergeWinStackIdxs(byStack, winStackIdxs) -- {{{
-    -- Assign yabai stack indices to frame-grouped windows, then prune any
-    -- that yabai says aren't truly stacked (absent from map → stack-index was 0).
     u.each(byStack, function(stack)
         u.each(stack, function(win)
             win.stackIdx = winStackIdxs[tostring(win.id)]
@@ -102,13 +93,11 @@ local function mergeWinStackIdxs(byStack, winStackIdxs) -- {{{
     end)
 end -- }}}
 
+-- Analyze byStack to determine if a stack refresh is needed:
+--   • change num stacks (+/-)
+--   • change position
+--   • change num windows (win added / removed)
 local function shouldQuery(new) -- {{{
-    -- Analyze byStack to determine if a stack refresh is needed
-    --  • change num stacks (+/-)
-    --  • changes to existing stack
-    --    • change position
-    --    • change num windows (win added / removed)
-
     local curr = stackline.manager:getSummary()            -- snapshot current state
     new = stackline.manager:getSummary(u.values(new))      -- snapshot incoming state in same format
 
@@ -130,11 +119,11 @@ local function shouldQuery(new) -- {{{
     log.i('Should not redraw.')
 end -- }}}
 
+-- Main slow-path entry point, called by stackmanager:update().
+-- Groups HS windows by frame, checks if anything changed, and if so
+-- queries yabai for stack indices and hands off to stackmanager:reconcile().
+-- When forceRebuild is set, cleanup() runs first so reconcile sees no existing state.
 local function run(opts) -- {{{
-    -- Main slow-path entry point, called by stackmanager:update().
-    -- Groups HS windows by frame, checks if anything changed, and if so
-    -- queries yabai for stack indices and hands off to stackmanager:reconcile().
-    -- When forceRebuild is set, cleanup() runs first so reconcile sees no existing state.
     opts = opts or {}
     local byStack = groupWindows(stackline.wf:getWindows())
 

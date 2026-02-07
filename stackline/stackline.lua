@@ -1,4 +1,4 @@
---[[ 
+--[[
 Stackline entry point and singleton. Wires up hs.window.filter event subscriptions
 that route to either the slow path (yabai query + canvas rebuild via queryWindowState
 timer) or the fast path (in-place canvas property updates via redrawWinIndicator).
@@ -52,8 +52,8 @@ function stackline:init(userConfig) -- {{{
     return self
 end -- }}}
 
+-- Default window filter controls what hs.window 'sees'
 stackline.wf = wf.new():setOverrideFilter{ -- {{{
-    -- Default window filter controls what hs.window 'sees'
     visible = true, -- i.e., neither hidden nor minimized
     fullscreen = false,
     currentSpace = true,
@@ -91,9 +91,10 @@ stackline.events = { -- {{{
     }
 } -- }}}
 
+-- Subscribe to window events:
+-- checkOn events → throttled slow path (query yabai if stacks changed)
+-- redrawOn events → fast path (update indicator appearance in-place)
 function stackline:setupListeners() -- {{{
-    -- On each win evt above, run update at most once every maxRefreshRate (defaults to 0.5s)
-    -- update = query window state & check if redraw needed
     self.wf:subscribe(self.events.checkOn, function(_win, _app, evt)
         self.forceQuery = self.forceQuery or u.contains( -- set forceQuery depending on the type of event
             self.events.forceQueryOn,
@@ -104,17 +105,15 @@ function stackline:setupListeners() -- {{{
         self.queryWindowState:start() -- (re)start the throttled timer
     end)
 
-    -- On each win evt listed, simply *redraw* indicators
-    -- No need for heavyweight query + refresh
     self.wf:subscribe(
         self.events.redrawOn,
         self.redrawWinIndicator
     )
 end -- }}}
 
+-- Listen for left mouse click events.
+-- If indicator containing the clickAt position can be found, focus that indicator's window.
 function stackline:setupClickTracker() -- {{{
-      -- Listen for left mouse click events
-      -- If indicator containing the clickAt position can be found, focus that indicator's window
     self.clickTracker = hs.eventtap.new({click}, function(e)
         local clickAt = hs.geometry.point(e:location().x, e:location().y)
         local clickedWin = self.manager:getClickedWindow(clickAt)
@@ -140,11 +139,9 @@ function stackline:refreshClickTracker() -- {{{
     end
 end -- }}}
 
+-- Fast path entry point: find the stacked window and update its indicator in-place.
+-- WAY faster than rebuilding from scratch since it skips icon lookup and canvas creation.
 function stackline.redrawWinIndicator(hsWin, _app, _evt) -- {{{
-    --[[ Dedicated redraw method to *adjust* the existing canvas element is WAY
-       faster than deleting the entire indicator & rebuilding it from scratch,
-       particularly since this skips querying the app icon & building the icon image.
-    ]]
     local stackedWin = stackline.manager:findWindow(hsWin:id())
     if not stackedWin then return end -- if non-existent, the focused win is not stacked
     stackedWin:redrawIndicator()

@@ -92,14 +92,14 @@ function Indicator:draw() -- {{{
     self:applyAppearance()
 end -- }}}
 
+-- Compare live focus against what we're currently showing, update if changed.
+-- Returns a table of {winChanged, stackChanged} or nil if nothing changed.
 function Indicator:updateFocus(isWinFocused, isStackFocused) -- {{{
-    -- Compare live focus against what we're currently showing
     local winChanged = isWinFocused ~= self.showingWinFocused
     local stackChanged = isStackFocused ~= self.showingStackFocused
 
     if not winChanged and not stackChanged then return nil end
 
-    -- Update what we're showing.
     -- showingStackFocused always tracks reality.
     if stackChanged then
         self.showingStackFocused = isStackFocused
@@ -117,9 +117,9 @@ function Indicator:updateFocus(isWinFocused, isStackFocused) -- {{{
     return {winChanged = winChanged, stackChanged = stackChanged}
 end -- }}}
 
+-- Update geometry without recreating canvas elements or looking up icons.
+-- Used by reconcile path when a window moved or stack-index changed.
 function Indicator:reposition(newFrame, newStackIdx, newScreenFrame) -- {{{
-    -- Update geometry without recreating canvas elements or looking up icons.
-    -- Used by reconcile path when a window moved or stack-index changed.
     self.frame = newFrame
     self.stackIdx = newStackIdx
     self.screenFrame = newScreenFrame
@@ -135,9 +135,9 @@ function Indicator:reposition(newFrame, newStackIdx, newScreenFrame) -- {{{
     end
 end -- }}}
 
+-- Remove this indicator's elements from the shared canvas.
+-- Iterates to find numeric indices since hs.canvas methods require them.
 function Indicator:delete() -- {{{
-    -- Remove this indicator's elements from the shared canvas.
-    -- Iterates to find numeric indices since hs.canvas methods require them.
     log.d('delete indicator')
     if not self.canvas then return end
 
@@ -155,9 +155,9 @@ function Indicator:delete() -- {{{
     end
 end -- }}}
 
+-- Returns the rectangle element's frame for click hit-testing,
+-- or nil if no canvas/element exists.
 function Indicator:getHitFrame() -- {{{
-    -- Returns the rectangle element's frame for click hit-testing,
-    -- or nil if no canvas/element exists.
     if not self.canvas then return nil end
     local elem = self.canvas[self.rectId]
     if not elem then return nil end
@@ -168,8 +168,8 @@ end -- }}}
 -- Internal methods
 -- ---------------------------------------------------------------------------
 
+-- Apply colors and shadow to canvas elements based on current render state.
 function Indicator:applyAppearance() -- {{{
-    -- Apply colors and shadow to canvas elements based on current render state.
     local bg, imgAlpha = self:computeColors()
     self.canvas[self.rectId].fillColor = bg
     self.canvas[self.rectId].shadow = self:computeShadow()
@@ -178,8 +178,8 @@ function Indicator:applyAppearance() -- {{{
     end
 end -- }}}
 
+-- Returns bg color table, icon opacity for the current focus state.
 function Indicator:computeColors() -- {{{
-    -- Returns bg color table, icon opacity for the current focus state.
     local opts = self.config
     local bgAlpha, imgAlpha
 
@@ -211,9 +211,9 @@ function Indicator:computeColors() -- {{{
     return bg, imgAlpha
 end -- }}}
 
+-- Focused indicators get larger, bolder shadows.
+-- pillDimmer scales down blur, opacity, and horizontal spread for pills.
 function Indicator:computeShadow() -- {{{
-    -- Focused indicators get larger, bolder shadows.
-    -- pillDimmer scales down blur, opacity, and horizontal spread for pills.
     local focused      = self.showingWinFocused
     local pillDimmer   = self.showIcons and 1 or 5
     local intensity    = self.config.shadowIntensity
@@ -236,9 +236,9 @@ function Indicator:computeShadow() -- {{{
     }
 end -- }}}
 
+-- Compute indicator and icon rectangles from frame, config, and screen side.
+-- X position is clamped to screen bounds to prevent drawing offscreen.
 function Indicator:buildRects() -- {{{
-    -- Compute indicator and icon rectangles from frame, config, and screen side.
-    -- X position is clamped to screen bounds to prevent drawing offscreen.
     local c = self.config
 
     -- Position indicator just outside the window edge

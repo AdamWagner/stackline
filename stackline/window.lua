@@ -1,7 +1,8 @@
 --[[
-Window model: wraps an hs.window, computes stack grouping IDs, tracks focus
-state, and coordinates indicator updates. Delegates all rendering to the
-Indicator module (stackline/indicator.lua).
+Window model: wraps an hs.window, tracks focus state, and coordinates
+indicator updates. Delegates all rendering to the Indicator module
+(stackline/indicator.lua). Created via newFromData() from plain data tables
+produced by extractWindowData() in queryYabai.lua.
 ]]
 local log       = hs.logger.new('window', 'info')
 local Indicator = require 'stackline.indicator'
@@ -14,29 +15,9 @@ function Window.__tostring(self)
     return ('<Window %s: %s — %s>'):format(self.id or '?', self.app or '?', self.title or '')
 end
 
-function Window:new(hsWin) -- {{{
-    local stackIdResult = self:makeStackId(hsWin)
-    local ws = setmetatable({
-        title      = hsWin:title(),              -- window title
-        app        = hsWin:application():name(), -- app name (string)
-        id         = hsWin:id(),                 -- window id (string) NOTE: HS win.id == yabai win.id
-        frame      = hsWin:frame(),              -- x,y,w,h of window (table)
-        stackId    = stackIdResult.stackId,      -- "{x}|{y}|{w}|{h}" e.g., "35|63|1185|741" (string)
-        topLeft    = stackIdResult.topLeft,      -- "{x}|{y}" e.g., "35|63" (string)
-        stackIdFzy = stackIdResult.fzyFrame,     -- fuzzy "{x}|{y}|{w}|{h}" rounded by fuzzFactor (string)
-        _win       = hsWin,                      -- hs.window object (table)
-        screen     = hsWin:screen():id(),
-        indicator  = nil,                        -- Indicator instance (created in buildIndicator)
-    }, self)
-
-    log.i( ('Window:new(%s)'):format(ws.id) )
-
-    return ws
-end -- }}}
-
+-- Create a Window from a plain data table (from extractWindowData).
+-- Used by reconcile path for windows that don't yet exist.
 function Window:newFromData(data) -- {{{
-    -- Create a Window from a plain data table (from extractWindowData).
-    -- Used by reconcile path for windows that don't yet exist.
     return setmetatable({
         title      = data.title,
         app        = data.app,
@@ -52,10 +33,10 @@ function Window:newFromData(data) -- {{{
     }, self)
 end -- }}}
 
+-- Update an existing Window in-place from new data.
+-- Only rebuilds the indicator when screen or app changed (different canvas/icon).
+-- Repositions in-place when only geometry changed. Does nothing if unchanged.
 function Window:reconcile(data) -- {{{
-    -- Update an existing Window in-place from new data.
-    -- Only rebuilds the indicator when screen or app changed (different canvas/icon).
-    -- Repositions in-place when only geometry changed. Does nothing if unchanged.
     self._win  = data._win     -- refresh hs.window reference
     self.title = data.title
 
@@ -92,18 +73,20 @@ function Window:reconcile(data) -- {{{
     end
 end -- }}}
 
-function Window:isFocused() -- {{{
+-- Returns true if this window is the focused window.
+-- Accepts an optional pre-resolved focusedWinId to avoid redundant HS API calls.
+function Window:isFocused(focusedWinId) -- {{{
+    if focusedWinId then return self.id == focusedWinId end
     local focusedWin = hs.window.focusedWindow()
     return focusedWin ~= nil and self.id == focusedWin:id()
 end -- }}}
 
-function Window:isStackFocused() -- {{{
-    return self.stack:anyFocused()
+function Window:isStackFocused(focusedWinId) -- {{{
+    return self.stack:anyFocused(focusedWinId)
 end -- }}}
 
+-- Slow path: create a new Indicator (computes geometry) and draw it.
 function Window:buildIndicator() -- {{{
-    -- Slow path: create a new Indicator (computes geometry) and draw it.
-    -- Replaces the old setupIndicator():drawIndicator() chain.
     log.d('buildIndicator for', self.id)
     if self.indicator then self.indicator:delete() end
     self.indicator = Indicator:new({
@@ -121,14 +104,17 @@ function Window:buildIndicator() -- {{{
     return self
 end -- }}}
 
+-- Fast path: update existing indicator appearance based on focus changes.
+-- Handles Window/Stack side effects (workaround, sibling redraws), then
+-- delegates canvas updates to self.indicator:updateFocus().
 function Window:redrawIndicator() -- {{{
-    -- Fast path: update existing indicator appearance based on focus changes.
-    -- Handles Window/Stack side effects (workaround, sibling redraws), then
-    -- delegates canvas updates to self.indicator:updateFocus().
     log.i('redrawIndicator for', self.id)
 
-    local isWinFocused = self:isFocused()
-    local isStackFocused = self:isStackFocused()
+    -- Resolve focused window ID once; pass through to avoid N+1 hs.window.focusedWindow() calls
+    local focusedWin = hs.window.focusedWindow()
+    local focusedWinId = focusedWin and focusedWin:id()
+    local isWinFocused = focusedWinId ~= nil and self.id == focusedWinId
+    local isStackFocused = self:isStackFocused(focusedWinId)
 
     -- HS #2400 workaround: manually redraw same-app windows on focus gain.
     -- Runs BEFORE the early return because "last-active" preservation keeps
@@ -156,28 +142,9 @@ function Window:deleteIndicator() -- {{{
     if self.indicator then self.indicator:delete() end
 end -- }}}
 
-function Window:makeStackId(hsWin) -- {{{
-    local frame = hsWin:frame():floor() -- floor to avoid sub-pixel differences
-
-    local x = frame.x
-    local y = frame.y
-    local w = frame.w
-    local h = frame.h
-
-    local fuzzFactor = stackline.config:get('features.fzyFrameDetect.fuzzFactor')
-    local roundToFuzzFactor = u.partial(u.roundToNearest, fuzzFactor)
-    local ff = u.map({x, y, w, h}, roundToFuzzFactor) -- round all dimensions by fuzzFactor
-
-    return {
-        topLeft = table.concat({x, y}, '|'),
-        stackId = table.concat({x, y, w, h}, '|'),
-        fzyFrame = table.concat(ff, '|'),
-    }
-end -- }}}
-
+-- Part of the HS #2400 workaround: when focusing a window, manually redraw
+-- other windows from the same app since HS may not fire unfocus events for them.
 function Window:unfocusOtherAppWindows() -- {{{
-    -- Part of the HS #2400 workaround: when focusing a window, manually redraw
-    -- other windows from the same app since HS may not fire unfocus events for them.
     log.i('unfocusOtherAppWindows for', self.id)
     u.each(self.otherAppWindows, function(w)
         w:redrawIndicator()

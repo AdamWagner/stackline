@@ -4,8 +4,8 @@ Maintains per-space state: _items holds current space's stacks, _spaceItems cach
 other spaces' stacks. switchSpace() swaps between them on space change.
 One canvas per screen per space (no canJoinAllSpaces): macOS auto-hides/shows on switch.
 Return visits are instant — cached stacks and canvas elements persist.
-Slow path: reconcile() diffs incoming data against existing Window objects.
-Fast path: findWindow() locates a window by ID for in-place redraws.
+reconcile() diffs incoming data against existing Window objects (slow path).
+findWindow() locates a window by ID for in-place redraws (fast path).
 Inherits from Collection for keyed storage and standard iteration.
 ]]
 local log        = hs.logger.new('stackmanager', 'info')
@@ -29,8 +29,8 @@ function Stackmanager:init() -- {{{
     return self
 end -- }}}
 
+-- Convenience accessor: returns array of Stack objects.
 function Stackmanager:stacks() -- {{{
-    -- Convenience accessor: returns array of Stack objects (same shape as old self.stacks)
     return self:get()
 end -- }}}
 
@@ -40,10 +40,10 @@ function Stackmanager:update(opts) -- {{{
     return self
 end -- }}}
 
+-- Save current space's stacks, restore new space's cached stacks.
+-- Canvases are per-space: macOS auto-hides old, auto-shows new.
+-- Stacks can't change on inactive spaces, so cached state is always valid.
 function Stackmanager:switchSpace(newSpaceId) -- {{{
-    -- Save current space's stacks, restore new space's cached stacks.
-    -- Canvases are per-space: macOS auto-hides old, auto-shows new.
-    -- Stacks can't change on inactive spaces, so cached state is always valid.
     if self._currentSpace == newSpaceId then return end
     if self._currentSpace then
         self._spaceItems[self._currentSpace] = self._items
@@ -54,10 +54,10 @@ function Stackmanager:switchSpace(newSpaceId) -- {{{
         tostring(newSpaceId), self:count()))
 end -- }}}
 
+-- Returns the shared canvas for a screen+space, creating it on first use.
+-- Canvas stays on its creation space (no canJoinAllSpaces): macOS auto-hides/shows
+-- on space switch. Elements persist across rebuild cycles within a space.
 function Stackmanager:getScreenCanvas(screen) -- {{{
-    -- Returns the shared canvas for a screen+space, creating it on first use.
-    -- Canvas stays on its creation space (no canJoinAllSpaces): macOS auto-hides/shows
-    -- on space switch. Elements persist across rebuild cycles within a space.
     local key = tostring(screen:id()) .. '|' .. tostring(self._currentSpace)
     if not self.screenCanvases[key] then
         local canvas = hs.canvas.new(screen:fullFrame())
@@ -68,32 +68,9 @@ function Stackmanager:getScreenCanvas(screen) -- {{{
     return self.screenCanvases[key]
 end -- }}}
 
-function Stackmanager:ingest(stacks, appWins) -- {{{
-    self:cleanup()
-
-    for stackId, groupedWindows in pairs(stacks) do
-        local stack = require 'stackline.stack':new(groupedWindows)
-        stack.id = stackId
-        stack:each(function(win)
-            -- win.otherAppWindows needed to workaround Hammerspoon issue #2400
-            win.otherAppWindows = u.filter(appWins[win.app], function(w)
-                -- exclude self and windows on other screens
-                return (w.id ~= win.id) and (w.screen == win.screen)
-            end)
-            -- TODO: fix error with nil stack field (??): window.lua:32: attempt to index a nil value (field 'stack')
-            win.stack = stack -- enables calling stack methods from window
-            -- Pass shared screen canvas so Indicator inserts elements into it
-            win.screenCanvas = self:getScreenCanvas(win._win:screen())
-        end)
-        self:add(stack)
-    end
-    self:rebuildAllIndicators()
-end -- }}}
-
+-- Reconcile-based update: reuses existing Window/Indicator objects where possible.
+-- Only creates/destroys/repositions what actually changed.
 function Stackmanager:reconcile(newStacks) -- {{{
-    -- Reconcile-based update: reuses existing Window/Indicator objects where possible.
-    -- Only creates/destroys/repositions what actually changed.
-
     -- 1. Collect all existing windows into a flat lookup
     local existingWindows = {}
     for _, stack in pairs(self._items) do
@@ -150,7 +127,7 @@ function Stackmanager:reconcile(newStacks) -- {{{
         end)
     end)
 
-    log.i(('reconcile: %d stacks, %d new, %d orphaned'):format(
+    log.i(('reconcile: %d stacks, %d new windows, %d orphaned windows'):format(
         self:count(), newCount, orphanCount))
 
     -- 6. Wire up otherAppWindows (HS #2400 workaround)
@@ -170,9 +147,9 @@ function Stackmanager:reconcile(newStacks) -- {{{
     end)
 end -- }}}
 
+-- Clear all elements from all canvases (all spaces) and invalidate cache.
+-- Canvases themselves persist (empty).
 function Stackmanager:cleanup() -- {{{
-    -- Clear all elements from all canvases (all spaces) and invalidate cache.
-    -- Canvases themselves persist (empty).
     for _, canvas in pairs(self.screenCanvases) do
         canvas:replaceElements()
     end
@@ -180,12 +157,11 @@ function Stackmanager:cleanup() -- {{{
     self._spaceItems = {}
 end -- }}}
 
+-- Summarizes all stacks on the current space, making it easy to determine
+-- what needs to be updated (if anything).
+-- Normalize: external is already an array of window arrays; self:stacks()
+-- contains Stack objects, so unwrap :windows() to get the same shape.
 function Stackmanager:getSummary(external) -- {{{
-    -- Summarizes all stacks on the current space, making it easy to determine
-    -- what needs to be updated (if anything).
-
-    -- Normalize: external is already an array of window arrays; self:stacks()
-    -- contains Stack objects, so unwrap :windows() to get the same shape.
     local stacks = external or u.map(self:stacks(), function(s) return s:windows() end)
     return {
         numStacks = #stacks,
@@ -195,9 +171,9 @@ function Stackmanager:getSummary(external) -- {{{
     }
 end -- }}}
 
+-- Clear all canvas elements (all spaces), invalidate cache, then rebuild current space.
+-- Other spaces rebuild on next visit (treated as first visit).
 function Stackmanager:rebuildAllIndicators() -- {{{
-    -- Clear all canvas elements (all spaces), invalidate cache, then rebuild current space.
-    -- Other spaces rebuild on next visit (treated as first visit).
     for _, canvas in pairs(self.screenCanvases) do
         canvas:replaceElements()
     end
@@ -207,27 +183,23 @@ function Stackmanager:rebuildAllIndicators() -- {{{
     end)
 end -- }}}
 
+-- A window must be *in* a stack to be found with this method.
 function Stackmanager:findWindow(wid) -- {{{
-    -- NOTE: A window must be *in* a stack to be found with this method!
     for _, stack in pairs(self._items) do
         local win = stack:get(wid) -- O(1) keyed lookup
         if win then return win end
     end
 end -- }}}
 
+-- NOTE: may not need when Hammerspoon #2400 is closed.
+-- O(1) keyed lookup by stackId.
 function Stackmanager:findStackByWindow(win) -- {{{
-    -- NOTE: may not need when Hammerspoon #2400 is closed
-    -- O(1) keyed lookup by stackId
     return self:get(win.stackId)
 end -- }}}
 
-function Stackmanager:getShowIconsState() -- {{{
-    return self.showIcons
-end -- }}}
-
+-- Given the coordinates of a mouse click, return the first window whose
+-- indicator element encompasses the point, or nil if none.
 function Stackmanager:getClickedWindow(point) -- {{{
-    -- given the coordinates of a mouse click, return the first window whose
-    -- indicator element encompasses the point, or nil if none.
     for _, stack in pairs(self._items) do
         local clickedWindow = stack:getWindowByPoint(point)
         if clickedWindow then
