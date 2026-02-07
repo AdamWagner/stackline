@@ -8,23 +8,26 @@ local Indicator = require 'stackline.indicator'
 log.i('Loading module: window')
 
 local Window = {}
+Window.__index = Window
+
+function Window.__tostring(self)
+    return ('<Window %s: %s — %s>'):format(self.id or '?', self.app or '?', self.title or '')
+end
 
 function Window:new(hsWin) -- {{{
     local stackIdResult = self:makeStackId(hsWin)
-    local ws = {
+    local ws = setmetatable({
         title      = hsWin:title(),              -- window title
         app        = hsWin:application():name(), -- app name (string)
         id         = hsWin:id(),                 -- window id (string) NOTE: HS win.id == yabai win.id
         frame      = hsWin:frame(),              -- x,y,w,h of window (table)
         stackId    = stackIdResult.stackId,      -- "{x}|{y}|{w}|{h}" e.g., "35|63|1185|741" (string)
-        topLeft    = stackIdResult.topLeft,       -- "{x}|{y}" e.g., "35|63" (string)
+        topLeft    = stackIdResult.topLeft,      -- "{x}|{y}" e.g., "35|63" (string)
         stackIdFzy = stackIdResult.fzyFrame,     -- fuzzy "{x}|{y}|{w}|{h}" rounded by fuzzFactor (string)
         _win       = hsWin,                      -- hs.window object (table)
         screen     = hsWin:screen():id(),
         indicator  = nil,                        -- Indicator instance (created in buildIndicator)
-    }
-    setmetatable(ws, self)
-    self.__index = self
+    }, self)
 
     log.i( ('Window:new(%s)'):format(ws.id) )
 

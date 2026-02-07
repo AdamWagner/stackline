@@ -31,6 +31,10 @@ end
 local Indicator = {}
 Indicator.__index = Indicator
 
+function Indicator.__tostring(self)
+    return ('<Indicator %s>'):format(self.rectId or '?')
+end
+
 function Indicator:new(args) -- {{{
     local config      = args.config
     local showIcons   = config.showIcons

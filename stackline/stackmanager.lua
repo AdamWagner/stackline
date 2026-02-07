@@ -1,21 +1,32 @@
---[[ 
+--[[
 Manages the collection of Stack objects for the current space.
 Slow path: receives grouped+indexed windows from queryYabai.lua via ingest(),
 creates Stack objects, wires up HS #2400 workaround data, and triggers canvas rebuild.
-Fast path: findWindow() does a linear scan to locate a window by ID for in-place redraws.
+Fast path: findWindow() locates a window by ID for in-place redraws.
+Inherits from Collection for keyed storage and standard iteration.
 ]]
-local log   = hs.logger.new('stackmanager', 'info')
+local log        = hs.logger.new('stackmanager', 'info')
+local Collection = require 'lib.collection'
 
-local Stackmanager = {}
+local Stackmanager = setmetatable({}, Collection)
+Stackmanager.__index = Stackmanager
+
+function Stackmanager.__tostring(self)
+    return ('<Stackmanager: %d stacks>'):format(self:count())
+end
 
 Stackmanager.query = require 'stackline.queryYabai'
 
 function Stackmanager:init() -- {{{
-    self.stacks = {}
+    self._items = {}
     self.screenCanvases = {} -- {screenId → hs.canvas} — one shared canvas per screen
     self.showIcons = stackline.config:get('appearance.showIcons')
-    self.__index = self
     return self
+end -- }}}
+
+function Stackmanager:stacks() -- {{{
+    -- Convenience accessor: returns array of Stack objects (same shape as old self.stacks)
+    return self:get()
 end -- }}}
 
 function Stackmanager:update(opts) -- {{{
@@ -43,7 +54,7 @@ function Stackmanager:ingest(stacks, appWins) -- {{{
     for stackId, groupedWindows in pairs(stacks) do
         local stack = require 'stackline.stack':new(groupedWindows)
         stack.id = stackId
-        u.each(stack.windows, function(win)
+        stack:each(function(win)
             -- win.otherAppWindows needed to workaround Hammerspoon issue #2400
             win.otherAppWindows = u.filter(appWins[win.app], function(w)
                 -- exclude self and windows on other screens
@@ -54,19 +65,9 @@ function Stackmanager:ingest(stacks, appWins) -- {{{
             -- Pass shared screen canvas so Indicator inserts elements into it
             win.screenCanvas = self:getScreenCanvas(win._win:screen())
         end)
-        table.insert(self.stacks, stack)
+        self:add(stack)
     end
     self:rebuildAllIndicators()
-end -- }}}
-
-function Stackmanager:get() -- {{{
-    return self.stacks
-end -- }}}
-
-function Stackmanager:eachStack(fn) -- {{{
-    for _stackId, stack in pairs(self.stacks) do
-        fn(stack)
-    end
 end -- }}}
 
 function Stackmanager:cleanup() -- {{{
@@ -74,16 +75,16 @@ function Stackmanager:cleanup() -- {{{
     for _screenId, canvas in pairs(self.screenCanvases) do
         canvas:replaceElements()
     end
-    self.stacks = {}
+    self:clear()
 end -- }}}
 
 function Stackmanager:getSummary(external) -- {{{
     -- Summarizes all stacks on the current space, making it easy to determine
     -- what needs to be updated (if anything).
-    
-    -- Normalize: external is already an array of window arrays; self.stacks
-    -- contains Stack objects, so unwrap .windows to get the same shape.
-    local stacks = external or u.map(self.stacks, function(s) return s.windows end)
+
+    -- Normalize: external is already an array of window arrays; self:stacks()
+    -- contains Stack objects, so unwrap :windows() to get the same shape.
+    local stacks = external or u.map(self:stacks(), function(s) return s:windows() end)
     return {
         numStacks = #stacks,
         topLeft = u.map(stacks, function(ws) return ws[1].topLeft end),
@@ -97,31 +98,23 @@ function Stackmanager:rebuildAllIndicators() -- {{{
     for _screenId, canvas in pairs(self.screenCanvases) do
         canvas:replaceElements()
     end
-    self:eachStack(function(stack)
+    self:each(function(stack)
         stack:rebuildAllIndicators()
     end)
 end -- }}}
 
 function Stackmanager:findWindow(wid) -- {{{
     -- NOTE: A window must be *in* a stack to be found with this method!
-    for _stackId, stack in pairs(self.stacks) do
-        for _idx, win in pairs(stack.windows) do
-            if win.id == wid then
-                return win
-            end
-        end
+    for _, stack in pairs(self._items) do
+        local win = stack:get(wid) -- O(1) keyed lookup
+        if win then return win end
     end
 end -- }}}
 
 function Stackmanager:findStackByWindow(win) -- {{{
     -- NOTE: may not need when Hammerspoon #2400 is closed
-    -- NOTE 2: Currently unused, since reference to "otherAppWindows" is sstored
-    -- directly on each window. Likely to be useful, tho, so keeping it around.
-    for _stackId, stack in pairs(self.stacks) do
-        if stack.id == win.stackId then
-            return stack
-        end
-    end
+    -- O(1) keyed lookup by stackId
+    return self:get(win.stackId)
 end -- }}}
 
 function Stackmanager:getShowIconsState() -- {{{
@@ -130,8 +123,8 @@ end -- }}}
 
 function Stackmanager:getClickedWindow(point) -- {{{
     -- given the coordinates of a mouse click, return the first window whose
-    -- indicator element encompasses the point, or nil if none.    
-    for _stackId, stack in pairs(self.stacks) do
+    -- indicator element encompasses the point, or nil if none.
+    for _, stack in pairs(self._items) do
         local clickedWindow = stack:getWindowByPoint(point)
         if clickedWindow then
             return clickedWindow

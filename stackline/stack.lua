@@ -1,24 +1,33 @@
---[[ 
+--[[
 A single stack: a group of overlapping windows sharing the same frame.
 Contains Window objects, iterators, indicator lifecycle, and click hit-testing.
+Inherits from Collection for keyed storage and standard iteration.
 ]]
-local Stack = {}
+local Collection = require 'lib.collection'
+
+local Stack = setmetatable({}, Collection)
+Stack.__index = Stack
+
+function Stack.__tostring(self)
+    return ('<Stack %s: %d windows>'):format(self.id or '?', self:count())
+end
 
 function Stack:new(stackedWindows) -- {{{
-    local stack = {
-        windows = stackedWindows
-    }
-    setmetatable(stack, self)
-    self.__index = self
+    local stack = setmetatable({}, self)
+    stack._items = {}
+    for _, win in ipairs(stackedWindows) do
+        stack:add(win)
+    end
     return stack
 end -- }}}
 
-function Stack:get() -- {{{
-    return self.windows
+function Stack:windows() -- {{{
+    -- Convenience accessor: returns array of Window objects (same shape as old self.windows)
+    return self:get()
 end -- }}}
 
 function Stack:getHs() -- {{{
-   return u.map(self.windows, function(w)
+   return self:map(function(w)
        return w._win
    end)
 end -- }}}
@@ -27,24 +36,18 @@ function Stack:frame() -- {{{
    -- All stacked windows have the same dimensions,
    -- so the 1st HS window's frame is ≈ the stack's frame.
    -- TODO: Incorrect when the 1st window has min-size < stack width (see fuzzy frame detection)
-   return self.windows[1]._win:frame()
-end -- }}}
-
-function Stack:eachWin(fn) -- {{{
-   for _idx, win in pairs(self.windows) do
-       fn(win)
-   end
+   return self:first()._win:frame()
 end -- }}}
 
 function Stack:getOtherAppWindows(win) -- {{{
    -- NOTE: may not need when HS issue #2400 is closed
-   return u.filter(self:get(), function(w)
+   return self:filter(function(w)
        return w.app == win.app
    end)
 end -- }}}
 
 function Stack:anyFocused() -- {{{
-   return u.any(self.windows, function(w)
+   return self:any(function(w)
        return w:isFocused()
    end)
 end -- }}}
@@ -52,7 +55,7 @@ end -- }}}
 function Stack:rebuildAllIndicators() -- {{{
    -- SLOW PATH: tears down and recreates canvas elements from scratch.
    -- Called during rebuild after a yabai query.
-   self:eachWin(function(w)
+   self:each(function(w)
        w:buildIndicator()
    end)
 end -- }}}
@@ -60,7 +63,7 @@ end -- }}}
 function Stack:redrawAllIndicators(opts) -- {{{
    -- FAST PATH: updates existing canvas properties in-place (colors, shadow, opacity).
    -- Called on focus changes — no canvas teardown, no icon lookups.
-   self:eachWin(function(win)
+   self:each(function(win)
        if win.id ~= opts.except then -- skip the triggering window (it redraws itself)
            win:redrawIndicator()
        end
@@ -68,7 +71,7 @@ function Stack:redrawAllIndicators(opts) -- {{{
 end -- }}}
 
 function Stack:deleteAllIndicators() -- {{{
-   self:eachWin(function(win)
+   self:each(function(win)
        win:deleteIndicator()
    end)
 end -- }}}
@@ -90,14 +93,14 @@ function Stack:getWindowByPoint(p)
          )
       end -- }}}
 
-      local clickedScren = findClickedScreen(p)
-      p = clickedScren                          -- convert to screen-relative coords
-         and clickedScren:absoluteToLocal(p)   -- to match indicator frames
+      local clickedScreen = findClickedScreen(p)
+      p = clickedScreen                         -- convert to screen-relative coords
+         and clickedScreen:absoluteToLocal(p)   -- to match indicator frames
          or p
    end
 
    return table.unpack(
-         u.filter(self.windows, function(w)
+         self:filter(function(w)
           local indicatorFrame = w.indicator and w.indicator:getHitFrame()
           if not indicatorFrame then return false end
           return p:inside(indicatorFrame) -- NOTE: frame *must* be a hs.geometry.rect instance
