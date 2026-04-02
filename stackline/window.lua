@@ -4,18 +4,26 @@ log.i('Loading module: window')
 local Window = {}
 
 function Window:new(hsWin) -- {{{
+    local appObj = hsWin:application()
+    local appName = appObj and appObj:name()
+    local appBundle = appObj and appObj:bundleID()
+    local appPath = appObj and appObj:path()
     local stackIdResult = self:makeStackId(hsWin)
     local ws = {
-        title      = hsWin:title(),              -- window title
-        app        = hsWin:application():name(), -- app name (string)
-        id         = hsWin:id(),                 -- window id (string) NOTE: HS win.id == yabai win.id
-        frame      = hsWin:frame(),              -- x,y,w,h of window (table)
-        stackId    = stackIdResult.stackId,      -- "{{x}|{y}|{w}|{h}" e.g., "35|63|1185|741" (string)
-        topLeft    = stackIdResult.topLeft,      -- "{{x}|{y}" e.g., "35|63" (string)
-        stackIdFzy = stackIdResult.fzyFrame,     -- "{{x}|{y}" e.g., "35|63" (string)
-        _win       = hsWin,                      -- hs.window object (table)
+        title      = hsWin:title(),                                         -- window title
+        app        = appName or appBundle or appPath or ('window:' .. hsWin:id()),
+        appName    = appName,
+        appBundle  = appBundle,
+        appPath    = appPath,
+        id         = hsWin:id(),                                            -- window id (string) NOTE: HS win.id == yabai win.id
+        frame      = hsWin:frame(),                                         -- x,y,w,h of window (table)
+        stackId    = stackIdResult.stackId,                                 -- "{{x}|{y}|{w}|{h}" e.g., "35|63|1185|741" (string)
+        topLeft    = stackIdResult.topLeft,                                 -- "{{x}|{y}" e.g., "35|63" (string)
+        stackIdFzy = stackIdResult.fzyFrame,                                -- "{{x}|{y}" e.g., "35|63" (string)
+        _win       = hsWin,                                                 -- hs.window object (table)
         screen     = hsWin:screen():id(),
-        indicator  = nil,                        -- the canvas element (table)
+        indicator  = nil,                                                   -- the canvas element (table)
+        iconImage  = nil,
     }
     setmetatable(ws, self)
     self.__index = self
@@ -319,8 +327,46 @@ function Window:getShadowAttrs() -- {{{
 end -- }}}
 
 function Window:iconFromAppName() -- {{{
-    appBundle = hs.appfinder.appFromName(self.app):bundleID()
-    return hs.image.imageFromAppBundle(appBundle)
+    if self.iconImage ~= nil then
+        return self.iconImage or nil
+    end
+
+    local function imageFromApp(app)
+        if not app then return nil end
+
+        local bundleID = app:bundleID()
+        if bundleID then
+            local image = hs.image.imageFromAppBundle(bundleID)
+            if image then return image end
+        end
+
+        local appPath = app:path()
+        if appPath then
+            local image = hs.image.iconForFile(appPath)
+            if image then return image end
+        end
+    end
+
+    local image = imageFromApp(self._win:application())
+
+    if not image and self.appBundle then
+        image = hs.image.imageFromAppBundle(self.appBundle)
+    end
+
+    if not image and self.appPath then
+        image = hs.image.iconForFile(self.appPath)
+    end
+
+    if not image and self.appName then
+        image = imageFromApp(hs.application.get(self.appName))
+    end
+
+    if not image then
+        log.w(('Unable to resolve icon for window %s (%s)'):format(self.id, self.app))
+    end
+
+    self.iconImage = image or false
+    return image
 end -- }}}
 
 function Window:makeStackId(hsWin) -- {{{
