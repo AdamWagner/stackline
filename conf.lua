@@ -7,8 +7,21 @@ c.appearance = {}
 c.features = {}
 c.advanced = {}
 
+local function defaultYabaiPath() -- {{{
+    for _, path in ipairs({
+        '/opt/homebrew/bin/yabai',
+        '/usr/local/bin/yabai',
+    }) do
+        if hs.fs.attributes(path, 'mode') == 'file' then
+            return path
+        end
+    end
+
+    return '/usr/local/bin/yabai'
+end -- }}}
+
 -- Paths
-c.paths.yabai                         = '/usr/local/bin/yabai'
+c.paths.yabai                         = defaultYabaiPath()
 
 -- Appearance
 c.appearance.color                    = { white = 0.90 }    -- Indicator background color, e.g., {red = 0.5, blue = 0 }
