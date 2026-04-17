@@ -1,0 +1,18 @@
+{
+  "runtime": {
+    "version": "Lua 5.4"
+  },
+  "workspace": {
+    "library": [
+      "~/.hammerspoon/Spoons/EmmyLua.spoon/annotations"
+    ],
+    "maxPreload": 2000,
+    "preloadFileSize": 1000
+  },
+  "diagnostics": {
+    "globals": ["hs", "spoon"]
+  },
+  "completion": {
+    "callSnippet": "Replace"
+  }
+}
